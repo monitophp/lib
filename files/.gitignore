@@ -1,0 +1,6 @@
+vendor/
+cache/*
+config/database.json
+storage/*
+tmp/*
+sqlnet.log

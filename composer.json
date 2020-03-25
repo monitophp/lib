@@ -1,0 +1,19 @@
+{
+    "name": "joelsonb/monitolib",
+    "description": "MonitoLib - just a personal project",
+    "homepage": "http://gitlab.com/joelsonb/monitolib",
+    "authors": [
+        {
+            "name": "Joelson B",
+            "email": "joelsonb@msn.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.0.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "MonitoLib\\": "src"
+        }
+    }
+}

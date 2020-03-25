@@ -1,0 +1,7 @@
+Options FollowSymLinks
+RewriteEngine On
+# Scripts PHP
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule (.*) index.php?route=$1 [PT,QSA]
+RewriteCond %{HTTP:Authorization} ^(.*)
+RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]
