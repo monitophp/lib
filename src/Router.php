@@ -63,21 +63,15 @@ class Router
 
         $uri = trim(Request::getRequestUri(), '/');
 
-        // $file = str_replace('/', '.', $uri) . '.routes.php';
-
-        // while (!file_exists($file)) {
-        //     echo $file . '<br />';
-        //     $file =
-        // }
-
-        // \MonitoLib\Dev::ee($file);
-
         $uriParts = explode('/', trim(Request::getRequestUri(), '/'));
         $filename = implode('.', $uriParts);
         $filepath = App::getRoutesPath() . $filename . '.php';
+        $count    = count($uriParts);
 
-        while (!file_exists($filepath)) {
+        $i = 0;
+        while (!file_exists($filepath) && $i < $count) {
             $filepath = App::getRoutesPath() . substr($filename, 0, strrpos($filename, '.')) . '.php';
+            $i++;
         }
 
         if (!file_exists($filepath)) {
@@ -90,10 +84,7 @@ class Router
 
         require_once $filepath;
 
-        // \MonitoLib\Dev::pre(self::$routes);
-
         $currentArray = [];
-
         $action = true;
 
         if (!isset(self::$routes)) {
