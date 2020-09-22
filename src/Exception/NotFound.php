@@ -18,7 +18,7 @@ class NotFound extends \Exception
 
     private $errors = [];
 
-    public function __construct ($message = null, $errors = null, $code = 0, \Exception $previous = null)
+    public function __construct ($message = null, $errors = null, $code = 404, \Exception $previous = null)
     {
         $this->errors = $errors;
         http_response_code(404);

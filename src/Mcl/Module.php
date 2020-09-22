@@ -6,6 +6,8 @@ use \MonitoLib\Functions;
 
 class Module // extends \MonitoLib\Mcl
 {
+    const VERSION = '1.0.0';
+
     protected $commands = [];
     protected $name;
     protected $help;
@@ -43,5 +45,9 @@ class Module // extends \MonitoLib\Mcl
     {
         $this->name = $name;
         return $this;
+    }
+    public function showVersion()
+    {
+        echo $this->name . ' v' . self::VERSION . "\n";
     }
 }

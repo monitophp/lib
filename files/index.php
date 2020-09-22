@@ -3,7 +3,8 @@ define('MONITOLIB_ROOT_PATH', substr(__FILE__, 0, (strrpos(str_replace('\\', '/'
 define('MONITOLIB_ROOT_URL', substr($_SERVER['PHP_SELF'], 0, (strrpos(str_replace('\\', '/', $_SERVER['PHP_SELF']), '/') + 1)));
 
 // function to autoload classes
-function MonitoAutoload ($className) {
+function MonitoAutoload($className)
+{
     $dir = 'src' . DIRECTORY_SEPARATOR;
 
     if (substr($className, 0, 5) === 'cache') {

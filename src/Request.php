@@ -1,14 +1,13 @@
 <?php
-/**
- * 1.0.0. - 2017-06-26
- * Inicial release
- */
 namespace MonitoLib;
 
 class Request
 {
-    const VERSION = '2.1.0';
+    const VERSION = '3.0.0';
     /**
+    * 3.0.0 - 2020-09-18
+    * new: static properties and methods
+    *
     * 2.0.3 - 2019-12-09
     * new: nullIt() and $emptyAsNull on getJson()
     *
@@ -24,129 +23,51 @@ class Request
     * 2.0.0 - 2019-05-02
     * new: new gets
     *
-    * 1.0.0 - 2019-04-17
-    * first versioned
+    * 1.0.0 - 2017-06-26
+    * Inicial release
     */
 
-    static private $instance;
+    private static $asDataset = false;
+    private static $fields;
+    private static $json = [];
+    private static $orderBy;
+    private static $page;
+    private static $params = [];
+    private static $perPage;
+    private static $post;
+    private static $query;
+    private static $queryString = [];
+    private static $requestUri;
 
-    private $json = [];
-    private $queryString = [];
-    private $requestUri;
-    private $post;
-    private $params = [];
-
-    private $asDataset = false;
-    private $fields;
-    private $orderBy;
-    private $page;
-    private $perPage;
-    private $query;
-
-    private function __construct ()
+    public static function asDataset()
     {
-        $this->post = $_POST;
+        return self::$asDataset;
     }
-    public static function getInstance ()
+    public static function getFields()
     {
-        if (!isset(self::$instance)) {
-            self::$instance = new Request;
-        }
-
-        return self::$instance;
-    }
-    public function asDataset ()
-    {
-        return $this->asDataset;
-    }
-    public function getFields ()
-    {
-        if (is_null($this->fields)) {
-            if (isset($this->queryString['fields'])) {
-                $this->fields = explode(',', $this->queryString['fields']);
+        if (is_null(self::$fields)) {
+            if (isset(self::$queryString['fields'])) {
+                self::$fields = explode(',', self::$queryString['fields']);
             }
         }
 
-        return $this->fields;
+        return self::$fields;
     }
-    public function getJson ($emptyAsNull = false, $asArray = false)
+    public static function getJson($emptyAsNull = false, $asArray = false)
     {
-        $this->json = json_decode(file_get_contents('php://input'), $asArray);
+        self::$json = json_decode(file_get_contents('php://input'), $asArray);
 
-        if (!$this->json instanceof \StdClass) {
+        if (!self::$json instanceof \StdClass && !is_array(self::$json)) {
             return new \StdClass;
         }
 
         if ($emptyAsNull) {
-            return $this->nullIt($this->json);
+            return self::nullIt(self::$json);
         }
 
-        return $this->json;
+        return self::$json;
     }
-    public function getOrderBy ()
-    {
-        if (is_null($this->orderBy) && (isset($this->queryString['orderBy']))) {
-            foreach ($this->queryString['orderBy'] as $value) {
-                $p = explode(',', $value);
-                $this->orderBy[$p[0]] = $p[1] ?? '';
-            }
-        }
-
-        return $this->orderBy;
-    }
-    public function getPage ()
-    {
-        return (is_numeric($this->page) && $this->page > 0) ? $this->page : 1;
-    }
-    public function getParam ($key = null)
-    {
-        if (is_null($key)) {
-            return $this->params;
-        } else {
-            if (isset($this->params[$key])) {
-                return $this->params[$key];
-            } else {
-                return null;
-            }
-        }
-    }
-    public function getPerPage ()
-    {
-        return (is_numeric($this->perPage) && $this->perPage > 0) ? $this->perPage : 0;
-    }
-    public function getPost ($key = null)
-    {
-        if (is_null($key)) {
-            return $this->post;
-        } else {
-            if (isset($this->post[$key])) {
-                return $this->post[$key];
-            } else {
-                return null;
-            }
-        }
-    }
-    public function getQuery ()
-    {
-        return $this->query;
-    }
-    public function getQueryString ($key = null)
-    {
-        if (is_null($key)) {
-            return $this->query;
-        } else {
-            if (isset($this->query[$key])) {
-                return $this->query[$key];
-            } else {
-                return null;
-            }
-        }
-    }
-    public function getRequestUri ()
-    {
-        return $this->requestUri;
-    }
-    private function nullIt ($json)
+    private static function nullIt($json)
     {
         if ($json instanceof \StdClass) {
             foreach ($json as $k => $v) {
@@ -158,7 +79,77 @@ class Request
 
         return $json;
     }
-    public function setQueryString ($queryString)
+    public static function getOrderBy()
+    {
+        if (is_null(self::$orderBy) && (isset(self::$queryString['orderBy']))) {
+            foreach (self::$queryString['orderBy'] as $value) {
+                $p = explode(',', $value);
+                self::$orderBy[$p[0]] = $p[1] ?? '';
+            }
+        }
+
+        return self::$orderBy;
+    }
+    public static function getPage()
+    {
+        return (is_numeric(self::$page) && self::$page > 0) ? self::$page : 1;
+    }
+    public static function getParam($key = null)
+    {
+        if (is_null($key)) {
+            return self::$params;
+        } else {
+            if (isset(self::$params[$key])) {
+                return self::$params[$key];
+            } else {
+                return null;
+            }
+        }
+    }
+    public static function getPerPage()
+    {
+        return (is_numeric(self::$perPage) && self::$perPage > 0) ? self::$perPage : 0;
+    }
+    public static function getPost($key = null)
+    {
+        if (is_null(self::$post)) {
+            self::$post = $_POST;
+        }
+        if (is_null($key)) {
+            return self::$post;
+        } else {
+            if (isset(self::$post[$key])) {
+                return self::$post[$key];
+            } else {
+                return null;
+            }
+        }
+    }
+    public static function getQuery()
+    {
+        return self::$query;
+    }
+    public static function getQueryString($key = null)
+    {
+        if (is_null($key)) {
+            return self::$query;
+        } else {
+            if (isset(self::$query[$key])) {
+                return self::$query[$key];
+            } else {
+                return null;
+            }
+        }
+    }
+    public static function getRequestUri()
+    {
+        return self::$requestUri;
+    }
+    public static function setParams($params)
+    {
+        self::$params = $params;
+    }
+    public static function setQueryString($queryString)
     {
         $fields = explode('&', $queryString);
 
@@ -168,28 +159,24 @@ class Request
             $v = substr($field, $p + 1);
 
             if (!$p && $field === 'ds') {
-                $this->asDataset = true;
+                self::$asDataset = true;
             } else {
                 if (strcasecmp($f, 'fields') === 0) {
-                    $this->queryString['fields'] = $v;
+                    self::$queryString['fields'] = $v;
                 } elseif (strcasecmp($f, 'page') === 0) {
-                    $this->page = $v;
+                    self::$page = $v;
                 } elseif (strcasecmp($f, 'perpage') === 0) {
-                    $this->perPage = $v;
+                    self::$perPage = $v;
                 } elseif (strcasecmp($f, 'orderby') === 0) {
-                    $this->queryString['orderBy'][] = $v;
+                    self::$queryString['orderBy'][] = $v;
                 } else {
-                    $this->query[] = [$f => $v];
+                    self::$query[] = [$f => $v];
                 }
             }
         }
     }
-    public function setParams ($params)
+    public static function setRequestUri($requestUri)
     {
-        $this->params = $params;
-    }
-    public function setRequestUri ($requestUri)
-    {
-        $this->requestUri = '/' . $requestUri;
+        self::$requestUri = '/' . $requestUri;
     }
 }

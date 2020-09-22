@@ -31,20 +31,16 @@ class Mcl
     }
     public function run()
     {
-        // \MonitoLib\Dev::pre($this->module);
-
         $request = $this->parse();
         $module  = $request->getModule();
         $command = $request->getCommand();
 
         // Carrega o módulo
         switch ($module) {
-            case 'mcl':
-                $this->loadMcl();
-                $this->module = new \MonitoLib\Command\Mcl();
+            case 'lib':
+                $this->module = new \MonitoLib\Mcl\Command\Lib();
                 break;
             case 'mkr':
-                // $this->loadMkr();
                 $this->module = new \MonitoMkr\Command\Mkr();
                 break;
             default:
@@ -54,74 +50,57 @@ class Mcl
         // Configura o módulo
         $this->module->setup();
 
-        // Verifica os parâmetros
-        $command = $this->module->getCommand($command);
-        $params  = $command->getParams();
-
-        if (!empty($params)) {
-            $i = 0;
-
-            // \MonitoLib\Dev::pre($request);
-
-            foreach ($params as $param) {
-                $value = $request->getParams()[$i] ?? null;
-                $name = $param->getName();
-
-                // \MonitoLib\Dev::pre($value);
-
-                if ($param->getRequired() && is_null($value)) {
-                    throw new BadRequest("O parâmetro $name é obrigatório!");
-                }
-
-                $param->setValue($value);
-
-
-
-                $i++;
-            }
-        }
-
-        // Verifica as opções e argumentos
-        $options = $command->getOptions();
-
-        if (!empty($options)) {
-            foreach ($options as $option) {
-                $alias = $option->getAlias();
-                $name  = $option->getName();
-                // $value = $request->getParams()[$i] ?? null;
-
-                $value = $request->getOption($name) ?? $request->getOption($alias);
-
-                // \MonitoLib\Dev::vde($value);
-
-                if ($option->getRequired() && is_null($value)) {
-                    throw new BadRequest("A opção $name é obrigatória!");
-                }
-
-                $option->setValue($value);
-            }
-        }
-
-        $request = \MonitoLib\Mcl\Request::getInstance();
-        $request->setModule($module)
-            ->setCommand($command)
-            ->setParams($params)
-            ->setOptions($options);
-
-        // \MonitoLib\Dev::pre($request);
-
-        // Executa o comando
-        $className = $command->getClass();
-        $method    = $command->getMethod();
-
-        $class = new $className();
-        $class->$method();
-
-        // \MonitoLib\Dev::pre($command->getOptions());
-
         if (!is_null($command)) {
-            \MonitoLib\Dev::ee('aqui nao');
-            $this->loadCommand($command);
+            $command = $this->module->getCommand($command);
+            // Verifica os parâmetros
+            $params  = $command->getParams();
+
+            if (!empty($params)) {
+                $i = 0;
+
+                foreach ($params as $param) {
+                    $value = $request->getParams()[$i] ?? null;
+                    $name = $param->getName();
+
+                    if ($param->getRequired() && is_null($value)) {
+                        throw new BadRequest("O parâmetro $name é obrigatório!");
+                    }
+
+                    $param->setValue($value);
+
+                    $i++;
+                }
+            }
+
+            // Verifica as opções e argumentos
+            $options = $command->getOptions();
+
+            if (!empty($options)) {
+                foreach ($options as $option) {
+                    $alias = $option->getAlias();
+                    $name  = $option->getName();
+                    $value = $request->getOption($name) ?? $request->getOption($alias);
+
+                    if ($option->getRequired() && is_null($value)) {
+                        throw new BadRequest("A opção $name é obrigatória!");
+                    }
+
+                    $option->setValue($value);
+                }
+            }
+
+            $request = \MonitoLib\Mcl\Request::getInstance();
+            $request->setModule($module)
+                ->setCommand($command)
+                ->setParams($params)
+                ->setOptions($options);
+
+            // Executa o comando
+            $className = $command->getClass();
+            $method    = $command->getMethod();
+
+            $class = new $className();
+            $class->$method();
         }
 
         if ($request->getOption('help')) {
@@ -133,34 +112,12 @@ class Mcl
         }
 
         if ($request->getOption('version')) {
-            $this->showVersion();
-        }
-    }
-    private function loadMcl()
-    {
-        \MonitoLib\Dev::ee('ok');
-    }
-    private function loadMkr()
-    {
-        if (class_exists(\MonitoMkr\Cli\Mkr::class)) {
-            // TODO: organizar require
-            $filename = MONITOLIB_ROOT_PATH . 'vendor' . DIRECTORY_SEPARATOR . 'joelsonb/monitomkr/src/mkr.mcl.php';
-
-            if (file_exists($filename)) {
-                require_once $filename;
+            if (is_null($command)) {
+                $this->module->showVersion();
             } else {
-                throw new \Exception('Arquivo não existe!');
+                $this->showVersion();
             }
-        } else {
-            throw new \Exception('Package não existe!');
         }
-
-        // $this->showHelp();
-
-        // \MonitoLib\Dev::pre($this->$module->getHelp());
-
-        // \MonitoLib\Dev::vde($this->$module);
-        // \MonitoLib\Dev::pre($filename);
     }
     private function loadCommand($command)
     {
@@ -178,25 +135,13 @@ class Mcl
     }
     private function loadModule($module)
     {
+        $file = App::getRoutesPath() . 'cli.php';
 
+        if (!file_exists($file)) {
+            throw new Exception('Não há arquivos de comandos!');
+        }
 
-        // $file     = App::getRoutesPath() . 'routes.php';
-        // $filename = App::getRoutesPath();
-
-        // foreach ($uriParts as $part) {
-        //     $filename .= $part . '.';
-
-        //     if (file_exists($filename . 'routes.php')) {
-        //         $file = $filename . 'routes.php';
-        //     } else {
-        //         // Se o arquivo não existe, cancela a verificação e usa o último arquivo encontrado ou o base
-        //         break;
-        //     }
-        // }
-
-        // \MonitoLib\Dev::ee($file);
-
-        // require_once $file;
+        require_once $file;
     }
     private function parse()
     {
@@ -268,7 +213,7 @@ class Mcl
     }
     private function showVersion()
     {
-        echo 'Monito Command Line v' . $this->VERSION . "\n";
+        echo 'Monito Command Line v' . self::VERSION . "\n";
         exit;
     }
     /**

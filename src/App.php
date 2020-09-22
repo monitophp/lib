@@ -3,11 +3,20 @@ namespace MonitoLib;
 
 use \MonitoLib\Exception\InternalError;
 use \MonitoLib\Functions;
+use \MonitoLib\Request;
+use \MonitoLib\Response;
 
 class App
 {
-    const VERSION = '1.2.1';
+    const VERSION = '1.3.0';
     /**
+    * 1.3.0 - 2020-09-18
+    * new: env properties and methods
+    * new: removed __construct(), getInstance()
+    *
+    * 1.2.2 - 2020-03-02
+    * new: env properties and methods
+    *
     * 1.2.1 - 2020-03-02
     * new: getRoutesPath
     *
@@ -23,21 +32,20 @@ class App
 
     const DS = DIRECTORY_SEPARATOR;
 
-    static private $debug = 0;
-    static private $instance;
     static private $cachePath;
     static private $configPath;
+    static private $debug = 0;
+    static private $env = 'dev';
     static private $hasPrivileges = false;
     static private $isLoggedIn = false;
     static private $logPath;
     static private $routesPath;
     static private $storagePath;
     static private $tmpPath;
+    static private $userId;
+    static private $username;
 
-    private function __construct ()
-    {
-    }
-    public static function createPath ($path)
+    public static function createPath($path)
     {
         if (!file_exists($path)) {
             if (!@mkdir($path, 0755, true)) {
@@ -47,29 +55,37 @@ class App
 
         return $path;
     }
-    public static function getDebug ()
+    public static function getDebug()
     {
         return self::$debug;
     }
-    public static function getDocumentRoot ()
+    public static function getDocumentRoot()
     {
         if (PHP_SAPI === 'cli') {
-            $dr = substr(__DIR__, 0, strripos(__DIR__, 'vendor'));
+            $dr = substr(__DIR__, 0, strripos(__DIR__, 'vendor') - 1);
         } else {
             $dr = $_SERVER['DOCUMENT_ROOT'];
         }
 
         return $dr . self::DS;
     }
-    public static function getInstance ()
+    public static function getEnv()
     {
-        if (!isset(self::$instance)) {
-            self::$instance = new \MonitoLib\App;
-        }
-
-        return self::$instance;
+        return self::$env;
     }
-    private static function getPath ($directory, $relativePath = null)
+    public static function getCachePath($relativePath = null)
+    {
+        return self::getPath('cache', $relativePath);
+    }
+    public static function getConfigPath($relativePath = null)
+    {
+        return self::getPath('config', $relativePath);
+    }
+    public static function getLogPath($relativePath = null)
+    {
+        return self::getPath('log', $relativePath);
+    }
+    private static function getPath($directory, $relativePath = null)
     {
         $directoryPath = $directory . 'Path';
 
@@ -99,46 +115,46 @@ class App
 
         return self::$$directoryPath;
     }
-    public static function getCachePath ($relativePath = null)
-    {
-        return self::getPath('cache', $relativePath);
-    }
-    public static function getConfigPath ($relativePath = null)
-    {
-        return self::getPath('config', $relativePath);
-    }
-    public static function getLogPath ($relativePath = null)
-    {
-        return self::getPath('log', $relativePath);
-    }
-    public static function getRoutesPath ($relativePath = null)
+    public static function getRoutesPath($relativePath = null)
     {
         return self::getPath('routes', $relativePath);
     }
-    public static function getStoragePath ($relativePath = null)
+    public static function getStoragePath($relativePath = null)
     {
         return self::getPath('storage', $relativePath);
     }
-    public static function getTmpPath ($relativePath = null)
+    public static function getTmpPath($relativePath = null)
     {
         return self::getPath('tmp', $relativePath);
     }
-    public static function now ()
+    public static function getUserId()
+    {
+        if (is_null(self::$userId)) {
+            throw new BadRequest('Usuário não logado na aplicação!');
+        }
+
+        return self::$userId;
+    }
+    public static function getUsername()
+    {
+        if (is_null(self::$userId)) {
+            throw new BadRequest('Usuário não logado na aplicação!');
+        }
+
+        return self::$username;
+    }
+    public static function now()
     {
         return date('Y-m-d H:i:s');
     }
-    public static function run ()
+    public static function run()
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'OPTIONS') {
-            http_response_code(500);
+        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+            http_response_code(200);
+            exit;
         }
-
+        
         try {
-            // Busca os arquivos de rota
-            // foreach (glob(self::getConfigPath() . '*routes.php') as $filename) {
-            //     require_once $filename;
-            // }
-
             $uri = $_SERVER['REQUEST_URI'];
 
             // Removes site from url
@@ -149,20 +165,26 @@ class App
             // Splits query string from url
             $uri = explode('?', $uri);
 
-            $request = \MonitoLib\Request::getInstance();
-            $request->setRequestUri($uri[0]);
+            Request::setRequestUri($uri[0]);
 
             if (isset($uri[1])) {
-                $request->setQueryString($uri[1]);
+                Request::setQueryString($uri[1]);
             }
 
             // Requires an app init file, if exists
-            require self::getConfigPath() . 'init.php';
+            if (file_exists($config = self::getConfigPath() . 'config.php')) {
+                require $config;
+            }
+
+            // Requires an app init file, if exists
+            if (file_exists($init = self::getConfigPath() . 'init.php')) {
+                require $init;
+            }
 
             $return = [];
 
             if ($_SERVER['REQUEST_METHOD'] !== 'OPTIONS') {
-                $router = \MonitoLib\Router::check($request);
+                $router = \MonitoLib\Router::check();
 
                 if ($router->isSecure) {
                     if (!self::$isLoggedIn) {
@@ -176,67 +198,98 @@ class App
                     }
                 }
 
-                $class    = $router->class;
-                $method   = $router->method;
-                $class    = new $class;
-                $return   = $class->$method(...$router->params);
-                $response = \MonitoLib\Response::getInstance();
+                $class  = $router->class;
+                $method = $router->method;
+                $class  = new $class;
+                $return = $class->$method(...$router->params);
+
+                // \MonitoLib\Dev::vde($return);
+
+                if (!is_null($return)) {
+                    $return = Response::toArray($return);
+                }
+
+                $httpCode = Response::getHttpResponseCode() ?? 200;
             }
         } catch (\MonitoLib\Exception\DatabaseError $e) {
+            $httpCode = 500;
+            // \MonitoLib\Dev::pr($e);
             $return['error'] = $e->getMessage();
             if (self::getDebug() > 1) {
                 if (!empty($e->getErrors())) {
                     $return['debug']['errors'] = $e->getErrors();
                 }
             }
-        } catch (\ThrowAble $e) {
+        } catch (\Exception | \ThrowAble $e) {
+            $httpCode = $e->getCode();
+            // \MonitoLib\Dev::pr($e);
             $return['error'] = $e->getMessage();
             if (method_exists($e, 'getErrors') && !empty($e->getErrors())) {
                 $return['errors'] = $e->getErrors();
             }
+            if (self::getDebug() > 1) {
+                $return['debug']['file'] = $e->getFile();
+                $return['debug']['line'] = $e->getLine();
+            }
         } finally {
-            header('Content-Type: application/json');
+            if (isset($return['error']) && !empty($return['error'])) {
+                $buffer = Response::render();
 
-            if (empty($return['error'])) {
-                $response = \MonitoLib\Response::getInstance();
-                $buffer = $response->__toString();
                 if ($buffer === '') {
                     http_response_code(204);
                 } else {
                     echo $buffer;
                 }
-            } else {
+
                 if (self::getDebug() > 0) {
                     $return['debug']['method'] = $_SERVER['REQUEST_METHOD'];
-                    $return['debug']['url']    = $request->getRequestUri();
+                    $return['debug']['url']    = Request::getRequestUri();
                 }
+            }
 
-                if (self::getDebug() > 1) {
-                    $return['debug']['file'] = $e->getFile();
-                    $return['debug']['line'] = $e->getLine();
-                }
+            header(Response::getContentType());
+            http_response_code($httpCode < 100 || $httpCode > 599 ? 500 : $httpCode);
 
+            if (!is_null($return)) {
                 echo json_encode($return, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             }
         }
     }
-    public static function setHasPrivileges ($hasPrivileges)
-    {
-        self::$hasPrivileges = $hasPrivileges;
-    }
-    public static function setIsLoggedIn ($isLoggedIn)
-    {
-        self::$isLoggedIn = $isLoggedIn;
-    }
-    public static function setDebug ($debug)
+    public static function setDebug($debug)
     {
         if (!is_integer($debug) || $debug < 0 || $debug > 2) {
             throw new InternalError('O nível de debug deve ser 0, 1 ou 2!');
         }
 
+        if ($debug > 0) {
+            error_reporting(E_ALL);
+        } else {
+            error_reporting(0);
+        }
+
         self::$debug = $debug;
     }
-    public static function today ()
+    public static function setEnv($env)
+    {
+        self::$env = $env;
+    }
+    public static function setHasPrivileges($hasPrivileges)
+    {
+        self::$hasPrivileges = $hasPrivileges;
+    }
+    public static function setIsLoggedIn($isLoggedIn)
+    {
+        self::$isLoggedIn = $isLoggedIn;
+    }
+    public static function setUserId($userId)
+    {
+        self::$userId = $userId;
+    }
+    public static function setUsername($username)
+    {
+        self::$username = $username;
+    }
+    public static function today()
     {
         return date('Y-m-d');
     }

@@ -10,11 +10,15 @@ namespace MonitoLib\Database\Connector;
 
 use \MonitoLib\Exception\DatabaseError;
 use \MonitoLib\Exception\InternalError;
+use \MonitoLib\Functions;
 
 class Oracle extends Connection
 {
-    const VERSION = '1.0.1';
+    const VERSION = '1.1.0';
     /**
+    * 1.1.0 - 2020-07-21
+    * new: encrypted password
+    *
     * 1.0.1 - 2019-05-02
     * new: exception on parse error
     *
@@ -27,7 +31,9 @@ class Oracle extends Connection
 	public function connect()
 	{
 		$this->executeMode = OCI_COMMIT_ON_SUCCESS;
-		$this->connection = @oci_connect($this->user, $this->password, $this->server, 'AL32UTF8');
+        $password = Functions::decrypt($this->pass, $this->name . $this->env);
+
+		$this->connection = @oci_connect($this->user, $password, $this->host, 'AL32UTF8');
 
 		if (!$this->connection) {
 			$db = debug_backtrace();

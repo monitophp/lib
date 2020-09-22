@@ -3,7 +3,7 @@ define('MONITOLIB_ROOT_PATH', substr(__FILE__, 0, (strrpos(str_replace('\\', '/'
 define('MONITOLIB_ROOT_URL', substr($_SERVER['PHP_SELF'], 0, (strrpos(str_replace('\\', '/', $_SERVER['PHP_SELF']), '/') + 1)));
 
 // function to autoload classes
-function MonitoAutoload ($className)
+function MonitoAutoload($className)
 {
     $dir = 'src' . DIRECTORY_SEPARATOR;
 
@@ -18,36 +18,21 @@ function MonitoAutoload ($className)
     }
 }
 
-// print_r($_SERVER);
-
 // Registers autoload function
 spl_autoload_register('MonitoAutoload');
 
 // Loads composer autoload class
 require MONITOLIB_ROOT_PATH . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
 
-// Busca os arquivos de rota
-foreach (glob(\MonitoLib\App::getConfigPath() . '*routes.php') as $filename) {
-    require_once $filename;
+// Requires an app init file, if exists
+if (file_exists($config = \MonitoLib\App::getConfigPath() . 'config.php')) {
+    require $config;
 }
 
 try {
-    $command = $argv[1];
-
-    \MonitoLib\App::setIsLoggedIn(true);
-    \MonitoLib\App::setHasPrivileges(true);
-    \Security\controller\User::setUserId(14);
-
-    $request = \MonitoLib\Request::getInstance();
-    $request->setRequestUri($command);
-    $router = \MonitoLib\Router::check($request);
-
-    $class  = $router->class;
-    $method = $router->method;
-    $class  = new $class;
-
-    $return = $class->$method(...$router->params);
-    \MonitoLib\Dev::pre($return);
+    $mcl = \MonitoLib\Mcl::getInstance();
+    $mcl->run();
 } catch (\Exception $e) {
-    echo $e->getMessage();
+    echo $e->getMessage() . "\n";
+    echo $e->getFile() . ', ' . $e->getLine() . "\n";
 }

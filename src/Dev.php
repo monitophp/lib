@@ -12,8 +12,14 @@ namespace MonitoLib;
 
 class Dev
 {
-    const VERSION = '1.0.1';
+    const VERSION = '1.0.3';
     /**
+    * 1.0.3 - 2020-09-18
+    * fix: minor fixes
+    *
+    * 1.0.2 - 2020-07-24
+    * fix: breakline now is echoing
+    *
     * 1.0.1 - 2019-08-11
     * fix: vd => $index = 1
     *
@@ -21,17 +27,18 @@ class Dev
     * first versioned
     */
 
-	private static function breakLine ()
+	private static function breakLine()
 	{
-		return self::isCli() ? "\n" : PHP_EOL;
+		echo self::isCli() ? "\n" : PHP_EOL;
 	}
-	public static function db ($index = 1)
+	public static function db($index = 1)
 	{
 		$db = debug_backtrace();
 		// print_r($db);
-		echo (isset($db[$index + 1]) ? $db[$index + 1]['function'] . ', ' : '') . $db[$index]['file'] . ', ' . $db[$index]['line'] . self::breakLine();
+		echo (isset($db[$index + 1]) ? $db[$index + 1]['function'] . ', ' : '') . $db[$index]['file'] . ', ' . $db[$index]['line'];
+		self::breakLine();
 	}
-	public static function e ($s, $breakLine = true)
+	public static function e($s, $breakLine = true)
 	{
 		self::db();
 		echo $s;
@@ -40,23 +47,24 @@ class Dev
 			self::breakLine();
 		}
 	}
-	public static function ee ($s = 'exited', $breakLine = true)
+	public static function ee($s = 'exited', $breakLine = true)
 	{
 		self::db();
 		echo $s;
 		self::breakLine();
 		exit;
 	}
-	private static function isCli () {
+	private static function isCli()
+	{
 		return PHP_SAPI === 'cli' ? true : false;
 	}
-	public static function lme ($class)
+	public static function lme($class)
 	{
 		$methods = get_class_methods($class);
 		sort($methods);
 		self::pre($methods);
 	}
-	public static function pr ($a, $e = false, $index = 1)
+	public static function pr($a, $e = false, $index = 1)
 	{
 		self::db($index);
 		echo self::isCli() ? '' : '<pre>';
@@ -67,13 +75,12 @@ class Dev
 		} else {
 			echo self::isCli() ? "\n" : '</pre>';
 		}
-
 	}
-	public static function pre ($a)
+	public static function pre($a)
 	{
 		self::pr($a, true, 2);
 	}
-	private static function sliceArrayDepth ($array, $depth = 0)
+	private static function sliceArrayDepth($array, $depth = 0)
 	{
 	    foreach ($array as $key => $value) {
 	        if (is_array($value)) {
@@ -87,7 +94,7 @@ class Dev
 
 	    return $array;
 	}
-	public static function vd ($a, $depth = 0, $e = false, $index = 1)
+	public static function vd($a, $depth = 0, $e = false, $index = 1)
 	{
 		self::db($index);
 
@@ -104,7 +111,7 @@ class Dev
 			echo self::isCli() ? "\n" : '</pre>';
 		}
 	}
-	public static function vde ($a, $depth = 0)
+	public static function vde($a, $depth = 0)
 	{
 		self::vd($a, $depth, true, 2);
 	}

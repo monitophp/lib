@@ -8,11 +8,11 @@
  */
 namespace MonitoLib\Exception;
 
-class BadRequest extends \Exception
+class Conflict extends \Exception
 {
     const VERSION = '1.0.0';
     /**
-    * 1.0.0 - 2019-04-17
+    * 1.0.0 - 2020-07-09
     * first versioned
     */
 
@@ -21,10 +21,9 @@ class BadRequest extends \Exception
     public function __construct ($message = null, $errors = null, $code = 0, \Exception $previous = null)
     {
         $this->errors = $errors;
-        http_response_code(400);
-        parent::__construct($message, 400, $previous);
+        http_response_code(409);
+        parent::__construct($message, $code, $previous);
     }
-
     public function __toString ()
     {
         return $this->errors;

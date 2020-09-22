@@ -8,7 +8,7 @@
  */
 namespace MonitoLib\Exception;
 
-class BadRequest extends \Exception
+class InvalidModel extends \Exception
 {
     const VERSION = '1.0.0';
     /**
@@ -18,18 +18,18 @@ class BadRequest extends \Exception
 
     private $errors = [];
 
-    public function __construct ($message = null, $errors = null, $code = 0, \Exception $previous = null)
+    public function __construct($message = null, $errors = null, $code = 0, \Exception $previous = null)
     {
         $this->errors = $errors;
         http_response_code(400);
         parent::__construct($message, 400, $previous);
     }
 
-    public function __toString ()
+    public function __toString()
     {
         return $this->errors;
     }
-    public function getErrors ()
+    public function getErrors()
     {
         return $this->errors;
     }

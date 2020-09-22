@@ -1,14 +1,18 @@
 <?php
 namespace MonitoLib\Database\Dao;
 
+use \MonitoLib\App;
 use \MonitoLib\Exception\BadRequest;
 use \MonitoLib\Exception\InternalError;
 use \MonitoLib\Functions;
 
 class Base extends Query
 {
-    const VERSION = '1.1.2';
+    const VERSION = '1.2.0';
     /**
+    * 1.2.0 - 2020-09-18
+    * new: parseHook()
+    *
     * 1.1.2 - 2019-12-09
     * new: beginConnection(), commit() and rollback()
     * fix: getValue(): check if int values is null before set value
@@ -16,7 +20,6 @@ class Base extends Query
     * 1.1.1 - 2019-08-11
     * fix: minor fixes
     *
-    * 1.1.0 - 2019-05-02
     * new: removed parent::__constructor call
     *
     * 1.0.0 - 2019-04-17
@@ -30,10 +33,10 @@ class Base extends Query
     public function __construct()
     {
         $classParts = explode('\\', get_class($this));
-        $namespace  = join(array_slice($classParts, 0, -2), '\\') . '\\';
+        $namespace  = join('\\', array_slice($classParts, 0, -2)) . '\\';
         $className  = end($classParts);
-        $dto        = $namespace . 'dto\\' . $className;
-        $model      = $namespace . 'model\\' . $className;
+        $dto        = $namespace . 'Dto\\' . $className;
+        $model      = $namespace . 'Model\\' . $className;
 
         if (class_exists($dto)) {
             $this->dtoName = $dto;
@@ -92,7 +95,7 @@ class Base extends Query
             $dtoName = $this->getDtoName();
             $dto     = new $dtoName;
         } else {
-            $dto = \MonitoLib\Database\Dto::get($result);
+            $dto = \MonitoLib\Database\Dto::get($result, $this->convertName);
         }
 
         return $dto;
@@ -105,13 +108,17 @@ class Base extends Query
     public function getDtoName()
     {
         if (is_null($this->dtoName)) {
-            throw new InternalError('Objeto DTO não informado!');
+            throw new InternalError('Objeto Dto não informado!');
         }
 
         return $this->dtoName;
     }
     public function getModel()
     {
+        // $db = debug_backtrace();
+
+        // \MonitoLib\Dev::pr($db);
+
         if (is_null($this->model)) {
             throw new InternalError('Objeto Model nulo!');
         }
@@ -124,7 +131,7 @@ class Base extends Query
         $fields = $this->getModelFields();
 
         foreach ($result as $f => $v) {
-            $f   = Functions::toLowerCamelCase($f);
+            $f   = $this->convertName ? Functions::toLowerCamelCase($f) : mb_strtolower($f);
             $set = 'set' . ucfirst($f);
 
             if (isset($fields[$f])) {
@@ -172,11 +179,28 @@ class Base extends Query
             }
         }
     }
+    private function parseHook($hook, $value, $updating)
+    {
+        if (($hook === 'INSERT' && $updating) || ($hook === 'UPDATE' && !$updating)) {
+            return null;
+        }
+
+        switch (mb_strtolower($value)) {
+            case 'now':
+                return App::now();
+                break;
+            case 'userid':
+                return App::getUserId();
+                break;
+            default:
+                return $value;
+        }
+    }
     public function rollback()
     {
         $this->connection->rollback();
     }
-    protected function setAutoValues($dto)
+    protected function setAutoValues($dto, $updating = false)
     {
         $fields = $this->getModelFields();
 
@@ -184,40 +208,51 @@ class Base extends Query
             throw new InternalError('Campos do modelo não encontrados!');
         }
 
+        // \MonitoLib\Dev::pre($fields);
+
         foreach ($fields as $fn => $f) {
             $source      = $f['source'];
             $sourceParts = explode('.', $source);
             $sourceType  = $sourceParts[0];
             $get         = 'get' . ucfirst($fn);
+            $set         = 'set' . ucfirst($fn);
+            $value       = $dto->$get();
 
-            if (is_null($dto->$get()) && in_array($sourceType, ['MAX','PARAM','SEQUENCE','TABLE'])) {
-                $set      = 'set' . ucfirst($fn);
-                $value    = $dto->$get();
-                $primary  = $f['primary'];
-                $auto     = $f['auto'];
+            if (is_null($value)) {
+                if (in_array($sourceType, ['MAX','PARAM','SEQUENCE','TABLE', 'INSERT', 'UPDATE'])) {
+                    $value   = $dto->$get();
+                    $primary = $f['primary'];
+                    $auto    = $f['auto'];
 
-                $sourceValue = isset($sourceParts[1]) ? $sourceParts[1] : null;
+                    $sourceValue = isset($sourceParts[1]) ? $sourceParts[1] : null;
 
-                switch ($sourceType) {
-                    case 'MAX':
-                        $value = $this->max($f['name']) + 1;
-                        break;
-                    case 'PARAM':
-                    case 'TABLE':
-                        $sourceParts = explode('/', $sourceValue);
-                        $value = $this->paramValue($sourceParts[0], $sourceParts[1]);
-                        break;
-                    case 'SEQUENCE':
-                        $value = $this->nextValue($sourceValue);
-                        break;
-                    default:
-                        throw new InternalError('Origem de valor inválida!');
+                    switch ($sourceType) {
+                        case 'MAX':
+                            $value = $this->max($f['name']) + 1;
+                            break;
+                        case 'PARAM':
+                        case 'TABLE':
+                            $sourceParts = explode('/', $sourceValue);
+                            $value = $this->paramValue($sourceParts[0], $sourceParts[1]);
+                            break;
+                        case 'SEQUENCE':
+                            $value = $this->nextValue($sourceValue);
+                            break;
+                        case 'INSERT':
+                        case 'UPDATE':
+                            $value = $this->parseHook($sourceType, $sourceValue, $updating);
+                            break;
+                        default:
+                            throw new InternalError('Origem de valor inválida!');
+                    }
+
+                    if ($primary) {
+                        $this->lastId = $value;
+                    }
+                } elseif (!is_null($f['default'])) {
+                    $value = $f['default'];
                 }
-
-                if ($primary) {
-                    $this->lastId = $value;
-                }               
-
+                
                 $dto->$set($value);
             }
         }

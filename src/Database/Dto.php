@@ -20,7 +20,7 @@ class Dto
     private static $keys;
     private static $object;
 
-    private static function createDto ($className, $properties)
+    private static function createDto ($className, $properties, $convertName)
     {
         $db = debug_backtrace();
 
@@ -41,7 +41,7 @@ class Dto
         $set = '';
 
         foreach ($properties as $f) {
-            $f = Functions::toLowerCamelCase(strtolower($f));
+            $f = $convertName ? Functions::toLowerCamelCase(strtolower($f)) : strtolower($f);
             $g = 'get' . ucfirst($f);
             $s = 'set' . ucfirst($f);
 
@@ -77,14 +77,17 @@ class Dto
             throw new InternalError('Erro ao gravar o cache!');
         }
     }
-    public static function get ($array)
+    public static function get ($array, $convertName)
     {
         if (!empty($array)) {
             $properties = isset($array[0]) && is_array($array[0]) ? array_keys($array[0]) : array_keys($array);
+
+            // \MonitoLib\Dev::pr(serialize($properties));
+
             $className  = 'dto' . sha1(serialize($properties));
 
             if (!file_exists(App::getCachePath() . $className . '.php')) {
-                self::createDto($className, $properties);
+                self::createDto($className, $properties, $convertName);
             }
 
             $class = '\cache\\' . $className;

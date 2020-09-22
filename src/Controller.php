@@ -1,12 +1,19 @@
 <?php
 namespace MonitoLib;
 
+use \MonitoLib\Exception\BadRequest;
 use \MonitoLib\Exception\NotFound;
+use \MonitoLib\Request;
+use \MonitoLib\Response;
 
 class Controller
 {
-    const VERSION = '1.0.0';
+    const VERSION = '2.0.0';
     /**
+    * 2.0.0 - 2020-09-18
+    * new: overwrite for CRUD methods
+    * new: static Response/Request
+    *
     * 1.0.0 - 2019-04-17
     * first versioned
     */
@@ -24,25 +31,32 @@ class Controller
 	private $perPage;
 	private $query;
 
-	protected $request;
-	protected $response;
+	protected $notFound;
 
 	public function __construct()
 	{
-		$this->request  = \MonitoLib\Request::getInstance();
-		$this->response = \MonitoLib\Response::getInstance();
-
-		$classParts  = explode('\\', get_class($this));
-		$namespace   = join(array_slice($classParts, 0, -2), '\\') . '\\';
-		$className   = end($classParts);
+		$classParts      = explode('\\', get_class($this));
+		$namespace       = join('\\', array_slice($classParts, 0, -2)) . '\\';
+		$className       = end($classParts);
 		$this->daoName   = $namespace . 'Dao\\' . $className;
 		$this->dtoName   = $namespace . 'Dto\\' . $className;
 		$this->modelName = $namespace . 'Model\\' . $className;
 	}
-	public function create($mix = null) : void
+
+	public function __call($name, $arguments)
+	{
+		$method = '_' . $name;
+
+		if (!method_exists($this, $method)) {
+	        throw new NotFound("Method $name doesn't exists");
+		}	
+
+		return $this->$method(...$arguments);
+	}
+	public function _create($mix = null)
 	{
 		if (is_null($mix)) {
-	    	$json[] = $this->request->getJson();
+	    	$json[] = Request::getJson();
 		} else {
 			if (is_array($mix)) {
 				$json = $mix;
@@ -51,27 +65,20 @@ class Controller
 			}
 		}
 
+		$dao = new $this->daoName;
+
 		foreach ($json as $j) {
-		    $dao = new $this->dao;
-		    $dto = $this->jsonToDto(new $this->dto, $j);
+		    $dto = $this->jsonToDto(new $this->dtoName, $j);
 		    $dao->insert($dto);
 		}
 
-	    $this->response->setHttpResponseCode(201);
+	    Response::setHttpResponseCode(201);
 	}
-	public function delete(...$mix)
+	public function _delete(...$keys)
 	{
-	    $dao = new $daoName();
-	    $deleted = $secUserDao->andEqual('id', $id)
-	        ->delete();
-
-	    $this->response->setHttpResponseCode(204);
-	}
-	public function get(...$keys)
-	{
-		// \MonitoLib\Dev::pre($mix);
-		\MonitoLib\Dev::pre($_REQUEST['route']);
-
+		if (empty($keys)) {
+			throw new BadRequest('Não é possível deletar sem parâmetros!');
+		}
 
 	    $dao   = $this->getDao();
 		$model = $this->getModel();
@@ -79,47 +86,91 @@ class Controller
 		if (!empty($keys)) {
 			$primaryKeys = $model->getPrimaryKeys();
 
-			// \MonitoLib\Dev::pre($primaryKeys);
-
 			$i = 0;
 
 			foreach ($primaryKeys as $field) {
-				$dao->andEqual($field, $keys[$i], $dao::FIXED_QUERY);
+				$dao->equal($field, $keys[$i], $dao::FIXED_QUERY);
 				$i++;
 			}
 		}
 
-		$dataset = $this->dataset ?? $this->request->asDataset();
-		$fields  = $this->fields ?? $this->request->getFields();
-		$orderBy = $this->orderBy ?? $this->request->getOrderBy();
-		$page    = $this->page ?? $this->request->getPage();
-		$perPage = $this->perPage ?? $this->request->getPerPage();
-		$query   = $this->query ?? $this->request->getQuery();
+		$dao->delete();
+
+	    Response::setHttpResponseCode(204);
+	}
+	public function _get(...$keys)
+	{
+	    $dao   = $this->getDao();
+		$model = $this->getModel();
+
+		if (!empty($keys)) {
+			$primaryKeys = $model->getPrimaryKeys();
+
+			$i = 0;
+
+			foreach ($primaryKeys as $field) {
+				$dao->equal($field, $keys[$i], $dao::FIXED_QUERY);
+				$i++;
+			}
+		}
+
+		$dataset = $this->dataset ?? Request::asDataset();
+		$fields  = $this->fields ?? Request::getFields();
+		$orderBy = $this->orderBy ?? Request::getOrderBy();
+		$page    = $this->page ?? Request::getPage();
+		$perPage = $this->perPage ?? Request::getPerPage();
+		$query   = $this->query ?? Request::getQuery();
 
 	    $dao->setFields($fields)
 	    	->setQuery($query);
 
-    	if ($perPage > 0) {
+	    if (empty($keys)) {
     	    $dao->setPerPage($perPage)
     	        ->setPage($page)
 	        	->setOrderBy($orderBy);
 
     	    if ($dataset) {
-    	        $ds = $dao->dataset();
-    	        $this->response->setDataset($ds);
+    	        return $dao->dataset();
     	    } else {
-    	        $list = $dao->list();
-    	        $this->response->setData($this->response->toArray($list));
+    	        return $dao->list();
     	    }
-    	} else {
+	    } else {
     	    $dto = $dao->get();
 
     	    if (is_null($dto)) {
-    	        throw new NotFound('Registro não encontrado!');
+    	        throw new NotFound($this->notFound ?? 'Registro não encontrado!');
     	    }
 
-    	    $this->response->setData($dto);
+    	    return $dto;
     	}
+	}
+	public function _update(...$keys)
+	{
+		$json  = Request::getJson();
+		$dao   = $this->getDao();
+		$model = $this->getModel();
+
+		if (!empty($keys)) {
+			$primaryKeys = $model->getPrimaryKeys();
+
+			$i = 0;
+
+			foreach ($primaryKeys as $field) {
+				$dao->equal($field, $keys[$i], $dao::FIXED_QUERY);
+				$i++;
+			}
+		}
+
+		$dto = $this->_get(...$keys);
+
+	    if (is_null($dto)) {
+	        throw new NotFound($this->notFound ?? 'Registro não encontrado!');
+	    }
+
+		$dto = $this->jsonToDto($dto, $json);
+		$dao->update($dto);
+
+	    Response::setHttpResponseCode(201);
 	}
 	public function getDao()
 	{
@@ -154,30 +205,5 @@ class Controller
 	{
 		return $value === '' ? null : $value;
 	}
-	public function update($mix)
-	{
-		if (is_null($mix)) {
-	    	$json[] = $this->request->getJson();
-		} else {
-			if (is_array($mix)) {
-				$json = $mix;
-			} else {
-				$json[] = $mix;
-			}
-		}
 
-	    $secUserDao = new \App\Dao\SecUser;
-	    $secUserDto = $secUserDao->andEqual('id', $id)
-	        ->get();
-
-	    if (is_null($secUserDto)) {
-	        throw new NotFound('Registro não encontrado!');
-	    }
-
-	    $this->jsonToDto($secUserDto, $json);
-	    $secUserDao->update($secUserDto);
-
-	    $this->response->setMessage('Registro atualizado com sucesso!')
-	         ->setHttpResponseCode(200);
-	}
 }

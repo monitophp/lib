@@ -1,6 +1,7 @@
 vendor/
-cache/*
-config/database.json
-storage/*
-tmp/*
+cache/
+config/config.php
+log/
+storage/
+tmp/
 sqlnet.log

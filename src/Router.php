@@ -1,32 +1,33 @@
 <?php
-/**
- * 1.0.0. - 2017-03-16
- * Inicial release
- */
 namespace MonitoLib;
 
 use \MonitoLib\App;
 use \MonitoLib\Exception\InternalError;
 use \MonitoLib\Exception\NotFound;
 use \MonitoLib\Functions;
+use \MonitoLib\Request;
 
 class Router
 {
-    const VERSION = '1.0.2';
+    const VERSION = '1.1.0';
     /**
-    * 1.0.1 - 2019-09-20
+    * 1.1.0 - 2020-09-18
+    * new: \MonitoLib\Request now static
+    * new: remove cli()
+    *
+    * 1.0.2 - 2019-09-20
     * fix: minor fixes
     *
     * 1.0.1 - 2019-05-02
     * fix: checks OPTIONS request method on check function
     *
-    * 1.0.0 - 2019-04-17
-    * first versioned
+    * 1.0.0 - 2017-03-16
+    * Inicial release
     */
 
     static private $routes = [];
 
-    private static function add ($method, $url, $action, $secure = true)
+    private static function add($method, $url, $action, $secure = true)
     {
         $parts = explode('/', trim($url, '/'));
 
@@ -55,57 +56,12 @@ class Router
 
         self::$routes = Functions::arrayMergeRecursive(self::$routes, $cf);
     }
-    public static function cli ($url, $action, $secure = true)
+    static public function check()
     {
-        self::add('CLI', $url, $action, $secure);
-    }
-    public static function get ($url, $action, $secure = true)
-    {
-        self::add('GET', $url, $action, $secure);
-    }
-    public static function patch ($url, $action, $secure = true)
-    {
-        self::add('PATCH', $url, $action, $secure);
-    }
-    public static function post ($url, $action, $secure = true)
-    {
-        self::add('POST', $url, $action, $secure);
-    }
-    public static function put ($url, $action, $secure = true)
-    {
-        self::add('PUT', $url, $action, $secure);
-    }
-    public static function delete ($url, $action, $secure = true)
-    {
-        self::add('DELETE', $url, $action, $secure);
-    }
-    static private function error ($message)
-    {
-        return $json = [
-            'code'    => '1',
-            'message' => $message
-            ];
-    }
-    static public function check ($request)
-    {
-        $cli = PHP_SAPI === 'cli';
+        $requestMethod = $_SERVER['REQUEST_METHOD'];
+        $params = [];
 
-        // Se a requisição for do tipo OPTIONS não verifica a rota
-        if (!$cli && ($_SERVER['REQUEST_METHOD'] ?? 'OPTIONS') === 'OPTIONS') {
-        // if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-            // \MonitoLib\Dev::ee($_SERVER['REQUEST_METHOD'] ?? 'OPTIONS');
-            exit;
-        }
-
-        if (PHP_SAPI == 'cli') {
-            $requestMethod = 'CLI';
-            $params = $request->getParam();
-        } else {
-            $requestMethod = $_SERVER['REQUEST_METHOD'];
-            $params = [];
-        }
-
-        $uri = trim($request->getRequestUri(), '/');
+        $uri = trim(Request::getRequestUri(), '/');
 
         // $file = str_replace('/', '.', $uri) . '.routes.php';
 
@@ -116,42 +72,23 @@ class Router
 
         // \MonitoLib\Dev::ee($file);
 
-        $uriParts = explode('/', trim($request->getRequestUri(), '/'));
-        $file     = App::getRoutesPath() . 'routes.php';
-        $filename = App::getRoutesPath();
+        $uriParts = explode('/', trim(Request::getRequestUri(), '/'));
+        $filename = implode('.', $uriParts);
+        $filepath = App::getRoutesPath() . $filename . '.php';
 
-        foreach ($uriParts as $part) {
-            $filename .= $part . '.';
+        while (!file_exists($filepath)) {
+            $filepath = App::getRoutesPath() . substr($filename, 0, strrpos($filename, '.')) . '.php';
+        }
 
-            if (file_exists($filename . 'routes.php')) {
-                $file = $filename . 'routes.php';
-            } else {
-                // Se o arquivo não existe, cancela a verificação e usa o último arquivo encontrado ou o base
-                break;
+        if (!file_exists($filepath)) {
+            $filepath = App::getRoutesPath() . 'default.php';
+
+            if (!file_exists($filepath)) {
+                throw new InternalError("Não há um arquivo de rotas configurado!");
             }
         }
 
-        // \MonitoLib\Dev::ee($file);
-
-        require_once $file;
-
-        // Verifica se existe arquivo de rota específico
-
-        // $dgrc = new \MonitoMkr;
-
-        if ($cli) {
-            // Verifica se existe o package MonitoMkr
-
-            $ovcuc = 'MonitoMkr\cli\Import';
-
-            if (class_exists('MonitoMkr\cli\Import')) {
-                \MonitoLib\Dev::pre('isisti!');
-            } else {
-                \MonitoLib\Dev::pre('num isisti!');
-            }
-
-        }
-
+        require_once $filepath;
 
         // \MonitoLib\Dev::pre(self::$routes);
 
@@ -235,21 +172,50 @@ class Router
             }
 
             if (class_exists($class)) {
-                if (is_callable([$class, $method])) {
+                // \MonitoLib\Dev::e($class);
+                // \MonitoLib\Dev::ee($method);
+                // if (is_callable([$class, $method])) {
                     $router = new \StdClass;
                     $router->class    = $class;
                     $router->method   = $method;
                     $router->params   = $params;
                     $router->isSecure = $secure;
                     return $router;
-                } else {
-                    throw new NotFound('Método do controller não encontrado!');
-                }
+                // } else {
+                    // throw new NotFound('Método do controller não encontrado!');
+                // }
             } else {
                 throw new NotFound("Controller $class não encontrado!");
             }
         } else {
             throw new NotFound('Ação não encontrada!');
         }
+    }
+    public static function delete($url, $action, $secure = true)
+    {
+        self::add('DELETE', $url, $action, $secure);
+    }
+    static private function error($message)
+    {
+        return $json = [
+            'code'    => '1',
+            'message' => $message
+            ];
+    }
+    public static function get($url, $action, $secure = true)
+    {
+        self::add('GET', $url, $action, $secure);
+    }
+    public static function patch($url, $action, $secure = true)
+    {
+        self::add('PATCH', $url, $action, $secure);
+    }
+    public static function post($url, $action, $secure = true)
+    {
+        self::add('POST', $url, $action, $secure);
+    }
+    public static function put($url, $action, $secure = true)
+    {
+        self::add('PUT', $url, $action, $secure);
     }
 }

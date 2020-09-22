@@ -13,25 +13,30 @@ use \MonitoLib\Exception\InternalError;
 
 class Connection
 {
-    const VERSION = '1.0.0';
+    const VERSION = '1.1.0';
     /**
+    * 1.1.0 - 2020-09-18
+    * new: password and server properties and get/set methods renamed to pass and host
+    *
     * 1.0.0 - 2020-03-20
     * first versioned
     */
 	protected $connection;
 	protected $database;
-	protected $dbms;
-	protected $password;
-	protected $server;
+	protected $type;
+	protected $pass;
+	protected $host;
 	protected $user;
 
 	public function __construct($d)
 	{
-		$this->database = $d->database;
-		$this->dbms     = $d->dbms;
-		$this->password = $d->password;
-		$this->server   = $d->server;
-		$this->user     = $d->user;
+		$this->name     = $d['name'];
+		$this->env      = $d['env'];
+		$this->database = $d['name'];
+		$this->type     = $d['type'];
+		$this->pass     = $d['pass'];
+		$this->host     = $d['host'];
+		$this->user     = $d['user'];
 	}
 	public function getConnection()
 	{
@@ -51,31 +56,49 @@ class Connection
 		return $this->database;
 	}
 	/**
-	* getDbms
+	* getEnv
 	*
-	* @return $dbms
+	* @return $env
 	*/
-	public function getDbms()
+	public function getEnv()
 	{
-		return $this->dbms;
+		return $this->env;
 	}
 	/**
-	* getPassword
+	* getType
 	*
-	* @return $password
+	* @return $type
 	*/
-	public function getPassword()
+	public function getType()
 	{
-		return $this->password;
+		return $this->type;
 	}
 	/**
-	* getServer
+	* getName
 	*
-	* @return $server
+	* @return $name
 	*/
-	public function getServer()
+	public function getName()
 	{
-		return $this->server;
+		return $this->name;
+	}
+	/**
+	* getPass
+	*
+	* @return $pass
+	*/
+	public function getPass()
+	{
+		return $this->pass;
+	}
+	/**
+	* getHost
+	*
+	* @return $host
+	*/
+	public function getHost()
+	{
+		return $this->host;
 	}
 	/**
 	* getUser
@@ -97,33 +120,33 @@ class Connection
 		return $this;
 	}
 	/**
-	 * setDbms
+	 * setType
 	 *
-	 * @param $dbms
+	 * @param $type
 	 */
-	public function setDbms($dbms)
+	public function setType($type)
 	{
-		$this->dbms = $dbms;
+		$this->type = $type;
 		return $this;
 	}
 	/**
-	 * setPassword
+	 * setPass
 	 *
-	 * @param $password
+	 * @param $pass
 	 */
-	public function setPassword($password)
+	public function setPass($pass)
 	{
-		$this->password = $password;
+		$this->pass = $pass;
 		return $this;
 	}
 	/**
-	 * setServer
+	 * setHost
 	 *
-	 * @param $server
+	 * @param $host
 	 */
-	public function setServer($server)
+	public function setHost($host)
 	{
-		$this->server = $server;
+		$this->host = $host;
 		return $this;
 	}
 	/**

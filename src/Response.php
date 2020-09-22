@@ -1,111 +1,100 @@
 <?php
-/**
- * 1.0.0. - 2018-04-27
- * Inicial release
- */
 namespace MonitoLib;
 
 use \MonitoLib\Functions;
 
 class Response
 {
-    const VERSION = '1.1.0';
+    const VERSION = '2.0.0';
     /**
+    * 2.0.0 - 2020-09-18
+    * new: static properties and methods
+    * new: get/setContentType, get/setHttpResponseCode
+    *
     * 1.1.0 - 2019-05-02
     * fix: checks $dataset['data']
     *
-    * 1.0.0 - 2019-04-17
-    * first versioned
+    * 1.0.0 - 2018-04-27
+    * Inicial release
     */
 
-	static private $instance;
+	private static $contentType = 'Content-Type: application/json';
+	private static $httpResponseCode = 500;
+	private static $json = [];
 
-	private $json = [];
-	private $httpResponseCode = 200;
-
-	private function __construct ()
+	public static function getContentType()
 	{
+		return self::$contentType;
 	}
-	public function __toString ()
+	public static function getHttpResponseCode()
 	{
-		return $this->render();
+		return self::$httpResponseCode;
 	}
-	public static function getInstance ()
+	public static function render()
 	{
-		if (!isset(self::$instance)) {
-			self::$instance = new \MonitoLib\Response;
-		}
+		http_response_code(self::$httpResponseCode);
 
-		return self::$instance;
-	}
-	private function render ()
-	{
-		http_response_code($this->httpResponseCode);
-
-		if (!empty($this->json)) {
-			return json_encode($this->json, JSON_UNESCAPED_UNICODE);
+		if (!empty(self::$json)) {
+			return json_encode(self::$json, JSON_UNESCAPED_UNICODE);
 		}
 	}
-	public function setData ($data)
+	public static function setContentType($contentType)
+	{
+		self::$contentType = $contentType;
+		return self;
+	}
+	public static function setData($data)
 	{
 		if (is_object($data)) {
 			if (!$data instanceof \stdClass) {
-				$data = $this->toArray($data);
+				$data = self::toArray($data);
 			}
 		}
 
-		$this->json['data'] = $data;
-		return $this;
+		self::$json['data'] = $data;
+		return self;
 	}
-	public function setDataset ($dataset)
+	public static function setDataset($dataset)
 	{
 		if (isset($dataset['data'])) {
-			$dataset['data'] = $this->toArray($dataset['data']);
+			$dataset['data'] = self::toArray($dataset['data']);
 		}
 
-		$this->json = Functions::arrayMergeRecursive($this->json, $dataset);
-		return $this;
+		self::$json = Functions::arrayMergeRecursive(self::$json, $dataset);
+		return self;
 	}
-	public function setHttpResponseCode ($httpResponseCode)
+	public static function setHttpResponseCode($httpResponseCode)
 	{
-		$this->httpResponseCode = $httpResponseCode;
-		return $this;
+		self::$httpResponseCode = $httpResponseCode;
+		return self;
 	}
-	public function setJson ($json)
+	public static function setJson($json)
 	{
-		$this->json = $json;
-		return $this;
+		self::$json = $json;
+		return self;
 	}
-	public function setMessage ($message)
+	public static function setMessage($message)
 	{
-		$this->json['message'] = $message;
-		return $this;
+		self::$json['message'] = $message;
+		return self;
 	}
-	public function setProperty ($property, $value)
+	public static function setProperty($property, $value)
 	{
-		$this->json[$property] = is_null($value) ? '' : $value;
-		return $this;
+		self::$json[$property] = is_null($value) ? '' : $value;
+		return self;
 	}
-	public function toArray ($objectList)
+	public static function toArray($object)
 	{
-		if (is_null($objectList)) {
-			return [];
-		}
-
-		$objectListOk = [];
-
-		if (is_array($objectList)) {
-			$objectListOk = $objectList;
-		} else {
-			$objectListOk[] = $objectList;
-		}
-
 		$results = [];
 
-		foreach ($objectListOk as $object) {
+		if (is_array($object)) {
+			foreach ($object as $k => $o) {
+				$results[$k] = self::toArray($o);
+			}
+		} else if (is_object($object)) {
 			$result = [];
-		    $class = new \ReflectionClass(get_class($object));
-		    
+			$class  = new \ReflectionClass(get_class($object));
+
 		    foreach ($class->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
 		        $methodName = $method->name;
 
@@ -114,19 +103,18 @@ class Response
 		            $value = $method->invoke($object);
 
 		            if (is_object($value)) {
-	                    $result[$propertyName] = $this->toArray($value);
+	                    $result[$propertyName] = self::toArray($value);
 		            } else {
 		                $result[$propertyName] = $value ?? '';
 		            }
 		        }
 		    }
 
-		    $results[] = $result;
-		}
-		if (is_array($objectList)) {
-	    	return $results;
+		    $results = $result;
 		} else {
-			return $results[0];
+			$results = $object;
 		}
+
+		return $results;
 	}
 }
