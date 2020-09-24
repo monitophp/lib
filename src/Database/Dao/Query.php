@@ -282,13 +282,13 @@ class Query
             }
 
             if (is_array($value1)) {
-                $sql .= '[';
+                $sql .= '(';
 
                 foreach ($value1 as $v) {
                     $sql .= $q . ($rawQuery ? $v : $this->escape($v)) . "$q,";
                 }
 
-                $sql = substr($sql, 0, -1) . ']';
+                $sql = substr($sql, 0, -1) . ')';
             } else {
                 $sql .= $q . ($rawQuery ? $value1 : $this->escape($value1)) . $q;
 
@@ -555,8 +555,6 @@ class Query
 
             $sql = 'SELECT ' . $this->renderFieldsSql() . ' FROM ' . $this->model->getTableName() . $this->renderWhereSql() . $this->renderOrderBySql() . $this->renderLimitSql();
         }
-
-        \MonitoLib\Dev::ee($sql);
 
         $page    = $this->getPage();
         $perPage = $this->getPerPage();

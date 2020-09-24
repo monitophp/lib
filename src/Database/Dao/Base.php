@@ -60,7 +60,7 @@ class Base extends Query
             foreach ($uniqueConstraints as $uk => $uv) {
                 foreach ($uv as $k => $v) {
                     $get = 'get' . ucfirst($v);
-                    $this->andEqual($v, $dto->$get());
+                    $this->equal($v, $dto->$get());
 
                     // Se o dto tiver as chaves primárias com valores, inclui na busca
                     $primaryKeys = $this->model->getPrimaryKeys();
@@ -70,7 +70,7 @@ class Base extends Query
                         $val = $dto->$get();
 
                         if (!is_null($val)) {
-                            $this->andNotEqual($k, $val);
+                            $this->notEqual($k, $val);
                         }
                     }
                 }
@@ -171,11 +171,11 @@ class Base extends Query
             if ($countParams > 1) {
                 foreach ($params as $p) {
                     foreach ($keys as $k) {
-                        $this->andEqual($k, $p);
+                        $this->equal($k, $p);
                     }
                 }
             } else {
-                $this->andEqual($keys[0], $params[0]);
+                $this->equal($keys[0], $params[0]);
             }
         }
     }

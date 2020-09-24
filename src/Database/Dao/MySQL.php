@@ -164,11 +164,11 @@ class MySQL extends Base implements \MonitoLib\Database\Dao
             if ($countParams > 1) {
                 foreach ($params as $p) {
                     foreach ($keys as $k) {
-                        $this->andEqual($k, $p);
+                        $this->equal($k, $p);
                     }
                 }
             } else {
-                $this->andEqual($keys[0], $params[0]);
+                $this->equal($keys[0], $params[0]);
             }
 
             return $this->get();
