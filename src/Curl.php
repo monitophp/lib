@@ -12,8 +12,11 @@ namespace MonitoLib;
 
 class Curl
 {
-    const VERSION = '1.0.0';
+    const VERSION = '1.0.1';
     /**
+    * 1.0.1 - 2020-09-28
+    * fix: remove fixed header host
+    *
     * 1.0.0 - 2020-06-05
     * initial release
     */
@@ -21,11 +24,7 @@ class Curl
     private $curl;
     private $baseUrl = '';
     private $host = '';
-    private $header = [
-        'Accept: application/json',
-        'Content-Type: application/json',
-        'Host: www.ferimport.com.br'
-    ];
+    private $header = [];
     private $token;
 
     public function __construct()
@@ -56,12 +55,9 @@ class Curl
     }
     public function exec($method, $url)
     {
-        // curl_setopt($this->curl, CURLOPT_HTTPHEADER, 0);
-
         $this->header = [
             'Accept: application/json',
-            'Content-Type: application/json',
-            'Host: www.ferimport.com.br'
+            'Content-Type: application/json'
         ];
 
         if (!is_null($this->token)) {

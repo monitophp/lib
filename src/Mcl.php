@@ -7,7 +7,11 @@ use \MonitoLib\Functions;
 
 class Mcl
 {
-    const VERSION = '1.0.0';
+    const VERSION = '1.0.1';
+    /**
+    * 1.0.1 - 2020-09-28
+    * fix: loadModule()
+    */
 
     private static $instance;
     private $module;
@@ -142,6 +146,12 @@ class Mcl
         }
 
         require_once $file;
+
+        if (!isset($commands[$module])) {
+            throw new Exception('Módulo não existe!');
+        }
+
+        $this->module = new $commands[$module]();
     }
     private function parse()
     {

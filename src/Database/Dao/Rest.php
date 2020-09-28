@@ -7,8 +7,11 @@ use \MonitoLib\Functions;
 
 class Rest // extends Base implements \MonitoLib\Database\Dao
 {
-    const VERSION = '1.0.0';
+    const VERSION = '1.1.0';
     /**
+    * 1.1.0 - 2020-09-28
+    * new: decrypt pass
+    *
     * 1.0.0 - 2020-06-09
     * initial release
     */
@@ -24,11 +27,8 @@ class Rest // extends Base implements \MonitoLib\Database\Dao
 
             // Busca os dados de conexão
             $connection = \MonitoLib\Database\Connector::getInstance()->getConnection($this->connection);
-
-            if (isset($connection['token'])) {
-                $this->curl->setAuthorization($connection['token']);
-            }
-
+            $pass = $connection['token'] ?? $connection['pass'];
+            $this->curl->setAuthorization(Functions::decrypt($pass, $connection['name'] . $connection['env']));
             $this->curl->setHost($connection['host']);
         }
 

@@ -8,8 +8,11 @@ use \MonitoLib\Validator;
 
 class Query
 {
-    const VERSION = '2.0.0';
+    const VERSION = '2.0.1';
     /**
+    * 2.0.1 - 2020-09-19
+    * fix: equal, noEqual value type
+    *
     * 2.0.0 - 2020-09-19
     * new: renamed filter methods
     * new: refactored class
@@ -113,7 +116,7 @@ class Query
 
         return $this->modelFields[$field];
     }
-    public function equal(string $field, float $value, int $options = 0) : self
+    public function equal(string $field, string $value, int $options = 0) : self
     {
         $this->parseCriteria('=', $field, $value, null, $options);
         return $this;
@@ -187,7 +190,7 @@ class Query
         $this->parseCriteria('LIKE', $field, $value, null, $options);
         return $this;
     }
-    public function notEqual(string $field, $value, int $options = 0) : self
+    public function notEqual(string $field, string $value, int $options = 0) : self
     {
         $this->parseCriteria('<>', $field, $value, null, $options);
         return $this;
