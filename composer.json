@@ -1,7 +1,7 @@
 {
-    "name": "joelsonb/monitolib",
+    "name": "monitophp/lib",
     "description": "MonitoLib - just a personal project",
-    "homepage": "http://gitlab.com/joelsonb/monitolib",
+    "homepage": "https://github.com/monitophp/lib",
     "authors": [
         {
             "name": "Joelson B",

@@ -1,4 +1,4 @@
-# monitolib
+# MonitoLib
 
 ## Instalação
 A instalação do **MonitoLib** é feita usando o `Composer`:

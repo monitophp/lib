@@ -1,5 +1,5 @@
 # MonitoLib
-<span style="color:red;font-size:2em">**DOCUMENTAÇÃO EM DESENVOLVIMENTO**</span>
+**========== DOCUMENTAÇÃO EM DESENVOLVIMENTO ==========**
 
 ## Introdução
 
