@@ -69,8 +69,10 @@ class Router
         $count    = count($uriParts);
 
         $i = 0;
+
         while (!file_exists($filepath) && $i < $count) {
-            $filepath = App::getRoutesPath() . substr($filename, 0, strrpos($filename, '.')) . '.php';
+            $filepath = App::getRoutesPath() . $filename . '.php';
+            $filename = substr($filename, 0, strrpos($filename, '.'));
             $i++;
         }
 

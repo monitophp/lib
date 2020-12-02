@@ -39,6 +39,11 @@ class Mcl
         $module  = $request->getModule();
         $command = $request->getCommand();
 
+        // Requires an app init file, if exists
+        if (file_exists($init = App::getConfigPath() . 'init.php')) {
+            require $init;
+        }
+
         // Carrega o módulo
         switch ($module) {
             case 'lib':

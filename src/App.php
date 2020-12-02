@@ -1,6 +1,8 @@
 <?php
 namespace MonitoLib;
 
+use \MonitoLib\Exception\BadRequest;
+use \MonitoLib\Exception\DatabaseError;
 use \MonitoLib\Exception\InternalError;
 use \MonitoLib\Functions;
 use \MonitoLib\Request;
@@ -130,7 +132,7 @@ class App
     public static function getUserId()
     {
         if (is_null(self::$userId)) {
-            throw new BadRequest('Usuário não logado na aplicação!');
+            throw new BadRequest('Usuário não logado na aplicação');
         }
 
         return self::$userId;
@@ -138,7 +140,7 @@ class App
     public static function getUsername()
     {
         if (is_null(self::$userId)) {
-            throw new BadRequest('Usuário não logado na aplicação!');
+            throw new BadRequest('Usuário não logado na aplicação');
         }
 
         return self::$username;
@@ -149,11 +151,6 @@ class App
     }
     public static function run()
     {
-        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-            http_response_code(200);
-            exit;
-        }
-        
         try {
             $uri = $_SERVER['REQUEST_URI'];
 
@@ -167,13 +164,13 @@ class App
 
             Request::setRequestUri($uri[0]);
 
-            if (isset($uri[1])) {
-                Request::setQueryString($uri[1]);
-            }
-
-            // Requires an app init file, if exists
+            // Config file
             if (file_exists($config = self::getConfigPath() . 'config.php')) {
                 require $config;
+            }
+
+            if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+                exit;
             }
 
             // Requires an app init file, if exists
@@ -181,58 +178,63 @@ class App
                 require $init;
             }
 
+            if (isset($uri[1])) {
+                Request::setQueryString($uri[1]);
+            }
+
             $return = [];
+            $router = \MonitoLib\Router::check();
 
-            if ($_SERVER['REQUEST_METHOD'] !== 'OPTIONS') {
-                $router = \MonitoLib\Router::check();
-
-                if ($router->isSecure) {
-                    if (!self::$isLoggedIn) {
-                        http_response_code(401);
-                        throw new \Exception('Usuário não logado!', 401);
-                    }
-
-                    if (!self::$hasPrivileges) {
-                        http_response_code(403);
-                        throw new \Exception('Usuário sem permissão para acessar o recurso!', 403);
-                    }
+            if ($router->isSecure) {
+                if (!self::$isLoggedIn) {
+                    http_response_code(401);
+                    throw new \Exception('Usuário não logado!', 401);
                 }
 
-                $class  = $router->class;
-                $method = $router->method;
-                $class  = new $class;
-                $return = $class->$method(...$router->params);
+                if (!self::$hasPrivileges) {
+                    http_response_code(403);
+                    throw new \Exception('Usuário sem permissão para acessar o recurso!', 403);
+                }
+            }
 
-                // \MonitoLib\Dev::vde($return);
+            http_response_code(500);
 
-                if (!is_null($return)) {
+            $class  = $router->class;
+            $method = $router->method;
+            $class  = new $class;
+            $return = $class->$method(...$router->params);
+
+            if (!is_null($return)) {
+                if (!($return instanceof \stdClass)) {
                     $return = Response::toArray($return);
                 }
-
-                $httpCode = Response::getHttpResponseCode() ?? 200;
             }
-        } catch (\MonitoLib\Exception\DatabaseError $e) {
-            $httpCode = 500;
+
+            // $httpCode = Response::getHttpResponseCode() ?? 200;
+            $httpCode = 200;
+            $erro = [];
+            // $httpCode = 500;
             // \MonitoLib\Dev::pr($e);
-            $return['error'] = $e->getMessage();
+            // $error['message'] = $e->getMessage();
+            // $error['debug']['errors'] = $e->getErrors();
+        } catch (\MonitoLib\Exception\DatabaseError $e) {
+            $httpCode = $e->getCode();
+            $return['message'] = $e->getMessage();
+
             if (self::getDebug() > 1) {
-                if (!empty($e->getErrors())) {
-                    $return['debug']['errors'] = $e->getErrors();
+                if (method_exists($e, 'getErrors') && !empty($e->getErrors())) {
+                    $return['errors'] = $e->getErrors();
                 }
             }
         } catch (\Exception | \ThrowAble $e) {
             $httpCode = $e->getCode();
-            // \MonitoLib\Dev::pr($e);
-            $return['error'] = $e->getMessage();
+            $return['message'] = $e->getMessage();
+
             if (method_exists($e, 'getErrors') && !empty($e->getErrors())) {
                 $return['errors'] = $e->getErrors();
             }
-            if (self::getDebug() > 1) {
-                $return['debug']['file'] = $e->getFile();
-                $return['debug']['line'] = $e->getLine();
-            }
         } finally {
-            if (isset($return['error']) && !empty($return['error'])) {
+            if (empty($error)) {
                 $buffer = Response::render();
 
                 if ($buffer === '') {
@@ -240,10 +242,17 @@ class App
                 } else {
                     echo $buffer;
                 }
+            } else {
+                $return['message'] = $error['message'];
 
                 if (self::getDebug() > 0) {
                     $return['debug']['method'] = $_SERVER['REQUEST_METHOD'];
                     $return['debug']['url']    = Request::getRequestUri();
+                    $return['debug']['file'] = $e->getFile();
+                    $return['debug']['line'] = $e->getLine();
+                }
+                if (self::getDebug() > 1) {
+                    $return['debug']['trace'] = $e->getTrace();
                 }
             }
 
@@ -251,7 +260,11 @@ class App
             http_response_code($httpCode < 100 || $httpCode > 599 ? 500 : $httpCode);
 
             if (!is_null($return)) {
-                echo json_encode($return, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                try {
+                    echo json_encode($return, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR | JSON_PARTIAL_OUTPUT_ON_ERROR);
+                } catch (\Exception | \ThrowAble $e) {
+                    echo json_encode(['message' => 'Erro ao codificar o JSON']);
+                }
             }
         }
     }

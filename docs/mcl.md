@@ -1,6 +1,43 @@
 # Monito Command Line
 Aplicativo de linha de comando
 
+## add-connection
+Adiciona uma conexão com o banco de dados
+
+### parâmetros
+#### name
+Nome da conexão com o banco de dados
+
+### opções
+#### --env
+Ambiente da conexão
+Default: prod
+
+#### --type
+Tipo de conexão
+
+#### --host
+Host do banco de dados da conexão
+
+#### --user
+Usuário do banco de dados da conexão
+
+#### --pass
+Senha do usuário do banco de dados
+
+::: danger Atenção
+Na configuração manual é possível ignorar a opção `--pass` e informar somente quando solicitado, evitando ficar registrada na linha de comando
+:::
+
+#### --db
+Nome do banco de dados
+
+
+## set-dev
+## set-debug
+
+
+
 ## db ($index = 1)
 public static function db ($index = 1)
 

@@ -2,6 +2,11 @@
 
 A manipulação de dados na MonitoLib se dá através das classes DAO - Data Access Object - de cada tabela.
 
+## Configurando a conexão com o banco de dados/endpoint
+```sh
+./mcl lib:add-connection --name Test --type Oracle
+```
+
 ## Tabela exemplo
 ``` sql
 -- Tabela oracle de exemplo
@@ -31,7 +36,7 @@ class Pessoa extends \MonitoLib\Database\Dao\Oracle
      */
     public function __construct()
     {
-        \MonitoLib\Database\Connector::setConnectionName('winthor');
+        \MonitoLib\Database\Connector::setConnectionName('Oracle');
         parent::__construct();
     }
 }
@@ -97,10 +102,10 @@ class Pessoa extends \MonitoLib\Database\Model
 Inserindo registros no banco de dados:
 ```php
 // Instancia a classe dao da tabela
-$pessoaDao = new \Exemplo\Dao\Pessoa;
+$pessoaDao = new \Exemplo\Dao\Pessoa();
 
 // Cria um objeto dto vazio
-$pessoaDto = new \Exemplo\Dto\Pessoa;
+$pessoaDto = new \Exemplo\Dto\Pessoa();
 
 // Preenche o dto de acordo com cada propriedade
 $pessoaDto->setNome('João da Silva');
@@ -114,13 +119,13 @@ $pessoaDao->insert($pessoaDto);
 ## Select
 A forma mais básica de buscar registros numa tabela é executando o método `list` da classes dao:
 ```php
-$pessoaDao = new \Exemplo\Dao\Pessoa;
+$pessoaDao = new \Exemplo\Dao\Pessoa();
 $pessoaList = $pessoaDao->list();
 ```
 
 Para filtrar os resultados buscados no banco de dados a classe dao expando os méthodos da classe `Query`:
 ```php
-$pessoaDao = new \Exemplo\Dao\Pessoa;
+$pessoaDao = new \Exemplo\Dao\Pessoa();
 $pessoaList = $pessoaDao
     ->equal('id', 1)
     ->list();
@@ -130,7 +135,7 @@ $pessoaList = $pessoaDao
 A atualização de um registro é feita usando a classe dto:
 ```php
 // Busca o registro no banco de dados
-$pessoaDao = new \Exemplo\Dao\Pessoa;
+$pessoaDao = new \Exemplo\Dao\Pessoa();
 $pessoaDto = $pessoaDao
     ->equal('id', 1)
     ->get();
@@ -144,22 +149,22 @@ $pessoaDao->update($pessoaDto);
 Para deletar registros do banco de dados é possível passar um objeto dto, a chave primária ou filtrar os dados com `Query`:
 ```php
 // Deleta um registro usando a chave primária da tabela com argumento
-$pessoaDao = new \Exemplo\Dao\Pessoa;
+$pessoaDao = new \Exemplo\Dao\Pessoa();
 $pessoaDao->delete(1);
 
 // Deleta um ou vários registros passando um array como argumento
-$pessoaDao = new \Exemplo\Dao\Pessoa;
+$pessoaDao = new \Exemplo\Dao\Pessoa();
 $pessoaDao->delete([1, 2]);
 
 // Deleta um registro passando um objeto dto como argumento
-$pessoaDao = new \Exemplo\Dao\Pessoa;
+$pessoaDao = new \Exemplo\Dao\Pessoa();
 $pessoaDto = $pessoaDao
     ->equal('id', 1)
     ->get();
 $pessoaDao->delete($pessoaDto);
 
 // Deleta um ou vários registros usando filtro
-$pessoaDao = new \Exemplo\Dao\Pessoa;
+$pessoaDao = new \Exemplo\Dao\Pessoa();
 $pessoaDao
     ->equal('id', 1)
     ->delete();
@@ -168,7 +173,7 @@ $pessoaDao
 ## Transações
 Uma transação no banco de dados pode ser iniciada diretamente em uma classe dao:
 ```php
-$pessoaDao = new \Exemplo\Dao\Pessoa;
+$pessoaDao = new \Exemplo\Dao\Pessoa();
 $pessoaDao->beginTransaction();
 
 $pessoaDao->commit();

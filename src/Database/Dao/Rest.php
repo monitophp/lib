@@ -53,6 +53,13 @@ class Rest // extends Base implements \MonitoLib\Database\Dao
         return $this->curl()->get($url);
     }
     /**
+    * patch
+    */
+    public function pacth($url, $data = '')
+    {
+        return $this->curl()->patch($url, $data);
+    }
+    /**
     * post
     */
     public function post($url, $data = '')
@@ -65,5 +72,13 @@ class Rest // extends Base implements \MonitoLib\Database\Dao
     public function put($url, $data = '')
     {
         return $this->curl()->put($url, $data);
+    }
+    /**
+    * setDebug
+    */
+    public function setDebug(bool $debug) : object
+    {
+        $this->curl()->setDebug($debug);
+        return $this->curl;
     }
 }

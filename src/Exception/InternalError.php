@@ -18,10 +18,10 @@ class InternalError extends \Exception
 
     private $errors = [];
 
-    public function __construct ($message = null, $errors = null, $code = 0, \Exception $previous = null)
+    public function __construct ($message = null, $errors = null, $code = 500, \Exception $previous = null)
     {
         $this->errors = $errors;
-        http_response_code(500);
+        http_response_code($code);
         parent::__construct($message, $code, $previous);
     }
 

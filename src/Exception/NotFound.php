@@ -21,10 +21,9 @@ class NotFound extends \Exception
     public function __construct ($message = null, $errors = null, $code = 404, \Exception $previous = null)
     {
         $this->errors = $errors;
-        http_response_code(404);
+        http_response_code($code);
         parent::__construct($message, $code, $previous);
     }
-
     public function __toString ()
     {
         return $this->errors;

@@ -152,8 +152,8 @@ class Base extends Query
     public function max($field)
     {
         $sql = "SELECT COALESCE(MAX($field), 0) FROM {$this->model->getTableName()}";
-        $stt = $this->connection->parse($sql);
-        $this->connection->execute($stt);
+        $stt = $this->parse($sql);
+        $this->execute($stt);
         $res = $this->connection->fetchArrayNum($stt);
         return $res[0];
     }
@@ -262,7 +262,7 @@ class Base extends Query
     public function truncate()
     {
         $sql = 'TRUNCATE TABLE ' . $this->model->getTableName();
-        $stt = $this->connection->parse($sql);
-        $this->connection->execute($stt);
+        $stt = $this->parse($sql);
+        $this->execute($stt);
     }
 }

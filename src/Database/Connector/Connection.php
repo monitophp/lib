@@ -21,22 +21,28 @@ class Connection
     * 1.0.0 - 2020-03-20
     * first versioned
     */
+
+    // TODO: completar parâmetros port e charset
+	protected $chartset;
 	protected $connection;
 	protected $database;
-	protected $type;
-	protected $pass;
 	protected $host;
+	protected $pass;
+	protected $port;
+	protected $type;
 	protected $user;
 
 	public function __construct($d)
 	{
 		$this->name     = $d['name'];
 		$this->env      = $d['env'];
-		$this->database = $d['name'];
+		$this->database = $d['database'] ?? null;
 		$this->type     = $d['type'];
 		$this->pass     = $d['pass'];
 		$this->host     = $d['host'];
 		$this->user     = $d['user'];
+		$this->port     = $d['port'] ?? null;
+		$this->charset  = $d['charset'] ?? null;
 	}
 	public function getConnection()
 	{

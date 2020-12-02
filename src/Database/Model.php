@@ -180,55 +180,55 @@ class Model
                 // Verifica se um campo requerido foi informado
                 if ($required) {
                     if (!$auto && ((is_null($value) || $value === '') && is_null($default))) {
-                        $errors[] = "O campo {$label} é requerido!";
+                        $errors[] = "O campo {$label} é requerido";
                     }
                 }
             } else {
                 // Verifica se o campo é do tipo esperado
                 if ($type === 'int' || $type === 'double') {
                     if ($type === 'int' && !is_numeric($value) && !$auto) {
-                        $errors[] = "O campo {$label} espera um número inteiro e {$vType} foi informado!";
+                        $errors[] = "O campo {$label} espera um número inteiro e {$vType} foi informado";
                     }
 
                     if ($type === 'float' && !is_float($value)) {
-                        $errors[] = "O campo {$label} espera um número decimal e {$vType} foi informado!";
+                        $errors[] = "O campo {$label} espera um número decimal e {$vType} foi informado";
                     }
 
                     if (is_numeric($value)) {
                         // Verifica o valor máximo do campo
                         if ($maxValue > 0 && $value > $maxValue) {
-                            $errors[] = "O valor máximo do campo {$label} é {$maxValue} mas {$value} foi informado!";
+                            $errors[] = "O valor máximo do campo {$label} é {$maxValue} mas {$value} foi informado";
                         }
 
                         // Verifica o tamanho mínimo do campo
                         if ($minValue > 0 && $value > $minValue) {
-                            $errors[] = "O tamanho mínimo do campo {$label} é {$minValue} mas {$value} foi informado!";
+                            $errors[] = "O tamanho mínimo do campo {$label} é {$minValue} mas {$value} foi informado";
                         }
                     }
                 }
 
                 if ($type === 'date' && !Validator::date($value, $format)) {
                     if ($format === 'Y-m-d') {
-                        $errors[] = "Data inválida para o campo {$label}! $value";
+                        $errors[] = "Data inválida para o campo {$label}: $value";
                     } else {
-                        $errors[] = "Data/hora inválida para o campo {$label}! $value";
+                        $errors[] = "Data/hora inválida para o campo {$label}: $value";
                     }
                 }
 
                 // Verifica o tamanho máximo do campo
                 if ($maxLength > 0 && $length > $maxLength) {
-                    $errors[] = "O tamanho máximo do campo {$label} é {$maxLength} mas {$length} foi informado!";
+                    $errors[] = "O tamanho máximo do campo {$label} é {$maxLength} mas {$length} foi informado";
                 }
 
                 // Verifica o tamanho mínimo do campo
                 if ($minLength > 0 && $length < $minLength) {
-                    $errors[] = "O tamanho mínimo do campo {$label} é {$minLength} mas {$length} foi informado!";
+                    $errors[] = "O tamanho mínimo do campo {$label} é {$minLength} mas {$length} foi informado";
                 }
             }
         }
 
         if (!empty($errors)) {
-            throw new InvalidModel('Não foi possível validar os dados do model ' . get_class($this) . '!', $errors);
+            throw new InvalidModel('Model ' . get_class($this) . ' inválido: ' . implode(' | ', $errors), $errors);
         }
     }
 }

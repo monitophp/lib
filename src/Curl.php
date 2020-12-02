@@ -10,6 +10,13 @@
  */
 namespace MonitoLib;
 
+use \MonitoLib\Exception\BadRequest;
+use \MonitoLib\Exception\Conflict;
+use \MonitoLib\Exception\Forbidden;
+use \MonitoLib\Exception\InternalError;
+use \MonitoLib\Exception\Locked;
+use \MonitoLib\Exception\NotFound;
+
 class Curl
 {
     const VERSION = '1.0.1';
@@ -21,10 +28,11 @@ class Curl
     * initial release
     */
 
-    private $curl;
     private $baseUrl = '';
-    private $host = '';
+    private $curl;
+    private $debug = true;
     private $header = [];
+    private $host = '';
     private $token;
 
     public function __construct()
@@ -47,13 +55,13 @@ class Curl
     {
         curl_close($this->curl);
     }
-    public function delete($url)
+    public function delete(string $url)
     {
         curl_setopt($this->curl, CURLOPT_URL, $this->host . $this->baseUrl . $url);
         curl_setopt($this->curl, CURLOPT_CUSTOMREQUEST, 'DELETE');
         return $this->exec('DELETE', $url);
     }
-    public function exec($method, $url)
+    public function exec(string $method, string $url)
     {
         $this->header = [
             'Accept: application/json',
@@ -72,47 +80,72 @@ class Curl
 
         $response = curl_exec($this->curl);
         $info     = curl_getinfo($this->curl);
+        $httpCode = $info['http_code'];
 
         // \MonitoLib\Dev::pr($info);
         // \MonitoLib\Dev::pr($response);
 
-        $return           = new \stdClass();
-        $return->httpCode = $info['http_code'];
+        $return = new \stdClass();
+        $return->httpCode = $httpCode;
+        $return->response = null;
 
-        $data = null;
-
-        if (curl_errno($this->curl)) {
-            $error = curl_error($this->curl);
-        } else {
-            $json = json_decode($response);
-
-            if (is_null($json)) {
-                $error = 'Conteúdo de retorno inválido';
-                $return->rawData = $response;
-            } else {
-                if ($return->httpCode >= 200 && $return->httpCode < 300) {
-                    $data = $json;
-                } else {
-                    $error = $json;
-                }
-            }
+        // TODO: tratar corretamente o debug em caso de erro
+        if ($this->debug) {
+            $return->debug = new \stdClass();
+            $return->debug->info     = $info;
+            $return->debug->response = $response;
         }
 
-        if (is_null($data)) {
-            $return->error = $error;
+        if ($httpCode >= 200 && $httpCode < 300) {
+            $return->httpCode = $httpCode;
+            $json = json_decode($response);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $json = $response;
+            }
+
+            // JSON_ERROR_NONE No error has occurred
+            // JSON_ERROR_DEPTH    The maximum stack depth has been exceeded
+            // JSON_ERROR_STATE_MISMATCH   Invalid or malformed JSON
+            // JSON_ERROR_CTRL_CHAR    Control character error, possibly incorrectly encoded
+            // JSON_ERROR_SYNTAX   Syntax error
+            // JSON_ERROR_UTF8 Malformed UTF-8 characters, possibly incorrectly encoded    PHP 5.3.3
+            // JSON_ERROR_RECURSION    One or more recursive references in the value to be encoded PHP 5.5.0
+            // JSON_ERROR_INF_OR_NAN   One or more NAN or INF values in the value to be encoded    PHP 5.5.0
+            // JSON_ERROR_UNSUPPORTED_TYPE A value of a type that cannot be encoded was given  PHP 5.5.0
+            // JSON_ERROR_INVALID_PROPERTY_NAME    A property name that cannot be encoded was given    PHP 7.0.0
+            // JSON_ERROR_UTF16
+
+            $return->response = $json;
         } else {
-            $return->data = $data;
+            $error    = curl_error($this->curl);
+            $response =  $error === '' ? $response : $error;
+
+            switch ($httpCode) {
+                case 400:
+                    throw new BadRequest($response);
+                case 403:
+                    throw new Forbidden($response);
+                case 404:
+                    throw new NotFound($response);
+                case 409:
+                    throw new Conflict($response);
+                case 423:
+                    throw new Locked($response);
+                default:
+                    throw new InternalError($response);
+            }
         }
 
         return $return;
     }
-    public function setAuthorization($token)
+    public function setAuthorization(string $token)
     {
         // $this->header[] = "Authorization: $token";
         $this->token = $token;
         return $this;
     }
-    public function setBaseUrl($baseUrl)
+    public function setBaseUrl(string $baseUrl)
     {
         $this->baseUrl = $baseUrl;
         return $this;
@@ -122,30 +155,35 @@ class Curl
     //     curl_setopt($this->curl, CURLOPT_HTTPHEADER, $header);
     //     return $this;
     // }
-    public function setHost($host)
+    public function setDebug(bool $debug)
+    {
+        $this->debug = $debug;
+        return $this;
+    }
+    public function setHost(string $host)
     {
         $this->host = $host;
         return $this;
     }
-    public function setUrl($url)
+    public function setUrl(string $url)
     {
         curl_setopt($this->curl, CURLOPT_URL, $this->host . $this->baseUrl . $url);
         return $this;
     }
-    public function get($url)
+    public function get(string $url)
     {
         curl_setopt($this->curl, CURLOPT_URL, $this->host . $this->baseUrl . $url);
         curl_setopt($this->curl, CURLOPT_CUSTOMREQUEST, 'GET');
         return $this->exec('GET', $url);
     }
-    public function post($url, $data = '')
+    public function post(string $url, string $data = '')
     {
         curl_setopt($this->curl, CURLOPT_URL, $this->host . $this->baseUrl . $url);
         curl_setopt($this->curl, CURLOPT_CUSTOMREQUEST, 'POST');
         curl_setopt($this->curl, CURLOPT_POSTFIELDS, $data);
         return $this->exec('POST', $url);
     }
-    public function put($url, $data = '')
+    public function put(string $url, string $data = '')
     {
         $url = $this->host . $this->baseUrl . $url;
 

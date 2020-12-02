@@ -26,8 +26,8 @@ class MySQL extends Connection
     protected function connect()
     {
         try {
-            $password = Functions::decrypt($this->password, $this->name . $this->env);
-            $string   = "mysql:host={$this->server};dbname={$this->name};charset=UTF8";
+            $password = Functions::decrypt($this->pass, $this->name . $this->env);
+            $string   = "mysql:host={$this->host};dbname={$this->database};charset=UTF8";
             $this->connection = new \PDO($string, $this->user, $password);
             $this->connection->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         } catch (\PDOException $e) {

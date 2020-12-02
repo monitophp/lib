@@ -41,7 +41,6 @@ class Response
 	public static function setContentType($contentType)
 	{
 		self::$contentType = $contentType;
-		return self;
 	}
 	public static function setData($data)
 	{
@@ -52,7 +51,6 @@ class Response
 		}
 
 		self::$json['data'] = $data;
-		return self;
 	}
 	public static function setDataset($dataset)
 	{
@@ -61,27 +59,22 @@ class Response
 		}
 
 		self::$json = Functions::arrayMergeRecursive(self::$json, $dataset);
-		return self;
 	}
 	public static function setHttpResponseCode($httpResponseCode)
 	{
 		self::$httpResponseCode = $httpResponseCode;
-		return self;
 	}
 	public static function setJson($json)
 	{
 		self::$json = $json;
-		return self;
 	}
 	public static function setMessage($message)
 	{
 		self::$json['message'] = $message;
-		return self;
 	}
 	public static function setProperty($property, $value)
 	{
 		self::$json[$property] = is_null($value) ? '' : $value;
-		return self;
 	}
 	public static function toArray($object)
 	{
@@ -92,25 +85,29 @@ class Response
 				$results[$k] = self::toArray($o);
 			}
 		} else if (is_object($object)) {
-			$result = [];
-			$class  = new \ReflectionClass(get_class($object));
+			if ($object instanceof \stdClass) {
+				$results = $object;
+			} else {
+				$result = [];
+				$class  = new \ReflectionClass(get_class($object));
 
-		    foreach ($class->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
-		        $methodName = $method->name;
+			    foreach ($class->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
+			        $methodName = $method->name;
 
-		        if (strpos($methodName, 'get') === 0 && strlen($methodName) > 3) {
-		            $propertyName = lcfirst(substr($methodName, 3));
-		            $value = $method->invoke($object);
+			        if (strpos($methodName, 'get') === 0 && strlen($methodName) > 3) {
+			            $propertyName = lcfirst(substr($methodName, 3));
+			            $value = $method->invoke($object);
 
-		            if (is_object($value)) {
-	                    $result[$propertyName] = self::toArray($value);
-		            } else {
-		                $result[$propertyName] = $value ?? '';
-		            }
-		        }
-		    }
+			            if (is_object($value)) {
+		                    $result[$propertyName] = self::toArray($value);
+			            } else {
+			                $result[$propertyName] = $value ?? '';
+			            }
+			        }
+			    }
 
-		    $results = $result;
+			    $results = $result;
+			}
 		} else {
 			$results = $object;
 		}

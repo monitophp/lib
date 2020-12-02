@@ -55,11 +55,7 @@ class Request
     }
     public static function getJson($emptyAsNull = false, $asArray = false)
     {
-        self::$json = json_decode(file_get_contents('php://input'), $asArray);
-
-        if (!self::$json instanceof \StdClass && !is_array(self::$json)) {
-            return new \StdClass;
-        }
+        self::$json = json_decode(file_get_contents('php://input'), $asArray, 512, JSON_THROW_ON_ERROR);
 
         if ($emptyAsNull) {
             return self::nullIt(self::$json);

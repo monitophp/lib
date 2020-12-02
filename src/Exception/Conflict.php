@@ -18,10 +18,10 @@ class Conflict extends \Exception
 
     private $errors = [];
 
-    public function __construct ($message = null, $errors = null, $code = 0, \Exception $previous = null)
+    public function __construct ($message = null, $errors = null, $code = 409, \Exception $previous = null)
     {
         $this->errors = $errors;
-        http_response_code(409);
+        http_response_code($code);
         parent::__construct($message, $code, $previous);
     }
     public function __toString ()

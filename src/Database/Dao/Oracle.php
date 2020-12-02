@@ -105,7 +105,7 @@ class Oracle extends Base implements \MonitoLib\Database\Dao
                 if ($perPage > 0) {
                     $startRow = (($page - 1) * $perPage) + 1;
                     $endRow   = $perPage * $page;
-                    $sqlData  = "SELECT {$this->getSelectFields(false)} FROM (SELECT a.*, ROWNUM as rown_ FROM ($sqlData) a) WHERE rown_ BETWEEN $startRow AND $endRow";
+                    $sqlData  = "SELECT {$this->renderFieldsSql(false)} FROM (SELECT a.*, ROWNUM as rown_ FROM ($sqlData) a) WHERE rown_ BETWEEN $startRow AND $endRow";
                 }
 
                 // Reset $sql
@@ -115,7 +115,8 @@ class Oracle extends Base implements \MonitoLib\Database\Dao
                 // \MonitoLib\Dev::vd($perPage);
                 // \MonitoLib\Dev::vde($pages);
 
-                $data = $this->setSql($sqlData)->list();
+                $data = $this->list($sqlData);
+                // $data = $this->setSql($sqlData)->list();
                 $return['data']  = $data;
                 $return['page']  = +$page;
                 $return['pages'] = +$pages;
@@ -166,7 +167,7 @@ class Oracle extends Base implements \MonitoLib\Database\Dao
 
         if (!$exe) {
             $e = @oci_error($stt);
-            throw new DatabaseError('Ocorreu um erro no banco de dados!', $e);
+            throw new DatabaseError('Ocorreu um erro no banco de dados', $e);
         }
 
         return $stt;

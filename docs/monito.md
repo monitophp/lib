@@ -34,8 +34,8 @@ php mcl monito:add-connection nome_da_conexao --env prod --type Oracle --host //
 
 
 ```bash
-php mcl monito:init
-php mcl monito:add-connection
-php mcl monito:set-env
-php mcl monito:set-debug
+php mcl lib:init
+php mcl lib:add-connection
+php mcl lib:set-env
+php mcl lib:set-debug
 ```

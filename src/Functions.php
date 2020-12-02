@@ -58,7 +58,7 @@ class Functions
 
         return true;
     }
-    public static function convertToUrl($string)
+    public static function convertToUrl(string $string) : string
     {
     	$url = strtolower($string);
     	$url = self::removeAccents($url);
@@ -68,7 +68,7 @@ class Functions
 
     	return $url;
     }
-    public static function copyDto($dtoSource, $dtoDestination)
+    public static function copyDto(object $dtoSource, object $dtoDestination) : object
     {
         $reflection = new \ReflectionClass(get_class($dtoSource));
         $properties = $reflection->getdefaultProperties();
@@ -97,7 +97,7 @@ class Functions
 	* @param string $key - encryption key
 	* @return string
 	*/
-	public static function decrypt($encrypted, $key)
+	public static function decrypt(string $encrypted, string $key) : string
 	{
 	    $decoded = base64_decode($encrypted);
 	    // $key = random_bytes(SODIUM_CRYPTO_SECRETBOX_KEYBYTES);
@@ -136,7 +136,7 @@ class Functions
 	* @param string $key - encryption key
 	* @return string
 	*/
-	public static function encrypt($message, $key)
+	public static function encrypt(string $message, string $key) : string
 	{
 	    $key   = str_repeat('Q', SODIUM_CRYPTO_SECRETBOX_KEYBYTES);
 	    $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
@@ -212,7 +212,7 @@ class Functions
 	 * @param string $n
 	 * @return string
 	 */
-	public static function removeNonNumbers($str)
+	public static function removeNonNumbers(?string $str) : string
 	{
 		$er = '/[^\d]/';
 		return preg_replace($er, '', $str);
@@ -227,9 +227,8 @@ class Functions
 	{
 		return str_pad($string, $size, ' ', STR_PAD_RIGHT);
 	}
-	public static function stringToFloat($value)
+	public static function stringToFloat(string $value) : float
 	{
-
 		$value = str_replace('.', '', $value);
 		$value = str_replace(',', '.', $value);
 
@@ -239,13 +238,13 @@ class Functions
 
 		return $value;
 	}
-	public static function toInt($number)
+	public static function toInt(string $number) : int
 	{
 		if ($number != '') {
 			return +$number;
 		}
 	}
-	public static function toLowerCamelCase($string)
+	public static function toLowerCamelCase(string $string) : string
 	{
 		$frag  = explode('_', strtolower($string));
 		$count = count($frag);
@@ -257,7 +256,7 @@ class Functions
 
 		return $newString;
 	}
-	public static function toSingular($string)
+	public static function toSingular(string $string) : string
 	{
 		if (strtolower($string) == 'status') {
 			return $string;
@@ -284,7 +283,7 @@ class Functions
 
 		return $string;
 	}
-	public static function toUpperCamelCase($string)
+	public static function toUpperCamelCase(string $string) : string
 	{
 		return ucfirst(self::toLowerCamelCase($string));
 	}
@@ -313,7 +312,7 @@ class Functions
 	*
 	* @return void
 	*/
-	public static function urlRedirect($url)
+	public static function urlRedirect($url) : void
 	{
 		if (!headers_sent()) {
 			header("Location: $url");
@@ -346,7 +345,7 @@ class Functions
 	 * @param int $t Tamanho do preenchimento
 	 * @return string
 	 */
-	public static function zeroLeftPad($number, $length)
+	public static function zeroLeftPad($number, int $length) : string
 	{
 		if (is_numeric($number)) {
 			return str_pad($number, $length, '0', STR_PAD_LEFT);

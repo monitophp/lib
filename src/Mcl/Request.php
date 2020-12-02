@@ -2,11 +2,15 @@
 namespace MonitoLib\Mcl;
 
 use \MonitoLib\Exception\InternalError;
+use \MonitoLib\Exception\NotFound;
 use \MonitoLib\Functions;
 
 class Request
 {
     const VERSION = '1.0.0';
+    /**
+    * 1.0.0
+    */
 
     private $module;
     private $command;
@@ -15,11 +19,11 @@ class Request
 
     static private $instance;
 
-    private function __construct ()
+    private function __construct()
     {
 
     }
-    public static function getInstance ()
+    public static function getInstance()
     {
         if (!isset(self::$instance)) {
             self::$instance = new Request();
@@ -32,7 +36,7 @@ class Request
     *
     * @return $module
     */
-    public function getModule ()
+    public function getModule()
     {
         return $this->module;
     }
@@ -41,7 +45,7 @@ class Request
     *
     * @return $command
     */
-    public function getCommand ()
+    public function getCommand()
     {
         return $this->command;
     }
@@ -50,7 +54,7 @@ class Request
     *
     * @return $param
     */
-    public function getParam ($param)
+    public function getParam($param)
     {
         return $this->params[$param] ?? null;
     }
@@ -59,7 +63,7 @@ class Request
     *
     * @return $params
     */
-    public function getParams ()
+    public function getParams()
     {
         return $this->params;
     }
@@ -68,7 +72,7 @@ class Request
     *
     * @return $option
     */
-    public function getOption ($option)
+    public function getOption($option)
     {
         return $this->options[$option] ?? null;
     }
@@ -77,7 +81,7 @@ class Request
     *
     * @return $options
     */
-    public function getOptions ()
+    public function getOptions()
     {
         return $this->options;
     }
@@ -86,7 +90,7 @@ class Request
      *
      * @param $module
      */
-    public function setModule ($module)
+    public function setModule($module)
     {
         $this->module = $module;
         return $this;
@@ -96,7 +100,7 @@ class Request
      *
      * @param $command
      */
-    public function setCommand ($command)
+    public function setCommand($command)
     {
         $this->command = $command;
         return $this;
@@ -106,7 +110,7 @@ class Request
      *
      * @param $params
      */
-    public function setParams ($params)
+    public function setParams($params)
     {
         $this->params = $params;
         return $this;
@@ -116,7 +120,7 @@ class Request
      *
      * @param $options
      */
-    public function setOptions ($options)
+    public function setOptions($options)
     {
         $this->options = $options;
         return $this;
