@@ -3,8 +3,11 @@ namespace MonitoLib;
 
 class Functions
 {
-    const VERSION = '1.1.0';
+    const VERSION = '1.2.0';
     /**
+	* 1.2.0 - 2020-12-21
+	* new: isValidJson()
+	*
     * 1.1.0 - 2020-09-18
     * new: class refectorying
     * new: removed post, postValue
@@ -206,7 +209,12 @@ class Functions
 		if (preg_match('/[0-9]{8}/', $int)) {
 			return substr($int, 4, 4) . '-' . substr($int, 2, 2) . '-' . substr($int, 0, 2);
 		}
-	}
+    }
+    public static function isValidJson(string $string) : bool
+    {
+        $json = json_decode($string);
+        return $json && $string != $json;
+    }
 	/**
 	 * Remove não números de uma string
 	 * @param string $n
