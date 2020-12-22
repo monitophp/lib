@@ -1,12 +1,15 @@
 <?php
 namespace MonitoLib;
 
-use \MonitoLib\Functions;
+use MonitoLib\Exception\BadRequest;
 
 class Response
 {
-    const VERSION = '2.0.0';
+    const VERSION = '2.1.0';
     /**
+	* 2.1.0 - 2020-12-21
+	* new: asJson(), asPdf(), parse(), parseString, render(), setDebug()
+	*
     * 2.0.0 - 2020-09-18
     * new: static properties and methods
     * new: get/setContentType, get/setHttpResponseCode
@@ -19,9 +22,18 @@ class Response
     */
 
 	private static $contentType = 'Content-Type: application/json';
-	private static $httpResponseCode = 500;
-	private static $json = [];
+	private static $httpResponseCode;
+	private static $debug = [];
+	private static $return = [];
 
+	public static function asJson() : void
+	{
+		self::$contentType = 'Content-Type: application/json';
+	}
+	public static function asPdf() : void
+	{
+		self::$contentType = 'Content-Type: application/pdf';
+	}
 	public static function getContentType()
 	{
 		return self::$contentType;
@@ -30,51 +42,85 @@ class Response
 	{
 		return self::$httpResponseCode;
 	}
+	public static function parse($value) : array
+	{
+		if ($value === '') {
+			$value = null;
+		}
+
+		$return = [];
+
+		switch (gettype($value)) {
+			case 'array':
+				$return = Response::toArray($value);
+				break;
+			case 'NULL':
+				$return = [];
+				break;
+			case 'boolean':
+			case 'double':
+			case 'integer':
+				$return[] = $value;
+				break;
+			case 'object':
+				$return = Response::toArray($value);
+				break;
+			case 'string':
+				$return = Response::parseString($value);
+				break;
+			case 'resource (closed)':
+			case 'resource':
+			case 'unknown type':
+			default:
+				throw new BadRequest('Invalid json');
+		}
+
+		return self::$return = $return;
+	}
+	public static function parseString(string $string) : array
+	{
+		$json = json_decode($string, true);
+
+		if ($json && $string != $json) {
+			$return = $json;
+		} else {
+			$return = [$string];
+		}
+
+		return $return;
+	}
 	public static function render()
 	{
 		http_response_code(self::$httpResponseCode);
+		header(self::$contentType);
 
-		if (!empty(self::$json)) {
-			return json_encode(self::$json, JSON_UNESCAPED_UNICODE);
+		if (empty(self::$return)) {
+			http_response_code(204);
+		} else {
+			try {
+				if (!empty(self::$debug)) {
+					self::$return['debug'] = self::$debug;
+				}
+
+				$output = json_encode(self::$return, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+			} catch (\Exception | \ThrowAble $e) {
+				$output = json_encode(['message' => $e->getMessage()]);
+			} finally {
+				echo $output;
+			}
 		}
 	}
 	public static function setContentType($contentType)
 	{
 		self::$contentType = $contentType;
 	}
-	public static function setData($data)
+	public static function setDebug(array $debug)
 	{
-		if (is_object($data)) {
-			if (!$data instanceof \stdClass) {
-				$data = self::toArray($data);
-			}
-		}
-
-		self::$json['data'] = $data;
-	}
-	public static function setDataset($dataset)
-	{
-		if (isset($dataset['data'])) {
-			$dataset['data'] = self::toArray($dataset['data']);
-		}
-
-		self::$json = Functions::arrayMergeRecursive(self::$json, $dataset);
+		self::$debug = $debug;
 	}
 	public static function setHttpResponseCode($httpResponseCode)
 	{
 		self::$httpResponseCode = $httpResponseCode;
-	}
-	public static function setJson($json)
-	{
-		self::$json = $json;
-	}
-	public static function setMessage($message)
-	{
-		self::$json['message'] = $message;
-	}
-	public static function setProperty($property, $value)
-	{
-		self::$json[$property] = is_null($value) ? '' : $value;
 	}
 	public static function toArray($object)
 	{
@@ -86,7 +132,7 @@ class Response
 			}
 		} else if (is_object($object)) {
 			if ($object instanceof \stdClass) {
-				$results = $object;
+				$results = json_decode(json_encode($object), true);
 			} else {
 				$result = [];
 				$class  = new \ReflectionClass(get_class($object));

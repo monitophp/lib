@@ -2,13 +2,16 @@
 namespace MonitoLib\Database\Dao;
 
 use \MonitoLib\Exception\BadRequest;
-use \MonitoLib\Exception\InternalError;
+use \MonitoLib\Exception\DatabaseError;
 use \MonitoLib\Functions;
 
 class MySQL extends Base implements \MonitoLib\Database\Dao
 {
-    const VERSION = '1.0.1';
+    const VERSION = '1.0.2';
     /**
+    * 1.0.2 - 2020-12-21
+    * fix: remove connection object
+    *
     * 1.0.1 - 2019-05-08
     * fix: checks returned value from get function
     *
@@ -68,9 +71,9 @@ class MySQL extends Base implements \MonitoLib\Database\Dao
     public function count()
     {
         $sql = $this->renderCountSql();
-        $stt = $this->connection->parse($sql);
-        $this->connection->execute($stt);
-        $res = $this->connection->fetchArrayNum($stt);
+        $stt = $this->parse($sql);
+        $this->execute($stt);
+        $res = $this->fetchArrayNum($stt);
         return $res[0];
     }
     /**
@@ -82,18 +85,18 @@ class MySQL extends Base implements \MonitoLib\Database\Dao
         $return  = [];
 
         $sql = $this->renderCountSql(true);
-        $stt = $this->connection->parse($sql);
-        $this->connection->execute($stt);
-        $res = $this->connection->fetchArrayNum($stt);
+        $stt = $this->parse($sql);
+        $this->execute($stt);
+        $res = $this->fetchArrayNum($stt);
 
         $total = $res[0];
         $return['total'] = +$total;
 
         if ($total > 0) {
             $sql = $this->renderCountSql();
-            $stt = $this->connection->parse($sql);
-            $this->connection->execute($stt);
-            $res = $this->connection->fetchArrayNum($stt);
+            $stt = $this->parse($sql);
+            $this->execute($stt);
+            $res = $this->fetchArrayNum($stt);
 
             $count = $res[0];
             $return['count'] = +$count;
@@ -129,8 +132,8 @@ class MySQL extends Base implements \MonitoLib\Database\Dao
         }
 
         $sql = $this->renderDeleteSql();
-        $stt = $this->connection->parse($sql);
-        $this->connection->execute($stt);
+        $stt = $this->parse($sql);
+        $this->execute($stt);
 
         // Reset query
         $this->reset();
@@ -179,7 +182,7 @@ class MySQL extends Base implements \MonitoLib\Database\Dao
     */
     public function getLastId()
     {
-        return $this->connection->lastInsertId();
+        return $this->lastInsertId();
     }
     /**
     * insert
@@ -215,7 +218,7 @@ class MySQL extends Base implements \MonitoLib\Database\Dao
         $val = substr($val, 0, -1);
 
         $sql = 'INSERT INTO ' . $this->model->getTableName() . " ($fld) VALUES ($val)";
-        $stt = $this->connection->parse($sql);
+        $stt = $this->parse($sql);
 
         foreach ($this->model->getFieldsInsert() as $f) {
             $var  = Functions::toLowerCamelCase($f['name']);
@@ -225,7 +228,7 @@ class MySQL extends Base implements \MonitoLib\Database\Dao
             $stt->bindParam(':' . $f['name'], $$var);
         }
 
-        $this->connection->execute($stt);
+        $this->execute($stt);
         $this->reset();
     }
     /**
@@ -234,12 +237,12 @@ class MySQL extends Base implements \MonitoLib\Database\Dao
     public function list()
     {
         $sql = $this->renderSelectSql();
-        $stt = $this->getConnection()->parse($sql);
-        $this->getConnection()->execute($stt);
+        $stt = $this->parse($sql);
+        $this->execute($stt);
 
         $data = [];
 
-        while ($res = $this->connection->fetchArrayAssoc($stt)) {
+        while ($res = $this->fetchArrayAssoc($stt)) {
             $data[] = $this->getValue($res);
         }
 
@@ -290,7 +293,7 @@ class MySQL extends Base implements \MonitoLib\Database\Dao
 
         $sql = 'UPDATE ' . $this->model->getTableName() . " SET $fld WHERE $key";
         // \MonitoLib\Dev::ee($sql);
-        $stt = $this->connection->parse($sql);
+        $stt = $this->parse($sql);
 
         foreach ($this->model->getFields() as $f) {
             $var  = Functions::toLowerCamelCase($f['name']);
@@ -300,7 +303,7 @@ class MySQL extends Base implements \MonitoLib\Database\Dao
             $stt->bindParam(':' . $f['name'], $$var);
         }
 
-        $this->connection->execute($stt);
+        $this->execute($stt);
 
         $this->reset();
 
