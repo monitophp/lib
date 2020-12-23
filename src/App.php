@@ -9,8 +9,11 @@ use \MonitoLib\Response;
 
 class App
 {
-    const VERSION = '1.4.0';
+    const VERSION = '1.4.1';
     /**
+    * 1.4.1 - 2020-12-23
+    * fix: CORS http code
+    *
     * 1.4.0 - 2020-12-21
     * new: $create param in getPath
     * new: typed methods
@@ -178,13 +181,14 @@ class App
                 require $config;
             }
 
+            if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+                http_response_code(200);
+                exit;
+            }
+
             // Requires an app init file, if exists
             if (file_exists($init = self::getConfigPath() . 'init.php')) {
                 require $init;
-            }
-
-            if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-                exit;
             }
 
             if (isset($uri[1])) {
