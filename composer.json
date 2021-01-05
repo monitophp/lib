@@ -1,0 +1,19 @@
+{
+    "name": "monitophp/lib",
+    "description": "MonitoLib - just a personal project",
+    "homepage": "https://github.com/monitophp/lib",
+    "authors": [
+        {
+            "name": "Joelson B",
+            "email": "joelsonb@msn.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "MonitoLib\\": "src"
+        }
+    }
+}
