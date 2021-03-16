@@ -8,7 +8,7 @@ use \MonitoLib\Functions;
 
 class Controller
 {
-    const VERSION = '1.0.1';
+    const VERSION = '1.0.2';
     /**
     * 1.0.2 - 2021-01-05
     * new: Suffix in lock method

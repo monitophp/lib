@@ -13,8 +13,11 @@ use \MonitoLib\Exception\InternalError;
 
 class Connector
 {
-    const VERSION = '2.0.0';
+    const VERSION = '2.1.0';
     /**
+    * 2.1.0 - 2021-03-16
+    * new: addParam
+	*
     * 2.0.0 - 2020-09-18
     * new: static properties and methods
     * new: connection source, methods payload and return types
@@ -26,7 +29,12 @@ class Connector
 	private static $configured = [];
 	private static $default;
 	private static $instance;
+	private static $params = [];
 
+	public static function addParam(string $connectionName, string $param)
+	{
+		self::$params[$connectionName] = $param;
+	}
 	/**
 	 * getInstance
 	 *
@@ -50,7 +58,7 @@ class Connector
 
 		$p = explode('.', $connectionName);
 
-		$connection = $p[0];
+		$connection = $p[0] . (isset(self::$params[$connectionName]) ? ':' . self::$params[$connectionName] : '');
 		$enviroment = $p[1] ?? App::getEnv();
 		$name       = $connection . '.' . $enviroment;
 
