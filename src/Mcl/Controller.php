@@ -76,12 +76,14 @@ class Controller
             . $db[1]['function']
             . $suffix
             . '.lock';
+        // $this->lockFile = App::getTmpPath() . str_replace($search, $replace, substr($db[0]['file'], 0, -4)) . '-' . $db[1]['function'] . '.lock';
 
         $tol = 0;
 
         if (file_exists($this->lockFile)) {
             $now = time();
             $fct = filectime($this->lockFile);
+
             $tol = $now - $fct;
 
             // if ($tol > $this->lockWarning) {

@@ -3,7 +3,6 @@ namespace MonitoLib\Database\Dao;
 
 use \MonitoLib\Exception\BadRequest;
 use \MonitoLib\Exception\DatabaseError;
-use \MonitoLib\Exception\InternalError;
 use \MonitoLib\Functions;
 
 class Oracle extends Base implements \MonitoLib\Database\Dao

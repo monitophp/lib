@@ -60,11 +60,6 @@ class MySQL extends Base implements \MonitoLib\Database\Dao
     {
         $this->getConnection()->rollback();
     }
-
-
-
-
-
     /**
     * count
     */

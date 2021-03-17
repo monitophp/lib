@@ -106,6 +106,8 @@ class Base extends Query
         return \MonitoLib\Database\Connector::getInstance()
             ->getConnection($this->connectionName)
             ->getConnection();
+        // \MonitoLib\Dev::vde(\MonitoLib\Database\Connector::getInstance()->getConnection());
+        // return \MonitoLib\Database\Connector::getInstance()->getConnection()->getConnection();
     }
     public function getDtoName()
     {
