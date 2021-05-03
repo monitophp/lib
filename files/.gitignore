@@ -1,0 +1,7 @@
+vendor/
+cache/
+config/config.php
+log/
+storage/
+tmp/
+sqlnet.log
