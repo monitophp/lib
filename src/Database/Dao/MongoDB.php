@@ -20,56 +20,28 @@ class MongoDB extends \MonitoLib\Database\Query\MongoDB
     /**
     * count
     */
-    public function count()
+    public function count() : int
     {
-        $sql = $this->renderCountSql();
-        $stt = $this->parse($sql);
-        $this->execute($stt);
-        $res = $this->fetchArrayNum($stt);
-        return $res[0];
+        $filter    = $this->renderFilter();
+        $dtoName   = $this->dtoName;
+        $modelName = str_replace('\\Dto\\', '\\Model\\', $dtoName);
+
+        $model     = new $modelName();
+        $table     = $model->getTablename();
+
+        $connection = Connector::getInstance()->getConnection($this->connection);
+        $database   = $connection->getDatabase();
+        $handler    = $connection->getConnection();
+        $collection = $handler->$database->$table;
+
+        return $collection->count($filter);
     }
     /**
     * dataset
     */
     public function dataset()
     {
-        $data    = [];
-        $return  = [];
 
-        $sql = $this->renderCountSql(true);
-        $stt = $this->parse($sql);
-        $this->execute($stt);
-        $res = $this->fetchArrayNum($stt);
-
-        $total = $res[0];
-        $return['total'] = +$total;
-
-        if ($total > 0) {
-            $sql = $this->renderCountSql();
-            $stt = $this->parse($sql);
-            $this->execute($stt);
-            $res = $this->fetchArrayNum($stt);
-
-            $count = $res[0];
-            $return['count'] = +$count;
-
-            if ($count > 0) {
-                $page    = $this->getPage();
-                $perPage = $this->getPerPage();
-                $pages   = $perPage > 0 ? ceil($count / $perPage) : 1;
-
-                if ($page > $pages) {
-                    throw new BadRequest("Número da página atual ($page) maior que o número de páginas ($pages)!");
-                }
-
-                $data = $this->list();
-                $return['data']  = $data;
-                $return['page']  = +$page;
-                $return['pages'] = +$pages;
-            }
-        }
-
-        return $return;
     }
     /**
     * delete
@@ -83,16 +55,23 @@ class MongoDB extends \MonitoLib\Database\Query\MongoDB
             throw new BadRequest('Não é possível deletar registros de uma view!');
         }
 
-        $sql = $this->renderDeleteSql();
-        $stt = $this->parse($sql);
-        $this->execute($stt);
+
+        $dtoName   = $this->dtoName;
+        $modelName = str_replace('\\Dto\\', '\\Model\\', $dtoName);
+
+        $model     = new $modelName();
+        $table     = $model->getTablename();
+
+        $connection = Connector::getInstance()->getConnection($this->connection);
+        $database   = $connection->getDatabase();
+        $handler    = $connection->getConnection();
+        $collection = $handler->$database->$table;
+
+        $filter = $this->renderFilter();
+        $collection->delete($filter);
 
         // Reset query
         $this->reset();
-
-        if ($stt->rowCount() === 0) {
-            // throw new BadRequest('Não foi possível deletar!');
-        }
     }
     // public function renderFindOne
     /**
@@ -102,8 +81,7 @@ class MongoDB extends \MonitoLib\Database\Query\MongoDB
     {
         $filter  = $this->renderFilter();
         $options = $this->renderOptions();
-
-        \MonitoLib\Dev::pr($filter);
+        // \MonitoLib\Dev::pr($filter);
 
         $dtoName   = $this->dtoName;
         $modelName = str_replace('\\Dto\\', '\\Model\\', $dtoName);
@@ -126,20 +104,93 @@ class MongoDB extends \MonitoLib\Database\Query\MongoDB
 
         return $this->parseResult($result);
     }
-    public function parseResult(object $result)
+    /**
+    * getLastId
+    */
+    public function getLastId()
     {
-        $result = $result->jsonSerialize();
+        return $this->lastId;
+    }
+    /**
+    * insert
+    */
+    public function insert(object $dto)
+    {
+        $dtoName   = get_class($dto);
+        $modelName = str_replace('\\Dto\\', '\\Model\\', $dtoName);
 
-        $daoName = get_class($this);
-        $dtoName = str_replace('\\Dao\\', '\\Dto\\', $daoName);
-        $dto = $this->parseDto($dtoName, $result);
+        $model     = new $modelName();
+        $table     = $model->getTablename();
 
-        return $dto;
+        $connection = Connector::getInstance()->getConnection($this->connection)->getConnection();
+        $collection = $connection->fermento->$table;
+        $insert     = $this->parseInsert($dto);
+        $result     = $collection->insertOne($insert);
+
+        $this->lastId = $result->getInsertedId()->__toString();
+        $this->reset();
+    }
+    /**
+    * list
+    */
+    public function list()
+    {
+        $filter  = $this->renderFilter();
+        $options = $this->renderOptions();
+        // \MonitoLib\Dev::pr($filter);
+        // \MonitoLib\Dev::pre($options);
+
+        $dtoName   = $this->dtoName;
+        $modelName = str_replace('\\Dto\\', '\\Model\\', $dtoName);
+
+        $model     = new $modelName();
+        $table     = $model->getTablename();
+
+        $connection = Connector::getInstance()->getConnection($this->connection);
+        $database   = $connection->getDatabase();
+        $handler    = $connection->getConnection();
+        $collection = $handler->$database->$table;
+
+        $count = $collection->count($filter);
+        $total = $count;
+        $data  = [];
+
+        if ($count > 0) {
+            $cursor = $collection->find($filter, $options);
+
+            foreach ($cursor as $document) {
+                $data[] = $this->parseResult($document);
+            }
+        }
+
+        $perPage = $this->getPerPage();
+
+        if ($perPage <= 0) {
+            $perPage = $count;
+        }
+
+        // $dataset = new \MonitoLib\Database\Dataset(
+        //     $total,
+        //     $count,
+        //     $this->getPage(),
+        //     $perPage,
+        //     $data
+        // );
+
+        $dataset = [
+            'data' => $data,
+            'pagination' => [
+                'total'   => $total,
+                'count'   => $count,
+                'page'    => $this->getPage(),
+                'perPage' => $perPage,
+            ]
+        ];
+
+        return $dataset;
     }
     private function parseDto(string $dtoName, object $document)
     {
-        // \MonitoLib\Dev::pre(json_encode($document));
-
         $modelName = str_replace('\\Dto\\', '\\Model\\', $dtoName);
 
         // \MonitoLib\Dev::pr($document);
@@ -217,41 +268,7 @@ class MongoDB extends \MonitoLib\Database\Query\MongoDB
 
         return $_dto;
     }
-    // /**
-    // * getById
-    // */
-    // public function getById(...$params)
-    // {
-    //     if (!empty($params)) {
-    //         $keys = $this->model->getPrimaryKeys();
-    //         $countKeys   = count($keys);
-    //         $countParams = count($params);
-
-    //         if ($countKeys !== $countParams) {
-    //             throw new BadRequest('Número inválido de parâmetros!');
-    //         }
-
-    //         if ($countParams > 1) {
-    //             foreach ($params as $p) {
-    //                 foreach ($keys as $k) {
-    //                     $this->equal($k, $p);
-    //                 }
-    //             }
-    //         } else {
-    //             $this->equal($keys[0], $params[0]);
-    //         }
-
-    //         return $this->get();
-    //     }
-    // }
-    /**
-    * getLastId
-    */
-    public function getLastId()
-    {
-        return $this->lastId;
-    }
-    public function toInsert(object $dto) : array
+    public function parseInsert(object $dto) : array
     {
         // \MonitoLib\Dev::pre($dto);
         $dtoName   = get_class($dto);
@@ -302,10 +319,10 @@ class MongoDB extends \MonitoLib\Database\Query\MongoDB
                         if (is_array($$__var)) {
                             $__value = [];
                             foreach ($$__var as $__v) {
-                                $__value[] = $this->toInsert($__v);
+                                $__value[] = $this->parseInsert($__v);
                             }
                         } else {
-                            $__value = $this->toInsert($$__var);
+                            $__value = $this->parseInsert($$__var);
                         }
                     } else {
                         $__value = $$__var;
@@ -323,93 +340,17 @@ class MongoDB extends \MonitoLib\Database\Query\MongoDB
 
         return $insert;
     }
-    /**
-    * insert
-    */
-    public function insert($dto)
+    public function parseResult(object $result)
     {
-        // \MonitoLib\Dev::pr($dto);
-
-        $insert = $this->toInsert($dto);
-
-        // \MonitoLib\Dev::pre($insert);
-
-        $dtoName   = get_class($dto);
-        $modelName = str_replace('\\Dto\\', '\\Model\\', $dtoName);
-
-        $model     = new $modelName();
-        $table     = $model->getTablename();
-
-        $connection = Connector::getInstance()->getConnection($this->connection)->getConnection();
-        $collection = $connection->fermento->$table;
-        $result     = $collection->insertOne($insert);
-
-        $this->lastId = $result->getInsertedId()->__toString();
-
-        $this->reset();
-    }
-    /**
-    * list
-    */
-    public function list()
-    {
-        $data = [];
-
-        $filter  = $this->renderFilter();
-        $options = $this->renderOptions();
-        // \MonitoLib\Dev::pr($filter);
-        // \MonitoLib\Dev::pre($options);
-
-
-        $dtoName   = $this->dtoName;
-        $modelName = str_replace('\\Dto\\', '\\Model\\', $dtoName);
-
-        $model     = new $modelName();
-        $table     = $model->getTablename();
-
-        $connection = Connector::getInstance()->getConnection($this->connection);
-        $database   = $connection->getDatabase();
-        $handler    = $connection->getConnection();
-        $collection = $handler->$database->$table;
-
-        $count = $collection->count($filter);
-        $total = $count;
-
-        if ($count > 0) {
-            $cursor = $collection->find($filter, $options);
-
-            foreach ($cursor as $document) {
-                $data[] = $this->parseResult($document);
-            }
-        }
-
-        $dataset = new \MonitoLib\Database\Dataset(
-            $total,
-            $count,
-            $this->getPage(),
-            $this->getPerPage(),
-            $data
-        );
-
-        // \MonitoLib\Dev::pre($count);
-
-
-        // $options = [
-        //     'projection' => $this->fields
-        // ];
-
-
-        // \MonitoLib\Dev::pre($options);
-
-
-        // \MonitoLib\Dev::pre($dataset);
-
-        return $dataset;
+        $result  = $result->jsonSerialize();
+        $daoName = get_class($this);
+        $dtoName = str_replace('\\Dao\\', '\\Dto\\', $daoName);
+        return $this->parseDto($dtoName, $result);
     }
     /**
     * update
     */
-    public function update($dto)
+    public function update(object $dto)
     {
         $dtoName   = get_class($dto);
         $modelName = str_replace('\\Dto\\', '\\Model\\', $dtoName);
@@ -422,7 +363,12 @@ class MongoDB extends \MonitoLib\Database\Query\MongoDB
             '_id' => new \MongoDB\BSON\ObjectID($dto->getId())
         ];
 
-        $update = $this->toInsert($dto);
+        // if (method_exists($this, 'beforeUpdate')) {
+        //     $dto = $this->beforeUpdate($dto);
+        // }
+
+
+        $update = $this->parseInsert($dto);
 
         // \MonitoLib\Dev::pre($update);
 
