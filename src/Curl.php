@@ -55,7 +55,7 @@ class Curl
             CURLOPT_SSH_COMPRESSION => true,
         ]);
     }
-    public function addHeader(string key, string $value)
+    public function addHeader(string $key, string $value)
     {
         $this->header[$key] = $value;
     }

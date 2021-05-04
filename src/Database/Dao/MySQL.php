@@ -5,7 +5,7 @@ use \MonitoLib\Exception\BadRequest;
 use \MonitoLib\Exception\DatabaseError;
 use \MonitoLib\Functions;
 
-class MySQL extends Base implements \MonitoLib\Database\Dao
+class MySQL extends Base // implements \MonitoLib\Database\Dao
 {
     const VERSION = '1.0.2';
     /**
@@ -41,7 +41,7 @@ class MySQL extends Base implements \MonitoLib\Database\Dao
                 'line' => $e->getLine(),
             ];
 
-            throw new DatabaseError('Erro ao conectar no banco de dados!', $error);
+            throw new DatabaseError('Erro ao executar comando no banco de dados', $error);
         }
     }
     public function fetchArrayAssoc($stt)
@@ -60,11 +60,6 @@ class MySQL extends Base implements \MonitoLib\Database\Dao
     {
         $this->getConnection()->rollback();
     }
-
-
-
-
-
     /**
     * count
     */
@@ -234,9 +229,12 @@ class MySQL extends Base implements \MonitoLib\Database\Dao
     /**
     * list
     */
-    public function list()
+    public function list(string $sql = null) : array
     {
-        $sql = $this->renderSelectSql();
+        if (is_null($sql)) {
+            $sql = $this->renderSelectSql();
+        }
+
         $stt = $this->parse($sql);
         $this->execute($stt);
 

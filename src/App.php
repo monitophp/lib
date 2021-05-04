@@ -9,8 +9,11 @@ use \MonitoLib\Response;
 
 class App
 {
-    const VERSION = '1.4.1';
+    const VERSION = '1.5.0';
     /**
+    * 1.5.0 - 2021-01-01
+    * new: getUserDto, setUserDto
+    *
     * 1.4.1 - 2020-12-23
     * fix: CORS http code
     *
@@ -228,8 +231,6 @@ class App
                 Response::setHttpResponseCode(200);
             }
         } catch (\Exception | \ThrowAble $e) {
-            // \MonitoLib\Dev::pre($e);
-
             $return = [];
 
             $httpCode  = $e->getCode();

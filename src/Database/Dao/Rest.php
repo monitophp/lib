@@ -1,14 +1,15 @@
 <?php
 namespace MonitoLib\Database\Dao;
 
-use \MonitoLib\Exception\BadRequest;
-use \MonitoLib\Exception\InternalError;
 use \MonitoLib\Functions;
 
-class Rest // extends Base implements \MonitoLib\Database\Dao
+class Rest
 {
-    const VERSION = '1.1.0';
+    const VERSION = '1.1.1';
     /**
+    * 1.1.1 - 2020-09-28
+    * fix: fixes in curl()
+    *
     * 1.1.0 - 2020-09-28
     * new: decrypt pass
     *

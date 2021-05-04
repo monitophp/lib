@@ -11,7 +11,7 @@ class Controller
     const VERSION = '1.0.2';
     /**
     * 1.0.2 - 2021-01-05
-    * new: Suffix in lock method
+    * new: $suffix in lock method
     *
     * 1.0.1 - 2020-08-06
     * new: Locked and InternalError exceptions
@@ -29,12 +29,12 @@ class Controller
     private $lockTimeout = 3600;
     private $lockTime = 0;
 
-    public function __construct ()
+    public function __construct()
     {
         $this->request  = \MonitoLib\Mcl\Request::getInstance();
         $this->response = \MonitoLib\Mcl\Response::getInstance();
     }
-    public function input(string $text)
+    public function input(string $text) : string
     {
         $return = '';
         while ($return === '') {
@@ -42,7 +42,7 @@ class Controller
         }
         return $return;
     }
-    public function lock(int $warning = 0, int $timeout = 0, string $suffix = '')
+    public function lock(int $warning = 0, int $timeout = 0, string $suffix = '') : void
     {
         if ($warning > 0) {
             $this->lockWarning = $warning;
@@ -141,7 +141,7 @@ class Controller
 
         return $answer;
     }
-    public function unlock()
+    public function unlock() : void
     {
         if ($this->canUnlock) {
             if (file_exists($this->lockFile)) {

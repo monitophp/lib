@@ -2,8 +2,6 @@
 namespace MonitoLib;
 
 use \MonitoLib\Exception\BadRequest;
-use \MonitoLib\Exception\InternalError;
-use \MonitoLib\Functions;
 
 class Mcl
 {
@@ -147,13 +145,13 @@ class Mcl
         $file = App::getRoutesPath() . 'cli.php';
 
         if (!file_exists($file)) {
-            throw new Exception('Não há arquivos de comandos!');
+            throw new \Exception('Não há arquivos de comandos!');
         }
 
         require_once $file;
 
         if (!isset($commands[$module])) {
-            throw new \Exception('Módulo não existe!');
+            throw new \Exception('Módulo não existe');
         }
 
         $this->module = new $commands[$module]();

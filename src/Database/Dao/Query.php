@@ -8,8 +8,11 @@ use \MonitoLib\Validator;
 
 class Query
 {
-    const VERSION = '2.0.1';
+    const VERSION = '2.0.2';
     /**
+    * 2.0.2 - 2021-05-04
+    * dev update
+    *
     * 2.0.1 - 2020-09-19
     * fix: equal, noEqual value type
     *
@@ -55,7 +58,7 @@ class Query
     // Database types
     const DB_MYSQL  = 1;
     const DB_ORACLE = 2;
-    const DB_MONGO  = 3;
+    const DB_MONGO  = 4;
 
     protected $convertName = true;
     private $countSql;
@@ -78,10 +81,10 @@ class Query
     private $sqlCount;
     private $queryParser;
 
-    public function __construct()
-    {
-        \MonitoLib\Dev::pre($this);
-    }
+    // public function __construct()
+    // {
+    //     \MonitoLib\Dev::pre($this);
+    // }
 
     // public function all(string $field, int $value, int $options = 0) : self
     // {

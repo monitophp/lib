@@ -2,14 +2,19 @@
 namespace MonitoLib;
 
 use \MonitoLib\App;
-use \MonitoLib\Functions;
 use \MonitoLib\Exception\BadRequest;
-use \MonitoLib\Exception\Conflict;
 use \MonitoLib\Exception\NotFound;
 
 class Image
 {
-    const VERSION = '1.0.0';
+    const VERSION = '1.0.1';
+    /**
+    * 1.0.1 - 2021-05-04
+    * new: using only GD to optimize images
+    *
+    * 1.0.0 - 2020-09-28
+    * Initial release
+    */
 
     private $base64encode;
     private $file;
@@ -65,6 +70,7 @@ class Image
             $di = imagecreatetruecolor($nil, $nil);
             $bg = imagecolorallocate($di, 255, 255, 255);
             imagefill($di, 0, 0, $bg);
+
 
             if ($this->width > $this->height) {
                 $nx = 0;
@@ -180,7 +186,6 @@ class Image
         // if (!file_exists($file)) {
             // throw new NotFound("O arquivo de destino$file não foi encontrado");
         // }
-
         imagejpeg($this->image, $file, $this->quality);
         // \MonitoLib\Dev::ee('odara');
         return $this;

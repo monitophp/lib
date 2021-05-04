@@ -3,7 +3,6 @@ namespace MonitoLib\Database\Dao;
 
 use \MonitoLib\Exception\BadRequest;
 use \MonitoLib\Exception\DatabaseError;
-use \MonitoLib\Exception\InternalError;
 use \MonitoLib\Functions;
 
 class Oracle extends \MonitoLib\Database\Query\Sql // implements \MonitoLib\Database\Dao
@@ -269,7 +268,7 @@ class Oracle extends \MonitoLib\Database\Query\Sql // implements \MonitoLib\Data
 
         $stt = $this->execute($stt);
     }
-    public function list($sql = null)
+    public function list(string $sql = null) : array
     {
         if (is_null($sql)) {
             $sql = $this->renderSelectSql();

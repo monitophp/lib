@@ -10,6 +10,9 @@ class Model
 {
     const VERSION = '1.0.1';
     /**
+    * 1.0.2 - 2021-05-04
+    * new: getField return
+    *
     * 1.0.1 - 2019-06-05
     * new: model name in validate thrown error message
     *

@@ -3,8 +3,11 @@ namespace MonitoLib;
 
 class Functions
 {
-    const VERSION = '1.2.0';
+    const VERSION = '1.3.0';
     /**
+	* 1.3.0 - 2021-04-05
+	* new: downloadFile() and parseNull())
+	*
 	* 1.2.0 - 2020-12-21
 	* new: isValidJson()
 	*

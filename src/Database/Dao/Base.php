@@ -45,8 +45,6 @@ class Base // extends Query
         if (class_exists($model)) {
             $this->model = new $model;
         }
-
-        // \MonitoLib\Dev::pre($this);
     }
     public function beginTransaction()
     {
