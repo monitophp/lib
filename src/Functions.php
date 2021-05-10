@@ -3,8 +3,11 @@ namespace MonitoLib;
 
 class Functions
 {
-    const VERSION = '1.3.0';
+    const VERSION = '1.3.1';
     /**
+	* 1.3.1 - 2021-04-10
+	* fix: mb_strtolower in convertToUrl
+	*
 	* 1.3.0 - 2021-04-05
 	* new: downloadFile() and parseNull())
 	*
@@ -66,7 +69,7 @@ class Functions
     }
     public static function convertToUrl(string $string) : string
     {
-    	$url = strtolower($string);
+    	$url = mb_strtolower($string);
     	$url = self::removeAccents($url);
     	$url = preg_replace('/[^a-z0-9\-]/', '-', $url);
     	$url = preg_replace('/-{2,}/', '-', $url);

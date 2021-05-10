@@ -7,8 +7,11 @@ use \MonitoLib\Exception\NotFound;
 
 class Image
 {
-    const VERSION = '1.0.1';
+    const VERSION = '1.1.0';
     /**
+    * 1.1.0 - 2021-05-10
+    * new: getHeight(), getMimetype(), getSize(), getWidth
+    *
     * 1.0.1 - 2021-05-04
     * new: using only GD to optimize images
     *
@@ -17,7 +20,6 @@ class Image
     */
 
     private $base64encode;
-    private $file;
     private $height;
     private $image;
     private $mimetype;
@@ -124,7 +126,6 @@ class Image
     public function getBase64Encode() : string
     {
         if (is_null($this->base64encode)) {
-            // \MonitoLib\Dev::e($this->tmpFile);
             $this->save($this->tmpFile);
             $this->base64encode = base64_encode(file_get_contents($this->tmpFile));
             unlink($this->tmpFile);
@@ -132,9 +133,25 @@ class Image
 
         return $this->base64encode;
     }
+    public function getHeight() : int
+    {
+        return $this->height;
+    }
+    public function getMimetype() : string
+    {
+        return $this->mimetype;
+    }
     public function getQuality() : float
     {
         return $this->quality;
+    }
+    public function getSize() : int
+    {
+        return $this->size;
+    }
+    public function getWidth() : int
+    {
+        return $this->width;
     }
     public function optimize(float $quality, ?int $maxSize = 0) : self
     {
@@ -171,7 +188,6 @@ class Image
         $this->height   = $imi[1];
         $this->mimetype = $imi['mime'];
         $this->size     = filesize($file);
-        $this->file     = $file;
 
         // Cria a image
         $this->create($file);
@@ -183,11 +199,7 @@ class Image
     }
     public function save(string $file) : self
     {
-        // if (!file_exists($file)) {
-            // throw new NotFound("O arquivo de destino$file não foi encontrado");
-        // }
         imagejpeg($this->image, $file, $this->quality);
-        // \MonitoLib\Dev::ee('odara');
         return $this;
     }
     private function updateDimensions() : void
