@@ -163,7 +163,8 @@ class Model
     private function parseField(string $fieldName)
     {
         if (!isset($this->fields[$fieldName])) {
-            throw new BadRequest("O campo $fieldName não existe no modelo");
+            return [];
+            // throw new BadRequest("O campo $fieldName não existe no modelo");
         }
 
         $field = new \MonitoLib\Database\Model\Field();

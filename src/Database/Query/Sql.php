@@ -265,7 +265,7 @@ class Sql extends \MonitoLib\Database\Dao\Base
                 $name = "TRUNC($field)";
             }
 
-            $value1 = "TO_DATE('$value', '$f')";
+            $value1 = "TO_DATE('$value1', '$f')";
             $rawQuery = true;
         }
 

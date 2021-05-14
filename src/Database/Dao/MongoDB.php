@@ -205,6 +205,11 @@ class MongoDB extends \MonitoLib\Database\Query\MongoDB
             }
 
             $_field = $_model->getField($_key);
+
+            if (empty($_field)) {
+                continue;
+            }
+
             $__type = $_field->getType() ?? 'string';
 
             // if ($_key === 'invoices') {
