@@ -1,6 +1,9 @@
 <?php
 namespace MonitoLib;
 
+use \RecursiveDirectoryIterator;
+use \RecursiveIteratorIterator;
+
 class Functions
 {
     const VERSION = '1.3.1';
@@ -66,6 +69,34 @@ class Functions
         }
 
         return true;
+    }
+    public static function convertName(string $name) : string
+    {
+        $words = explode(' ', $name);
+        $name  = '';
+
+        foreach ($words as $w) {
+            $w = trim($w);
+            $w = self::removeAccents($w);
+
+            if (preg_match('/^[a-zA-Z]+$/', $w)) {
+                $w = strtolower($w);
+                $w = ucfirst($w);
+
+                if (in_array($w, [
+                    'Da',
+                    'De',
+                    'Dos',
+                    'E'
+                ])) {
+                    $w = strtolower($w);
+                }
+            }
+
+            $name .= "$w ";
+        }
+
+        return trim($name);
     }
     public static function convertToUrl(string $string) : string
     {
@@ -138,22 +169,44 @@ class Functions
 
 	    return $plain;
 	}
-    public function downloadFile(string $url, string $destinationFile = null) : string
-    {
-		if (is_null($destinationFile)) {
-        	$newfname = App::getTmpPath() . 'tmpfile';
+    public static function deleteDir(string $directory)
+	{
+		if (!is_dir($directory)) {
+	        throw new \InvalidArgumentException("Invalid directory: $directory");
 		}
 
-        $file = fopen($url, 'rb');
+		$iterator = new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS);
+		$files    = new RecursiveIteratorIterator($iterator, RecursiveIteratorIterator::CHILD_FIRST);
 
-        if ($file) {
-            $newf = fopen($newfname, 'wb');
-            if ($newf) {
-                while(!feof($file)) {
-                    fwrite($newf, fread($file, 1024 * 8), 1024 * 8);
-                }
-            }
-        }
+		foreach ($files as $file) {
+			if ($file->isDir()){
+				rmdir($file->getRealPath());
+			} else {
+				unlink($file->getRealPath());
+			}
+		}
+
+		rmdir($directory);
+	}
+	public static function downloadFile(string $url, ?string $destinationFile) : string
+    {
+		if (is_null($destinationFile)) {
+        	$destinationFile = App::getTmpPath() . 'tmpfile';
+		}
+
+        $file = @fopen($url, 'rb');
+
+		if ($file === false) {
+	        throw new \Exception("Error downloading $url");
+		}
+
+		$newf = fopen($destinationFile, 'wb');
+
+		if ($newf) {
+			while(!feof($file)) {
+				fwrite($newf, fread($file, 1024 * 8), 1024 * 8);
+			}
+		}
 
         if ($file) {
             fclose($file);
@@ -163,7 +216,7 @@ class Functions
             fclose($newf);
         }
 
-        return $newfname;
+        return $destinationFile;
     }
 	/**
 	* Encrypt a message

@@ -34,7 +34,7 @@ class Formatter
 	 * @param string $n
 	 * @return string
 	 */
-	public static function CpfCnpj($string)
+	public static function cpfCnpj($string)
 	{
 		$n = Functions::removeNonNumbers($string);
 		$r = NULL;
@@ -54,7 +54,7 @@ class Formatter
 	 * @param string $value
 	 * @return string
 	 */
-	static public function date($value)
+	public static function date($value)
 	{
 		return $value != '' ? date('d/m/Y', strtotime($value)) : '';
 	}
@@ -63,7 +63,7 @@ class Formatter
 	 * @param string $value
 	 * @return string
 	 */
-	static public function datetime($value)
+	public static function datetime($value)
 	{
 		return $value != '' ? date('d/m/Y H:i:s', strtotime($value)) : '';
 	}
@@ -73,14 +73,14 @@ class Formatter
 	 * @param int $decimals Default: 2
 	 * @return string
 	 */
-	static public function decimal($value, $decimals = 2)
+	public static function decimal($value, $decimals = 2)
 	{
 		if (is_numeric($value)) {
 			$value = number_format($value, $decimals, ',', '.');
 		}
 		return $value;
 	}
-	static public function secondsToString($seconds)
+	public static function secondsToString($seconds)
 	{
 		//echo $seconds . "\n";
 		$string = '';
@@ -135,7 +135,7 @@ class Formatter
 	 * @param string $value
 	 * @return string
 	 */
-	static public function telefone($value)
+	public static function telefone($value)
 	{
 		$value = Functions::removeNonNumbers($value);
 

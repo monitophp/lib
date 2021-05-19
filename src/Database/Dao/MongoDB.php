@@ -41,7 +41,61 @@ class MongoDB extends \MonitoLib\Database\Query\MongoDB
     */
     public function dataset()
     {
+        $filter  = $this->renderFilter();
+        $options = $this->renderOptions();
 
+        $dtoName   = $this->dtoName;
+        $modelName = str_replace('\\Dto\\', '\\Model\\', $dtoName);
+
+        $model     = new $modelName();
+        $table     = $model->getTablename();
+
+        $connection = Connector::getInstance()->getConnection($this->connection);
+        $database   = $connection->getDatabase();
+        $handler    = $connection->getConnection();
+        $collection = $handler->$database->$table;
+
+        $count = $collection->count($filter);
+        $total = $count;
+        $data  = [];
+
+        if ($count > 0) {
+            $cursor = $collection->find($filter, $options);
+
+            foreach ($cursor as $document) {
+                $data[] = $this->parseResult($document);
+            }
+        }
+
+        $perPage = $this->getPerPage();
+
+        if ($perPage <= 0) {
+            $perPage = $count;
+        }
+
+        // Creates the dataset
+        $dataset = (new \MonitoLib\Database\Dataset\Dataset(
+            $data,
+            (new \MonitoLib\Database\Dataset\Pagination(
+                $total,
+                $count,
+                $this->getPage(),
+                count($data),
+                $perPage
+            ))
+        ));
+
+        // $dataset = [
+        //     'data' => $data,
+        //     'pagination' => [
+        //         'total'   => $total,
+        //         'count'   => $count,
+        //         'page'    => $this->getPage(),
+        //         'perPage' => $perPage,
+        //     ]
+        // ];
+
+        return $dataset;
     }
     /**
     * delete

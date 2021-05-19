@@ -7,8 +7,11 @@ use \MonitoLib\Exception\NotFound;
 
 class Image
 {
-    const VERSION = '1.1.0';
+    const VERSION = '1.2.0';
     /**
+    * 1.2.0 - 2021-05-17
+    * new: convertToJpeg()
+    *
     * 1.1.0 - 2021-05-10
     * new: getHeight(), getMimetype(), getSize(), getWidth
     *
@@ -100,6 +103,14 @@ class Image
         $this->updateDimensions();
         $this->base64encode = null;
         return $this;
+    }
+    public function convertToJpeg()
+    {
+        $bg = imagecreatetruecolor($this->width, $this->height);
+        imagefill($bg, 0, 0, imagecolorallocate($bg, 255, 255, 255));
+        imagealphablending($bg, true);
+        imagecopy($bg, $this->image, 0, 0, 0, 0, $this->width, $this->height);
+        $this->image = $bg;
     }
     private function create(string $file) : void
     {

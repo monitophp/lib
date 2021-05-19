@@ -1,31 +1,28 @@
 <?php
-namespace MonitoLib\Database;
+namespace MonitoLib\Database\Dataset;
 
-class Dataset
+class Pagination
 {
     const VERSION = '1.0.0';
     /**
-    * 1.0.0 - 2021-04-22
+    * 1.0.0 - 2021-05-14
     * Initial version
     */
 
     private $count;
-    private $data;
     private $page;
     private $perPage;
     private $showing;
     private $total;
     private $pages;
 
-    public function __construct(int $total, int $count, int $page, int $perPage, array $data)
+    public function __construct(int $total, int $count, int $page, int $perPage, int $showing)
     {
-		$perPage = $perPage === 0 ? 1 : $perPage;
         $this->total   = $total;
         $this->count   = $count;
         $this->page    = $page;
-        $this->perPage = $perPage;
-        $this->data    = $data;
-        $this->showing = count($data);
+        $this->perPage = $perPage === 0 ? 1 : $perPage;
+        $this->showing = $showing;
         $this->pages   = ceil($count / $perPage);
     }
 	/**
@@ -36,15 +33,6 @@ class Dataset
 	public function getCount()
 	{
 		return $this->count;
-	}
-	/**
-	* getData
-	*
-	* @return $data
-	*/
-	public function getData()
-	{
-		return $this->data;
 	}
 	/**
 	* getPage
