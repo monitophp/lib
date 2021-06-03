@@ -7,8 +7,12 @@ use \MonitoLib\Exception\NotFound;
 
 class Image
 {
-    const VERSION = '1.2.0';
+    const VERSION = '1.2.1';
     /**
+    * 1.2.1 - 2021-06-02
+    * fix: adjust if newer image size is the same as older
+    * fix: convertToJpeg() set correct mimetype
+    *
     * 1.2.0 - 2021-05-17
     * new: convertToJpeg()
     *
@@ -45,8 +49,8 @@ class Image
     }
     public function adjust(int $width, int $height) : self
     {
-        // Verifica se a imagem está maior que o determinado
-        if ($this->width <= $width && $this->height <= $height) {
+        // Verifica se o novo tamanho é maior que o da imagem atual
+        if ($this->width < $width && $this->height < $height) {
             return $this;
         }
 
@@ -111,6 +115,7 @@ class Image
         imagealphablending($bg, true);
         imagecopy($bg, $this->image, 0, 0, 0, 0, $this->width, $this->height);
         $this->image = $bg;
+        $this->mimetype = 'image/jpeg';
     }
     private function create(string $file) : void
     {
