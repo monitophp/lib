@@ -29,11 +29,11 @@ class Controller
     private $lockTimeout = 3600;
     private $lockTime = 0;
 
-    public function __construct()
-    {
-        $this->request  = \MonitoLib\Mcl\Request::getInstance();
-        $this->response = \MonitoLib\Mcl\Response::getInstance();
-    }
+    // public function __construct()
+    // {
+    //     $this->request  = \MonitoLib\Mcl\Request::getInstance();
+    //     $this->response = \MonitoLib\Mcl\Response::getInstance();
+    // }
     public function input(string $text) : string
     {
         $return = '';
@@ -107,6 +107,32 @@ class Controller
             $this->canUnlock = true;
         }
     }
+    public function choice(string $question, array $options)
+    {
+        $answered = false;
+        $answer   = null;
+        $os = "Opções disponíveis:\n";
+
+        foreach ($options as $value => $name) {
+            $os .= "{$value} - {$name}\n";
+        }
+
+        // $question .= ': ';
+
+        while (!$answered) {
+            echo "$os\n";
+            $rl = strtolower(readline($question . ' '));
+
+            $answer = $options[$rl] ??= null;
+
+            if (!is_null($answer)) {
+                $answered = true;
+            }
+        }
+
+        return $answer;
+    }
+
     public function question(string $question, bool $defaultAnswer = true)
     {
         $answered = false;

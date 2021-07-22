@@ -49,7 +49,7 @@ class Controller
 
 		if (!method_exists($this, $method)) {
 	        throw new NotFound("Method $name doesn't exists");
-		}	
+		}
 
 		return $this->$method(...$arguments);
 	}
@@ -77,24 +77,25 @@ class Controller
 	public function _delete(...$keys)
 	{
 		if (empty($keys)) {
-			throw new BadRequest('Não é possível deletar sem parâmetros!');
+			throw new BadRequest('Não é possível deletar sem parâmetros');
 		}
 
 	    $dao   = $this->getDao();
-		$model = $this->getModel();
+		// $model = $this->getModel();
 
-		if (!empty($keys)) {
-			$primaryKeys = $model->getPrimaryKeys();
+		// if (!empty($keys)) {
+		// 	$primaryKeys = $model->getPrimaryKeys();
 
-			$i = 0;
+		// 	$i = 0;
 
-			foreach ($primaryKeys as $field) {
-				$dao->equal($field, $keys[$i], $dao::FIXED_QUERY);
-				$i++;
-			}
-		}
+		// 	foreach ($primaryKeys as $column) {
+		// 		$name = $column->getName();
+		// 		$dao->equal($name, $keys[$i], $dao::FIXED_QUERY);
+		// 		$i++;
+		// 	}
+		// }
 
-		$dao->delete();
+		$dao->delete(...$keys);
 
 	    Response::setHttpResponseCode(204);
 	}
@@ -114,31 +115,38 @@ class Controller
 			}
 		}
 
-		$dataset = $this->dataset ?? Request::asDataset();
-		$fields  = $this->fields ?? Request::getFields();
-		$orderBy = $this->orderBy ?? Request::getOrderBy();
-		$page    = $this->page ?? Request::getPage();
-		$perPage = $this->perPage ?? Request::getPerPage();
-		$query   = $this->query ?? Request::getQuery();
+		$query = Request::getQuery($model, $dao);
+		$dao->mergeFilter($query);
 
-	    $dao->setFields($fields)
-	    	->setQuery($query);
+		// \MonitoLib\Dev::pre($query);
+
+		// $query = Request::getFilter();
+
+		// $dataset = $this->dataset ?? Request::asDataset();
+		// $fields  = $this->fields  ?? Request::getFields();
+		// $orderBy = $this->orderBy ?? Request::getOrderBy();
+		// $page    = $this->page    ?? Request::getPage();
+		// $perPage = $this->perPage ?? Request::getPerPage();
+		// $query   = $this->query   ?? Request::getQuery();
+
+	    // $dao->fields($fields)
+	    // 	->setQuery($query);
 
 	    if (empty($keys)) {
-    	    $dao->setPerPage($perPage)
-    	        ->setPage($page)
-	        	->setOrderBy($orderBy);
+    	    // $dao->setPerPage($perPage)
+    	        // ->setPage($page)
+	        	// ->setOrderBy($orderBy);
 
-    	    if ($dataset) {
+    	    // if ($dataset) {
+    	        // return $dao->dataset();
+    	    // } else {
     	        return $dao->dataset();
-    	    } else {
-    	        return $dao->list();
-    	    }
+    	    // }
 	    } else {
     	    $dto = $dao->get();
 
     	    if (is_null($dto)) {
-    	        throw new NotFound($this->notFound ?? 'Registro não encontrado!');
+    	        throw new NotFound($this->notFound ?? 'Registro não encontrado');
     	    }
 
     	    return $dto;
@@ -164,10 +172,14 @@ class Controller
 		$dto = $this->_get(...$keys);
 
 	    if (is_null($dto)) {
-	        throw new NotFound($this->notFound ?? 'Registro não encontrado!');
+	        throw new NotFound($this->notFound ?? 'Registro não encontrado');
 	    }
 
 		$dto = $this->jsonToDto($dto, $json);
+
+		// \MonitoLib\Dev::vde($dto);
+
+
 		$dao->update($dto);
 
 	    Response::setHttpResponseCode(201);

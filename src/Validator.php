@@ -22,10 +22,10 @@ class Validator
      * @param string $email
      * @return boolean
      */
-    static public function cnpj($cnpj)
+    static public function cnpj(string $cnpj) : bool
     {
         $cnpj = preg_replace('/[^0-9]/', '', $cnpj);
-        
+
         // Valida tamanho
         if (strlen($cnpj) != 14) {
             return false;
@@ -33,7 +33,7 @@ class Validator
 
         // Verifica se todos os digitos são iguais
         if (preg_match('/(\d)\1{13}/', $cnpj)) {
-            return false;   
+            return false;
         }
 
         // Valida primeiro dígito verificador
@@ -58,7 +58,7 @@ class Validator
 
         return $cnpj[13] == ($resto < 2 ? 0 : 11 - $resto);
     }
-    static public function cpf($cpf)
+    static public function cpf(string $cpf) : bool
     {
         // Extrai somente os números
         $cpf = preg_replace('/[^0-9]/is', '', $cpf);
@@ -88,16 +88,17 @@ class Validator
 
         return true;
     }
-    static public function date($date, $format = 'Y-m-d')
+    static public function date(string $date, $format = 'Y-m-d') : bool
     {
         $d = \DateTime::createFromFormat($format, $date);
-        return $d && $d->format($format) == $date;
+        return $d && $d->format($format) === $date;
     }
-    static public function email($email)
+    static public function email(string $email) : bool
     {
-        if (preg_match("/(\w[-._\w]*\w@\w[-._\w]*\w\.\w{2,3})/", $email)) {
+        if (preg_match('/(\w[-._\w]*\w@\w[-._\w]*\w\.\w{2,3})/', $email)) {
             return true;
         }
+
         return false;
     }
 }

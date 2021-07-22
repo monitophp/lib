@@ -1,9 +1,9 @@
 <?php
-namespace MonitoLib\Database\Dao;
+namespace MonitoLib\Database\Rest;
 
 use \MonitoLib\Functions;
 
-class Rest
+class Dao
 {
     const VERSION = '1.1.1';
     /**

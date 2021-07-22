@@ -74,7 +74,7 @@ class App
     }
     public static function getDocumentRoot() : string
     {
-        if (PHP_SAPI === 'cli') {
+        if (self::isCli()) {
             $dr = substr(__DIR__, 0, strripos(__DIR__, 'vendor') - 1);
         } else {
             $dr = $_SERVER['DOCUMENT_ROOT'];
@@ -88,7 +88,7 @@ class App
     }
     public static function getCachePath(string $relativePath = null, ?bool $create = true) : string
     {
-        return self::getPath('cache', $relativePath, $create);
+        return self::getTmpPath('Cache', $create);
     }
     public static function getConfigPath(string $relativePath = null, ?bool $create = true) : string
     {
@@ -168,6 +168,10 @@ class App
 
         return self::$username;
     }
+	public static function isCli() : bool
+	{
+		return PHP_SAPI === 'cli' ? true : false;
+	}
     public static function now() : string
     {
         return date('Y-m-d H:i:s');
@@ -175,6 +179,10 @@ class App
     public static function run() : void
     {
         try {
+            if (self::$debug > 0) {
+                error_reporting(E_ALL);
+            }
+
             http_response_code(500);
             $uri = $_SERVER['REQUEST_URI'];
 
@@ -249,10 +257,16 @@ class App
 
                 foreach ($trace as $t) {
                     $tr = [
-                        'file'     => $t['file'],
-                        'line'     => $t['line'],
                         'function' => $t['function'],
                     ];
+
+                    if (isset($t['file'])) {
+                        $tr['file'] = $t['file'];
+                    }
+
+                    if (isset($t['file'])) {
+                        $tr['line'] = $t['line'];
+                    }
 
                     $debug['trace'][] = $tr;
                 }
@@ -276,12 +290,6 @@ class App
     {
         if ($debug < 0 || $debug > 2) {
             throw new InternalError('O nível de debug deve ser 0, 1 ou 2');
-        }
-
-        if ($debug > 0) {
-            error_reporting(E_ALL);
-        } else {
-            error_reporting(0);
         }
 
         self::$debug = $debug;

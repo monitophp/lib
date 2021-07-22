@@ -49,9 +49,6 @@ class Config
         //      # code...
         //  } (self::ini()) {
 
-
-
-
         // List connections
         $connections = \MonitoLib\Database\Connector::getConnectionsList();
 
@@ -78,7 +75,7 @@ class Config
 
 
 
-        
+
 
 
 

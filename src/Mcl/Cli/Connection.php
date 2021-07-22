@@ -7,20 +7,37 @@ use \MonitoLib\Database\Connector;
 use \MonitoLib\Functions;
 use \MonitoLib\Exception\BadRequest;
 use \MonitoLib\Exception\NotFound;
+use \MonitoLib\Mcl\Request;
 
 class Connection extends \MonitoLib\Mcl\Controller
 {
     public function add()
     {
-        $name = $this->request->getParam('name')->getValue();
-        $env  = $this->request->getOption('env')->getValue() ?? 'prod';
-        $type = $this->request->getOption('type')->getValue();
-        $host = $this->request->getOption('host')->getValue();
-        $user = $this->request->getOption('user')->getValue();
-        $db   = $this->request->getOption('db')->getValue();
+        $name = Request::getParam('name')->getValue();
+        $env  = Request::getOption('env')->getValue() ?? 'prod';
+        $type = Request::getOption('type')->getValue();
+        $host = Request::getOption('host')->getValue();
+        $user = Request::getOption('user')->getValue();
+        $db   = Request::getOption('db')->getValue();
 
         if (is_null($name)) {
             $name = $this->question('Informe o nome da conexao: ');
+        }
+
+        if (is_null($env)) {
+            $env = $this->question('Informe o ambiente da conexao: ');
+        }
+
+        if (is_null($type)) {
+            $type = $this->choice(
+                'Indique o tipo da conexao: ',
+                [
+                    1 => 'MySQL',
+                    2 => 'Oracle',
+                    3 => 'Rest',
+                    4 => 'MongoDB',
+                ]
+            );
         }
 
         $pass = $this->input('Senha: ');

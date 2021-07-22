@@ -1,18 +1,18 @@
-<?php 
+<?php
 /**
  * Database connector
  * @author Joelson B <joelsonb@msn.com>
  * @copyright Copyright &copy; 2013 - 2018
- *  
+ *
  * @package MonitoLib
  */
-namespace MonitoLib\Database\Connector;
+namespace MonitoLib\Database\MySQL;
 
 use \MonitoLib\Functions;
 use \MonitoLib\Exception\DatabaseError;
 use \MonitoLib\Exception\InternalError;
 
-class MySQL extends Connection
+class Connector extends \MonitoLib\Database\Connection
 {
     const VERSION = '1.1.0';
     /**
@@ -37,7 +37,7 @@ class MySQL extends Connection
                 'line'    => $e->getLine(),
             ];
 
-            throw new DatabaseError('Erro ao conectar no banco de dados!', $error);
+            throw new DatabaseError('Erro ao conectar no banco de dados', $error);
         }
     }
 }

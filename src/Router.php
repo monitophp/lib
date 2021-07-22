@@ -188,13 +188,13 @@ class Router
     {
         self::add('DELETE', $url, $action, $secure);
     }
-    static private function error($message)
-    {
-        return $json = [
-            'code'    => '1',
-            'message' => $message
-            ];
-    }
+    // static private function error($message)
+    // {
+    //     return $json = [
+    //         'code'    => '1',
+    //         'message' => $message
+    //         ];
+    // }
     public static function get($url, $action, $secure = true)
     {
         self::add('GET', $url, $action, $secure);

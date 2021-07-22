@@ -1,18 +1,18 @@
-<?php 
+<?php
 /**
  * Database connector
  * @author Joelson B <joelsonb@msn.com>
  * @copyright Copyright &copy; 2013 - 2018
- *  
+ *
  * @package MonitoLib
  */
-namespace MonitoLib\Database\Connector;
+namespace MonitoLib\Database\Oracle;
 
 use \MonitoLib\Exception\DatabaseError;
 use \MonitoLib\Exception\InternalError;
 use \MonitoLib\Functions;
 
-class Oracle extends Connection
+class Connector extends \MonitoLib\Database\Connection
 {
     const VERSION = '1.1.0';
     /**

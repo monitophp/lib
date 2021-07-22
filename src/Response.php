@@ -26,6 +26,10 @@ class Response
 	private static $debug = [];
 	private static $return = [];
 
+	public static function asHtml() : void
+	{
+		self::$contentType = 'Content-Type: text/html';
+	}
 	public static function asJson() : void
 	{
 		self::$contentType = 'Content-Type: application/json';
@@ -120,7 +124,7 @@ class Response
 	}
 	public static function setContentType($contentType)
 	{
-		self::$contentType = $contentType;
+		self::$contentType = "Content-Type: $contentType";
 	}
 	public static function setDebug(array $debug)
 	{

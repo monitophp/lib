@@ -52,6 +52,10 @@ class Functions
 		}
 		return $newArray;
 	}
+	public static function getClassname(string $classname) : string
+	{
+        return substr($classname, strrpos($classname, '\\') + 1);
+	}
     public static function compareDto($dtoSource, $dtoDestination)
     {
         $reflection = new \ReflectionClass(get_class($dtoSource));
@@ -268,6 +272,80 @@ class Functions
 
 		return $r;
 	}
+	public static function getClassnameFromFile(string $filepath) : ?string
+	{
+		$handle    = fopen($filepath, 'r');
+		$buffer    = '';
+		$class     = null;
+		$namespace = '';
+
+		while (!$class || !feof($handle)) {
+			$buffer .= fread($handle, 512);
+			$tokens = token_get_all($buffer);
+
+			// if (strpos($buffer, '{') === false) {
+			// 	continue;
+			// }
+
+			$tokensCount = count($tokens);
+
+			for ($i = 0; $i < $tokensCount; $i++) {
+				if ($tokens[$i][0] === T_NAMESPACE) {
+					for ($j = $i + 2; $j < $tokensCount; $j++) {
+						if ($tokens[$j] === ';') {
+							break;
+						}
+
+						$namespace .= $tokens[$j][1];
+					}
+				}
+
+				if ($tokens[$i][0] === T_CLASS) {
+					for ($j = $i + 1; $j < $tokensCount; $j++) {
+						if ($tokens[$j] === '{') {
+							$class = $tokens[$i + 2][1];
+							break 3;
+						}
+					}
+				}
+			}
+		}
+
+		return '\\' . $namespace . '\\' . $class;
+
+		// $handle = fopen($filepath, 'r');
+		// $class  = null;
+
+		// if ($handle) {
+		// 	while (!feof($handle)) {
+		// 		$buffer = trim(fgets($handle));
+
+		// 		\MonitoLib\Dev::e($buffer);
+
+		// 		if (preg_match('/^class\s+(\w+)(.*)?/', $buffer, $matches)) {
+		// 			\MonitoLib\Dev::pre($matches);
+		// 			$class = $matches[1];
+		// 		}
+		// 	}
+		// }
+
+		// return $class;
+	}
+	/**
+	 * getNamespace
+	 *
+	 * @param string $classname
+	 * @param int $skip Number of sub-namespaces to skip from right to left
+	 */
+	public static function getNamespace(string $classname, int $skip = 0) : string
+	{
+		if ($skip >= 0) {
+			$skip *= -1;
+		}
+
+        $parts = explode('\\', $classname);
+        return join('\\', array_slice($parts, 0, $skip - 1));
+	}
 	/**
 	 * hexToFloat
 	 *
@@ -338,17 +416,19 @@ class Functions
 			return +$number;
 		}
 	}
-	public static function toLowerCamelCase(string $string) : string
+	public static function toLowerCamelCase(?string $string) : ?string
 	{
-		$frag  = explode('_', strtolower($string));
-		$count = count($frag);
-		$newString = $frag[0];
+		if (!is_null($string)) {
+			$frag   = explode('_', strtolower($string));
+			$count  = count($frag);
+			$string = $frag[0];
 
-		for ($i = 1; $i < $count; $i++) {
-			$newString .= ucfirst($frag[$i]);
+			for ($i = 1; $i < $count; $i++) {
+				$string .= ucfirst($frag[$i]);
+			}
 		}
 
-		return $newString;
+		return $string;
 	}
 	public static function parseNull(?string $value)
 	{

@@ -1,12 +1,12 @@
-<?php 
+<?php
 /**
  * Database connector
  * @author Joelson B <joelsonb@msn.com>
  * @copyright Copyright &copy; 2013 - 2018
- *  
+ *
  * @package MonitoLib
  */
-namespace MonitoLib\Database\Connector;
+namespace MonitoLib\Database;
 
 use \MonitoLib\App;
 use \MonitoLib\Exception\InternalError;

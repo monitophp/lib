@@ -1,14 +1,13 @@
 <?php
 namespace MonitoLib\Database;
 
-use \MonitoLib\Exception\InvalidModel;
 use \MonitoLib\Exception\BadRequest;
 use \MonitoLib\Functions;
 use \MonitoLib\Validator;
 
 class Model
 {
-    const VERSION = '1.0.1';
+    private const VERSION = '1.0.1';
     /**
     * 1.0.2 - 2021-05-04
     * new: getField return
@@ -20,260 +19,435 @@ class Model
     * first versioned
     */
 
-    protected $constraints;
-    protected $tableType = 'table';
-    protected $fieldDefaults = [
-        'auto'      => false,
-        'source'    => null,
-        'type'      => 'string',
-        'format'    => null,
-        'charset'   => 'utf8',
-        'collation' => 'utf8_general_ci',
-        'default'   => null,
-        'label'     => '',
-        'maxLength' => 0,
-        'minLength' => 0,
-        'maxValue'  => 0,
-        'minValue'  => 0,
-        'precision' => null,
-        'scale'     => null,
-        'primary'   => false,
-        'required'  => false,
-        'transform' => null,
-        'unique'    => false,
-        'unsigned'  => false,
-    ];
-    protected $fieldsInsert;
+    public const BOOL = 'bool';
+    public const OID = 'oid';
+    public const CHAR = 'char';
+    public const DATE = 'date';
+    public const DATETIME = 'datetime';
+    public const FLOAT = 'float';
+    public const INT = 'int';
+    public const STRING = 'string';
+    public const TIME = 'time';
+
+    protected $daoClass;
+    protected $fields = [];
     private $parsedFields = [];
+    private $insertString;
 
-    public function getUniqueConstraints ()
+    public function __construct()
     {
-        return $this->constraints['unique'] ?? null;
-    }
-    public function getField($field)
-    {
-        if (!isset($parsedFields)) {
-            $this->parsedFields[$field] = $this->parseField($field);
-        }
+        if (is_null($this->daoClass)) {
+            $classname = get_class($this);
 
-        return $this->parsedFields[$field];
-    }
-    public function getFieldName ($field)
-    {
-        if (isset($this->fields[$field])) {
-            return $this->fields[$field]['name'];
+            $this->daoClass = Functions::getNamespace($classname, 2)
+                . 'Dao\\'
+                . Functions::getClassname($classname);
         }
     }
-    public function getFields ()
+	/**
+	* getField
+	*
+	* @return $field | null
+	*/
+    public function getColumn(string $fieldName, ?bool $raw = false) : ?\MonitoLib\Database\Model\Column
     {
-        $fields = $this->fields;
+        if (!isset($this->columns[$fieldName])) {
+            throw new BadRequest("Field $fieldName not found in model " . __CLASS__);
+        }
 
-        $func = function ($fields) {
-            $f = Functions::arrayMergeRecursive($this->fieldDefaults, $fields);
+        if ($raw) {
+            return $this->columns[$fieldName];
+        }
 
-            if ($f['type'] === 'date' && is_null($f['format'])) {
-                $f['format'] = 'Y-m-d';
+        return $this->parsedFields[$fieldName] ?? $this->parseField($fieldName, $this->columns[$fieldName]);
+    }
+	/**
+	* getFields
+	*
+	* @return array $fields
+	*/
+    public function getColumns(?bool $raw = false) : array
+    {
+        if ($raw) {
+            return $this->columns;
+        }
+
+        if (empty($this->parsedFields)) {
+            foreach ($this->columns as $id => $field) {
+                $this->parsedFields[] = $this->parseField($id, $field);
             }
+        }
 
-            if (!is_null($f['transform'])) {
-                $transform = explode(',', $f['transform']);
-                $insert = ':' . $f['name'];
+        return $this->parsedFields;
+    }
+	/**
+	* getFields
+	*
+	* @return array $fields
+	*/
+    public function getColumnIds() : array
+    {
+        return array_map(function($e) {
+            return $e->getId();
+        }, $this->getColumns());
+    }
+	/**
+	* getInsertFields
+	*
+	* @return string getInsertFields
+	*/
+    public function getInsertColumnsArray() : array
+    {
+        return array_filter($this->getColumns(), function($column) {
+            if (!$column->getPrimary() || (!$column->getAuto() && !is_null($column->getSource()))) {
+                return $column;
+            }
+        });
 
-                foreach ($transform as $t) {
-                    $insert = $t . '(' . $insert . ')';
+
+        $columns = $this->getColumns();
+        $insertArray = [];
+
+        foreach ($columns as $column) {
+            if (!$column->getPrimary() || (!$column->getAuto() && !is_null($column->getSource()))) {
+                $insertArray[] = $column->getId();
+            }
+        }
+
+        return $insertArray;
+
+
+        return array_map(function($e) {
+            if (!$e->getPrimary() || (!$e->getAuto() && !is_null($e->getSource()))) {
+                return $e->getId();
+            }
+        }, $this->getColumns());
+
+        if (is_null($this->insertArray)) {
+            $insertArray = [];
+
+            array_map(function($e) use ($insertArray) {
+                if (!$e->getPrimary() || (!$e->getAuto() && !is_null($e->getSource()))) {
+                    $insertArray[] = $e->getId();
                 }
+            }, $this->getColumns());
 
-                $f['transform'] = $insert;
-            }
+            $this->insertArray[] = $insertArray;
+        }
 
-            return $f;
-        };
-
-        $fields = array_map($func, $fields);
-
-        return $fields;
+        return $this->insertArray;
     }
-    // Retorna string com campos da tabela separados por vírgula, ignorando campos de auto incremento
-    public function getFieldsInsert ()
+	/**
+	* getInsertFields
+	*
+	* @return string getInsertFields
+	*/
+    public function getInsertColumns() : string
     {
-        if (is_null($this->fieldsInsert)) {
-            $func = function ($value) {
-                if (!$value['primary'] || !is_null($value['auto'])) {
-                    return true;
+        if (is_null($this->insertString)) {
+            $insertString = '';
+
+            array_map(function($e) use ($insertString) {
+                if (!$e->getPrimary() || (!$e->getAuto() && !is_null($e->getSource()))) {
+                    $insertString .= $e->getId() . ',';
                 }
-            };
+            }, $this->getColumns());
 
-            $this->fieldsInsert = array_filter($this->getFields(), $func);
+            $this->insertString = $insertString;
         }
 
-        return $this->fieldsInsert;
+        return $this->insertString;
     }
-    // Retorna array com lista dos campos da tabela
-    public function getFieldsList ()
+	/**
+	* getInsertValues
+	*
+	* @return string getInsertValues
+	*/
+    public function getInsertValues() : string
     {
-        return array_keys($this->fields);
-    }
-    public function getName ()
-    {
-        $class = get_class($this);
-        return substr($class, strrpos($class, '\\') + 1);
-    }
-    public function getPrimaryKeys ()
-    {
-        return $this->keys;
-    }
-    public function getPrimaryKey ()
-    {
-        $keys = 'id';
+        if (is_null($this->insertString)) {
+            $insertString = '';
 
-        if (!is_null($this->keys)) {
-            $keys = null;
+            array_map(function($e) use ($insertString) {
+                if (!$e->getPrimary() || (!$e->getAuto() && !is_null($e->getSource()))) {
+                    $insertString .= $e->getId() . ',';
+                }
+            }, $this->getFields());
 
-            foreach ($this->keys as $k) {
-                $keys .= "$k,";
+            $this->insertString = $insertString;
+        }
+
+        return $this->insertString;
+    }
+	/**
+	* getPrimaryKeys
+	*
+	* @return string getPrimaryKeys
+	*/
+    public function getPrimaryKeys() : array
+    {
+        return array_filter($this->getColumns(), function($column) {
+            if ($column->getPrimary()) {
+                return $column;
             }
-
-            $keys = substr($keys, 0, -1);
-        }
-
-        return $keys;
+        });
     }
-    public function listFieldsNames ()
+	/**
+	* parseField
+	*
+	* @return \MonitoLib\Database\Model\Field $field
+	*/
+    private function parseField(string $id, array $field) : \MonitoLib\Database\Model\Column
     {
-        $list = [];
+        // if (!isset($this->fields[$fieldName])) {
+        //     throw new BadRequest("O campo $fieldName não existe no modelo");
+        // }
 
-        foreach ($this->fields as $key => $value) {
-            if (isset($value['name'])) {
-                $list[] = $value['name'];
-            } else {
-                $list[] = $key;
-            }
-        }
+        $fieldObj = new \MonitoLib\Database\Model\Column();
+        $fieldObj->setId($id)
+            ->setName($id);
 
-        return $list;
-    }
-    public function getTableName ()
-    {
-        return $this->tableName;
-    }
-    public function getTableType ()
-    {
-        return $this->tableType;
-    }
-    private function parseField(string $fieldName)
-    {
-        if (!isset($this->fields[$fieldName])) {
-            return [];
-            // throw new BadRequest("O campo $fieldName não existe no modelo");
-        }
-
-        $field = new \MonitoLib\Database\Model\Field();
-        $field->setId($fieldName)
-            ->setName($fieldName);
-
-        foreach ($this->fields[$fieldName] as $property => $value) {
+        foreach ($field as $property => $value) {
             $set = 'set' . ucfirst($property);
-            $field->$set($value);
-        }
 
-        // $field
-        //     ->setAuto($auto)
-        //     ->setSource($source)
-        //     ->setType($type)
-        //     ->setFormat($format)
-        //     ->setCharset($charset)
-        //     ->setCollation($collation)
-        //     ->setDefault($default)
-        //     ->setLabel($label)
-        //     ->setMaxLength($maxLength)
-        //     ->setMinLength($minLength)
-        //     ->setMaxValue($maxValue)
-        //     ->setMinValue($minValue)
-        //     ->setPrecision($precision)
-        //     ->setScale($scale)
-        //     ->setPrimary($primary)
-        //     ->setRequired($required)
-        //     ->setTransform($transform)
-        //     ->setUnique($unique)
-        //     ->setUnsigned($unsigned);
-
-        return $field;
-    }
-    public function validate(object $dto)
-    {
-        $errors = [];
-
-        $fields = $this->getFields();
-
-        foreach ($fields as $fk => $fv) {
-            $get       = 'get' . ucfirst($fk);
-            $value     = $dto->$get();
-            $label     = $fv['label'];
-            $auto      = $fv['auto'];
-            $type      = $fv['type'];
-            $format    = $fv['format'];
-            $required  = $fv['required'];
-            $default   = $fv['default'];
-            $maxLength = $fv['maxLength'];
-            $minLength = $fv['minLength'];
-            $maxValue  = $fv['maxValue'];
-            $minValue  = $fv['minValue'];
-            $length    = mb_strlen($value);
-            $vType     = gettype($value);
-
-            if (is_null($value) || $value === '') {
-                // Verifica se um campo requerido foi informado
-                if ($required) {
-                    if (!$auto && ((is_null($value) || $value === '') && is_null($default))) {
-                        $errors[] = "O campo {$label} é requerido";
-                    }
-                }
-            } else {
-                // Verifica se o campo é do tipo esperado
-                if ($type === 'int' || $type === 'double') {
-                    if ($type === 'int' && !is_numeric($value) && !$auto) {
-                        $errors[] = "O campo {$label} espera um número inteiro e {$vType} foi informado";
-                    }
-
-                    if ($type === 'float' && !is_float($value)) {
-                        $errors[] = "O campo {$label} espera um número decimal e {$vType} foi informado";
-                    }
-
-                    if (is_numeric($value)) {
-                        // Verifica o valor máximo do campo
-                        if ($maxValue > 0 && $value > $maxValue) {
-                            $errors[] = "O valor máximo do campo {$label} é {$maxValue} mas {$value} foi informado";
-                        }
-
-                        // Verifica o tamanho mínimo do campo
-                        if ($minValue > 0 && $value > $minValue) {
-                            $errors[] = "O tamanho mínimo do campo {$label} é {$minValue} mas {$value} foi informado";
-                        }
-                    }
-                }
-
-                if ($type === 'date' && !Validator::date($value, $format)) {
-                    if ($format === 'Y-m-d') {
-                        $errors[] = "Data inválida para o campo {$label}: $value";
-                    } else {
-                        $errors[] = "Data/hora inválida para o campo {$label}: $value";
-                    }
-                }
-
-                // Verifica o tamanho máximo do campo
-                if ($maxLength > 0 && $length > $maxLength) {
-                    $errors[] = "O tamanho máximo do campo {$label} é {$maxLength} mas {$length} foi informado";
-                }
-
-                // Verifica o tamanho mínimo do campo
-                if ($minLength > 0 && $length < $minLength) {
-                    $errors[] = "O tamanho mínimo do campo {$label} é {$minLength} mas {$length} foi informado";
-                }
+            if (!method_exists($fieldObj, $set)) {
+                throw new \Exception("Invalid field property: $property");
             }
+
+            $fieldObj->$set($value);
         }
 
-        if (!empty($errors)) {
-            throw new InvalidModel('Model ' . get_class($this) . ' inválido: ' . implode(' | ', $errors), $errors);
-        }
+        return $fieldObj;
     }
+	/**
+	* getTableName
+	*
+	* @return string $tableName
+	*/
+    public function getTableName() : string
+    {
+        return $this->table['name'];
+    }
+	/**
+	* getTableType
+	*
+	* @return string $tableType
+	*/
+    public function getTableType() : string
+    {
+        return $this->table['type'] ?? 'table';
+    }
+
+
+
+
+
+
+
+// $this->model->getFields()
+// $this->model->getFields()
+
+// $this->model->getFieldsInsert()
+// $this->model->getFieldsInsert()
+
+// $this->model->getPrimaryKeys();
+// $this->model->getPrimaryKeys();
+
+// $this->model->getTableName()
+// $this->model->getTableName()
+
+// $this->model->getTableType()
+
+// $this->model->getUniqueConstraints(),
+// $this->model->getUniqueConstraints(),
+
+// $this->model->validate($dto
+// $this->model->validate($dto
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//     protected $constraints;
+//     protected $tableType = 'table';
+//     protected $fieldsInsert;
+//     private $parsedFields = [];
+
+//     public function getUniqueConstraints()
+//     {
+//         return $this->constraints['unique'] ?? null;
+//     }
+//     public function getField($field)
+//     {
+//         if (!isset($parsedFields)) {
+//             $this->parsedFields[$field] = $this->parseField($field);
+//         }
+
+//         return $this->parsedFields[$field];
+//     }
+//     public function getFieldName($field)
+//     {
+//         if (isset($this->fields[$field])) {
+//             return $this->fields[$field]['name'];
+//         }
+//     }
+//     public function getFields()
+//     {
+//         $fields = $this->fields;
+
+//         $func = function ($fields) {
+//             $f = Functions::arrayMergeRecursive($this->fieldDefaults, $fields);
+
+//             if ($f['type'] === 'date' && is_null($f['format'])) {
+//                 $f['format'] = 'Y-m-d';
+//             }
+
+//             if (!is_null($f['transform'])) {
+//                 $transform = explode(',', $f['transform']);
+//                 $insert = ':' . $f['name'];
+
+//                 foreach ($transform as $t) {
+//                     $insert = $t . '(' . $insert . ')';
+//                 }
+
+//                 $f['transform'] = $insert;
+//             }
+
+//             return $f;
+//         };
+
+//         $fields = array_map($func, $fields);
+
+//         return $fields;
+//     }
+//     // Retorna string com campos da tabela separados por vírgula, ignorando campos de auto incremento
+//     public function getFieldsInsert()
+//     {
+//         if (is_null($this->fieldsInsert)) {
+//             $func = function ($value) {
+//                 if (!$value['primary'] || !is_null($value['auto'])) {
+//                     return true;
+//                 }
+//             };
+
+//             $this->fieldsInsert = array_filter($this->getFields(), $func);
+//         }
+
+//         return $this->fieldsInsert;
+//     }
+//     // Retorna array com lista dos campos da tabela
+//     public function getFieldsList()
+//     {
+//         return array_keys($this->fields);
+//     }
+//     public function getName()
+//     {
+//         $class = get_class($this);
+//         return substr($class, strrpos($class, '\\') + 1);
+//     }
+//     public function getPrimaryKeys()
+//     {
+//         return $this->keys;
+//     }
+//     public function getPrimaryKey()
+//     {
+//         $keys = 'id';
+
+//         if (!is_null($this->keys)) {
+//             $keys = null;
+
+//             foreach ($this->keys as $k) {
+//                 $keys .= "$k,";
+//             }
+
+//             $keys = substr($keys, 0, -1);
+//         }
+
+//         return $keys;
+//     }
+//     public function listFieldsNames()
+//     {
+//         $list = [];
+
+//         foreach ($this->fields as $key => $value) {
+//             if (isset($value['name'])) {
+//                 $list[] = $value['name'];
+//             } else {
+//                 $list[] = $key;
+//             }
+//         }
+
+//         return $list;
+//     }
+//     public function getTableName()
+//     {
+//         return $this->tableName;
+//     }
+//     public function getTableType()
+//     {
+//         return $this->tableType;
+//     }
+//     private function parseField(string $fieldName)
+//     {
+//         if (!isset($this->fields[$fieldName])) {
+//             return [];
+//             // throw new BadRequest("O campo $fieldName não existe no modelo");
+//         }
+
+//         $field = new \MonitoLib\Database\Model\Field();
+//         $field->setId($fieldName)
+//             ->setName($fieldName);
+
+//         foreach ($this->fields[$fieldName] as $property => $value) {
+//             $set = 'set' . ucfirst($property);
+//             $field->$set($value);
+//         }
+
+//         // $field
+//         //     ->setAuto($auto)
+//         //     ->setSource($source)
+//         //     ->setType($type)
+//         //     ->setFormat($format)
+//         //     ->setCharset($charset)
+//         //     ->setCollation($collation)
+//         //     ->setDefault($default)
+//         //     ->setLabel($label)
+//         //     ->setMaxLength($maxLength)
+//         //     ->setMinLength($minLength)
+//         //     ->setMaxValue($maxValue)
+//         //     ->setMinValue($minValue)
+//         //     ->setPrecision($precision)
+//         //     ->setScale($scale)
+//         //     ->setPrimary($primary)
+//         //     ->setRequired($required)
+//         //     ->setTransform($transform)
+//         //     ->setUnique($unique)
+//         //     ->setUnsigned($unsigned);
+
+//         return $field;
+//     }
 }

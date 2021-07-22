@@ -17,7 +17,7 @@ class Logger
 	private $outputFile;
 	private $timeStamp = true;
 
-	public function __construct ($outputFile = null)
+	public function __construct($outputFile = null)
 	{
 		if (is_null($outputFile)) {
 			$this->outputFile = App::getLogPath() . 'general.log';
@@ -37,7 +37,7 @@ class Logger
 			}
 		}
 	}
-	public function log ($text, $echo = false, $breakLine = true, $timeStamp = true)
+	public function log($text, $echo = false, $breakLine = true, $timeStamp = true) : void
 	{
 		if ($timeStamp) {
 			$text = date('Y-m-d H:i:s') . ': ' . $text;
@@ -50,12 +50,12 @@ class Logger
 		if ($this->echoLog || $echo) {
 			echo $text;
 		}
-		
+
 		if (!error_log($text, 3, $this->outputFile)) {
 			throw new InternalError('Erro ao gravar log em: ' . $this->outputFile . "!\r\n");
 		}
 	}
-	public function setOutputFile ($outputFile)
+	public function setOutputFile($outputFile) : self
 	{
 		$this->outputFile = $outputFile;
 		return $this;

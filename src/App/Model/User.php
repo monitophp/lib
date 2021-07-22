@@ -7,7 +7,7 @@ class User extends \MonitoLib\Database\Model
 
     // protected $tableName = 'orders';
 
-    protected $fields = [
+    protected $columns = [
         // 'id' => [
         //     // 'name'      => '_id',
         //     'type'      => 'oid',

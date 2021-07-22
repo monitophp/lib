@@ -1,12 +1,14 @@
 <?php
-namespace MonitoLib\Database\Dao;
+namespace MonitoLib\Database\MongoDB;
 
 use \MonitoLib\Database\Connector;
 use \MonitoLib\Exception\BadRequest;
 use \MonitoLib\Exception\DatabaseError;
 use \MonitoLib\Functions;
+use \MonitoLib\Database\Dataset\Dataset;
+use \MonitoLib\Database\Dataset\Pagination;
 
-class MongoDB extends \MonitoLib\Database\Query\MongoDB
+class Dao extends \MonitoLib\Database\Dao
 {
     const VERSION = '1.0.1';
     /**
@@ -19,86 +21,67 @@ class MongoDB extends \MonitoLib\Database\Query\MongoDB
 
     protected $dbms = 4;
     private $lastId;
+    private $dml;
 
     /**
     * count
     */
-    public function count() : int
+    public function count(?bool $onlyFixed = false) : int
     {
-        $filter    = $this->renderFilter();
-        $dtoName   = $this->dtoName;
-        $modelName = str_replace('\\Dto\\', '\\Model\\', $dtoName);
+        $dml = new Dml($this->model, $this->dbms, $this->getFilter());
 
-        $model     = new $modelName();
-        $table     = $model->getTablename();
-
-        $connection = Connector::getInstance()->getConnection($this->connection);
-        $database   = $connection->getDatabase();
-        $handler    = $connection->getConnection();
-        $collection = $handler->$database->$table;
+        $filter     = $dml->renderFilter($onlyFixed);
+        $table      = $this->model->getTablename();
+        $collection = $this->getConnection()->$table;
 
         return $collection->count($filter);
     }
     /**
     * dataset
     */
-    public function dataset()
+    public function dataset() : Dataset
     {
-        $filter  = $this->renderFilter();
-        $options = $this->renderOptions();
+        $dml = new Dml($this->model, $this->dbms, $this->getFilter());
 
-        $dtoName   = $this->dtoName;
-        $modelName = str_replace('\\Dto\\', '\\Model\\', $dtoName);
+        $filter  = $dml->renderFilter();
+        $options = $dml->renderOptions();
 
-        $model     = new $modelName();
-        $table     = $model->getTablename();
+        $table      = $this->model->getTablename();
+        $collection = $this->getConnection()->$table;
 
-        $connection = Connector::getInstance()->getConnection($this->connection);
-        $database   = $connection->getDatabase();
-        $handler    = $connection->getConnection();
-        $collection = $handler->$database->$table;
-
-        $count = $collection->count($filter);
-        $total = $count;
+        $total = $this->count(true);
         $data  = [];
 
-        if ($count > 0) {
-            $cursor = $collection->find($filter, $options);
+        if ($total > 0) {
+            $count = $this->count();
 
-            foreach ($cursor as $document) {
-                $data[] = $this->parseResult($document);
+            if ($count > 0) {
+                $cursor = $collection->find($filter, $options);
+
+                foreach ($cursor as $document) {
+                    $data[] = $this->_parseResult($document);
+                }
             }
         }
 
-        $perPage = $this->getPerPage();
+        $perPage = $this->getFilter()->getPerPage();
+        $page    = $this->getFilter()->getPage();
 
         if ($perPage <= 0) {
             $perPage = $count;
         }
 
         // Creates the dataset
-        $dataset = (new \MonitoLib\Database\Dataset\Dataset(
+        return (new Dataset(
             $data,
-            (new \MonitoLib\Database\Dataset\Pagination(
+            (new Pagination(
                 $total,
                 $count,
-                $this->getPage(),
+                $page,
                 count($data),
                 $perPage
             ))
         ));
-
-        // $dataset = [
-        //     'data' => $data,
-        //     'pagination' => [
-        //         'total'   => $total,
-        //         'count'   => $count,
-        //         'page'    => $this->getPage(),
-        //         'perPage' => $perPage,
-        //     ]
-        // ];
-
-        return $dataset;
     }
     /**
     * delete
@@ -131,13 +114,25 @@ class MongoDB extends \MonitoLib\Database\Query\MongoDB
         $this->reset();
     }
     // public function renderFindOne
+    private function getDml()
+    {
+        if (is_null($this->dml)) {
+            $this->dml = new \MonitoLib\Database\MongoDB\Dml($this->model, $this->dbms, $this->getFilter());
+        }
+
+        return $this->dml;
+    }
     /**
     * get
     */
     public function get() : ?object
     {
-        $filter  = $this->renderFilter();
-        $options = $this->renderOptions();
+        // $dml = $this->getDml();
+        $dml = new \MonitoLib\Database\MongoDB\Dml($this->model, $this->dbms, $this->getFilter());
+
+        $filter  = $dml->renderFilter();
+        $options = $dml->renderOptions();
+
         // \MonitoLib\Dev::pr($filter);
 
         $dtoName   = $this->dtoName;
@@ -151,7 +146,10 @@ class MongoDB extends \MonitoLib\Database\Query\MongoDB
         $handler    = $connection->getConnection();
         $collection = $handler->$database->$table;
 
+        // \MonitoLib\Dev::pr($filter);
         $result = $collection->findOne($filter, $options);
+
+        // \MonitoLib\Dev::pre($result);
 
         if (is_null($result)) {
             return null;
@@ -173,17 +171,8 @@ class MongoDB extends \MonitoLib\Database\Query\MongoDB
     */
     public function insert(object $dto)
     {
-        $dtoName   = get_class($dto);
-        $modelName = str_replace('\\Dto\\', '\\Model\\', $dtoName);
-
-        $model     = new $modelName();
-        $table     = $model->getTablename();
-
-        $connection = Connector::getInstance()->getConnection($this->connection);
-        $database   = $connection->getDatabase();
-        $handler    = $connection->getConnection();
-        $collection = $handler->$database->$table;
-
+        $table      = $this->model->getTablename();
+        $collection = $this->getConnection()->$table;
         $insert     = $this->parseInsert($dto);
         $result     = $collection->insertOne($insert);
 
@@ -193,7 +182,7 @@ class MongoDB extends \MonitoLib\Database\Query\MongoDB
     /**
     * list
     */
-    public function list()
+    public function _list()
     {
         $filter  = $this->renderFilter();
         $options = $this->renderOptions();
@@ -249,14 +238,13 @@ class MongoDB extends \MonitoLib\Database\Query\MongoDB
 
         return $dataset;
     }
-    private function parseDto(string $dtoName, object $document)
+    public function _parseDto(string $dtoName, object $document)
     {
         $modelName = str_replace('\\Dto\\', '\\Model\\', $dtoName);
 
-        // \MonitoLib\Dev::pr($document);
-
         $_dto   = new $dtoName();
         $_model = new $modelName();
+        // $_model = $this->model;
 
         // Percorre os campos do documento
         foreach ($document as $_key => $_value) {
@@ -264,7 +252,7 @@ class MongoDB extends \MonitoLib\Database\Query\MongoDB
                 $_key = 'id';
             }
 
-            $_field = $_model->getField($_key);
+            $_field = $_model->getColumn($_key);
 
             if (empty($_field)) {
                 continue;
@@ -342,11 +330,21 @@ class MongoDB extends \MonitoLib\Database\Query\MongoDB
 
         $insert = [];
 
-        foreach ($model->getFieldsInsert() as $__fn => $__f) {
-            // echo $__fn . "\n\n";
+        // \MonitoLib\Dev::pre($model->getInsertColumnsArray());
 
-            $__name = $__f['name'] ?? $__fn;
-            $__type = $__f['type'] ?? 'string';
+
+        $dml = new \MonitoLib\Database\MongoDB\Dml($model, 4, $this->getFilter());
+
+
+
+
+        // $dml = $this->getDml();
+        $insertColumns = $dml->getInsertColumns();
+
+        foreach ($insertColumns as $__column) {
+            $__name = $__column->getName();
+            $__type = $__column->getType();
+
             $__var  = Functions::toLowerCamelCase($__name);
             $__get  = 'get' . ucfirst($__var);
             $$__var = $dto->$__get();
@@ -359,13 +357,13 @@ class MongoDB extends \MonitoLib\Database\Query\MongoDB
 
             // \MonitoLib\Dev::e($__type);
 
-            if ($__fn === '_id' || $__fn === 'id') {
-                continue;
-            }
+            // if ($__fn === '_id' || $__fn === 'id') {
+            //     continue;
+            // }
 
-            if ($__name === '_id' || $__name === 'id') {
-                continue;
-            }
+            // if ($__name === '_id' || $__name === 'id') {
+            //     continue;
+            // }
 
             if (is_array($__type)) {
                 $__type = $__type[0] ?? null;
@@ -405,12 +403,12 @@ class MongoDB extends \MonitoLib\Database\Query\MongoDB
 
         return $insert;
     }
-    public function parseResult(object $result)
+    public function _parseResult(object $result)
     {
         $result  = $result->jsonSerialize();
         $daoName = get_class($this);
         $dtoName = str_replace('\\Dao\\', '\\Dto\\', $daoName);
-        return $this->parseDto($dtoName, $result);
+        return $this->_parseDto($dtoName, $result);
     }
     /**
     * update

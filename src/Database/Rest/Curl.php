@@ -9,7 +9,7 @@
  * @package \MonitoLib
  */
 
-namespace MonitoLib\Database\Dao;
+namespace MonitoLib\Database\Rest;
 
 use \MonitoLib\Exception\BadRequest;
 use \MonitoLib\Exception\Conflict;

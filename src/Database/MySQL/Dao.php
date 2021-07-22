@@ -1,11 +1,12 @@
 <?php
-namespace MonitoLib\Database\Dao;
+namespace MonitoLib\Database\MySQL;
 
 use \MonitoLib\Exception\BadRequest;
 use \MonitoLib\Exception\DatabaseError;
 use \MonitoLib\Functions;
+use \MonitoLib\Database\Query\Dml;
 
-class MySQL extends Base // implements \MonitoLib\Database\Dao
+class Dao extends \MonitoLib\Database\Dao
 {
     const VERSION = '1.0.2';
     /**
@@ -19,7 +20,10 @@ class MySQL extends Base // implements \MonitoLib\Database\Dao
     * first versioned
     */
 
+    protected $filter;
     protected $dbms = 1;
+    private $dml;
+    private $affectedRows = 0;
 
     public function beginTransaction()
     {
@@ -29,6 +33,10 @@ class MySQL extends Base // implements \MonitoLib\Database\Dao
     {
         $this->getConnection()->commit();
     }
+    // private function escape($value)
+    // {
+    //     return is_null($value) ? 'NULL' : "'$value'";
+    // }
     public function execute($stt)
     {
         try {
@@ -52,67 +60,13 @@ class MySQL extends Base // implements \MonitoLib\Database\Dao
     {
         return $stt->fetch(\PDO::FETCH_NUM);
     }
-    public function parse($sql)
+    public function parse(string $sql)
     {
         return $this->getConnection()->prepare($sql);
     }
     public function rollback()
     {
         $this->getConnection()->rollback();
-    }
-    /**
-    * count
-    */
-    public function count()
-    {
-        $sql = $this->renderCountSql();
-        $stt = $this->parse($sql);
-        $this->execute($stt);
-        $res = $this->fetchArrayNum($stt);
-        return $res[0];
-    }
-    /**
-    * dataset
-    */
-    public function dataset()
-    {
-        $data    = [];
-        $return  = [];
-
-        $sql = $this->renderCountSql(true);
-        $stt = $this->parse($sql);
-        $this->execute($stt);
-        $res = $this->fetchArrayNum($stt);
-
-        $total = $res[0];
-        $return['total'] = +$total;
-
-        if ($total > 0) {
-            $sql = $this->renderCountSql();
-            $stt = $this->parse($sql);
-            $this->execute($stt);
-            $res = $this->fetchArrayNum($stt);
-
-            $count = $res[0];
-            $return['count'] = +$count;
-
-            if ($count > 0) {
-                $page    = $this->getPage();
-                $perPage = $this->getPerPage();
-                $pages   = $perPage > 0 ? ceil($count / $perPage) : 1;
-
-                if ($page > $pages) {
-                    throw new BadRequest("Número da página atual ($page) maior que o número de páginas ($pages)!");
-                }
-
-                $data = $this->list();
-                $return['data']  = $data;
-                $return['page']  = +$page;
-                $return['pages'] = +$pages;
-            }
-        }
-
-        return $return;
     }
     /**
     * delete
@@ -123,8 +77,15 @@ class MySQL extends Base // implements \MonitoLib\Database\Dao
     public function delete(...$params)
     {
         if ($this->model->getTableType() == 'view') {
-            throw new BadRequest('Não é possível deletar registros de uma view!');
+            throw new BadRequest('Não é possível deletar registros de uma view');
         }
+
+        $dml = $this->getDml();
+        $sql = $dml->delete();
+        \MonitoLib\Dev::ee($sql);
+
+        $sql = 'DELETE FROM ';
+        \MonitoLib\Dev::ee($sql);
 
         $sql = $this->renderDeleteSql();
         $stt = $this->parse($sql);
@@ -133,9 +94,11 @@ class MySQL extends Base // implements \MonitoLib\Database\Dao
         // Reset query
         $this->reset();
 
-        if ($stt->rowCount() === 0) {
+        $this->affectedRows = $stt->rowCount();
+
+        // if ($stt->rowCount() === 0) {
             // throw new BadRequest('Não foi possível deletar!');
-        }
+        // }
     }
     /**
     * get
@@ -156,7 +119,7 @@ class MySQL extends Base // implements \MonitoLib\Database\Dao
             $countParams = count($params);
 
             if ($countKeys !== $countParams) {
-                throw new BadRequest('Número inválido de parâmetros!');
+                throw new BadRequest('Número inválido de parâmetros');
             }
 
             if ($countParams > 1) {
@@ -185,69 +148,68 @@ class MySQL extends Base // implements \MonitoLib\Database\Dao
     public function insert($dto)
     {
         if ($this->model->getTableType() === 'view') {
-            throw new BadRequest('Não é possível inserir registros em uma view!');
+            throw new BadRequest('Não é possível inserir registros em uma view');
         }
 
         if (!$dto instanceof $this->dtoName) {
-            throw new BadRequest('O parâmetro passado não é uma instância de ' . $this->dtoName . '!');
+            throw new BadRequest('O parâmetro passado não é uma instância de ' . $this->dtoName);
         }
-
-        // Valida o objeto dto
-        $this->model->validate($dto);
 
         // Atualiza o objeto com os valores automáticos, caso não informados
         $dto = $this->setAutoValues($dto);
 
+        // Valida o objeto dto
+        $validator = new \MonitoLib\Database\Validator();
+        $validator->validate($dto, $this->model);
+
         // Verifica se existe constraint de chave única
-        $this->checkUnique($this->model->getUniqueConstraints(), $dto);
+        // $this->checkUnique($this->model->getUniqueConstraints(), $dto);
 
         $fld = '';
         $val = '';
 
-        foreach ($this->model->getFieldsInsert() as $f) {
-            $fld .= '`' . $f['name'] . '`,';
-            $val .= ($f['transform'] ?? ':' . $f['name']) . ',';
+        $columns = $this->model->getInsertColumnsArray();
+        // \MonitoLib\Dev::vde($columns);
+
+        foreach ($columns as $column) {
+            $id        = $column->getId();
+            $name      = $column->getName();
+            $transform = $column->getTransform();
+            $get       = 'get' . ucfirst($id);
+            $value     = $this->escape($dto->$get());
+
+            $fld .= '`' . $name . '`,';
+            // $val .= ($transform ?? ':' . $name) . ',';
+            $val .= $value . ',';
         }
 
         $fld = substr($fld, 0, -1);
         $val = substr($val, 0, -1);
 
         $sql = 'INSERT INTO ' . $this->model->getTableName() . " ($fld) VALUES ($val)";
+
+        // \MonitoLib\Dev::ee($sql);
+//
         $stt = $this->parse($sql);
 
-        foreach ($this->model->getFieldsInsert() as $f) {
-            $var  = Functions::toLowerCamelCase($f['name']);
-            $get  = 'get' . ucfirst($var);
-            $$var = $dto->$get();
+        // foreach ($this->model->getFieldsInsert() as $f) {
+        //     $var  = Functions::toLowerCamelCase($f['name']);
+        //     $get  = 'get' . ucfirst($var);
+        //     $$var = $dto->$get();
 
-            $stt->bindParam(':' . $f['name'], $$var);
-        }
+        //     $stt->bindParam(':' . $f['name'], $$var);
+        // }
 
         $this->execute($stt);
         $this->reset();
     }
-    /**
-    * list
-    */
-    public function list(string $sql = null) : array
+    private function getDml()
     {
-        if (is_null($sql)) {
-            $sql = $this->renderSelectSql();
+        if (is_null($this->dml)) {
+            $this->dml = new \MonitoLib\Database\Query\Dml($this->model, $this->dbms, $this->getFilter());
         }
 
-        $stt = $this->parse($sql);
-        $this->execute($stt);
-
-        $data = [];
-
-        while ($res = $this->fetchArrayAssoc($stt)) {
-            $data[] = $this->getValue($res);
-        }
-
-        // Reset filter
-        $this->reset();
-
-        return $data;
+        return $this->dml;
     }
     /**
     * update
@@ -255,32 +217,45 @@ class MySQL extends Base // implements \MonitoLib\Database\Dao
     public function update($dto)
     {
         if ($this->model->getTableType() === 'view') {
-            throw new BadRequest('Não é possível inserir registros em uma view!');
+            throw new BadRequest('Não é possível atualizar os registros de uma view');
         }
 
         if (!$dto instanceof $this->dtoName) {
-            throw new BadRequest('O parâmetro passado não é uma instância de ' . $this->dtoName . '!');
+            throw new BadRequest('O parâmetro passado não é uma instância de ' . $this->dtoName);
         }
 
         // Valida o objeto dto
-        $this->model->validate($dto);
+        // $this->model->validate($dto);
 
         // Atualiza o objeto com os valores automáticos, caso não informados
         $dto = $this->setAutoValues($dto);
 
+        // Valida o objeto dto
+        $validator = new \MonitoLib\Database\Validator();
+        $validator->validate($dto, $this->model);
+
         // Verifica se existe constraint de chave única
-        $this->checkUnique($this->model->getUniqueConstraints(), $dto);
+        // $this->checkUnique($this->model->getUniqueConstraints(), $dto);
 
         $key = '';
         $fld = '';
 
-        foreach ($this->model->getFields() as $f) {
-            $name = $f['name'];
+        $columns = $this->model->getColumns();
 
-            if ($f['primary']) {
-                $key .= "`$name` = :$name AND ";
+        foreach ($columns as $column) {
+            $id        = $column->getId();
+            $name      = $column->getName();
+            $primary   = $column->getPrimary();
+            $transform = $column->getTransform();
+            $get       = 'get' . ucfirst($id);
+            $value     = $this->escape($dto->$get());
+
+            if ($primary) {
+                // $key .= "`$name` = :$name AND ";
+                $key .= "`$name` = $value AND ";
             } else {
-                $fld .= "`$name` = " . ($f['transform'] ?? ":$name") . ',';
+                // $fld .= "`$name` = " . ($transform ?? ":$name") . ',';
+                $fld .= "`$name` = " . ($transform ?? "$value") . ',';
             }
         }
 
@@ -293,21 +268,24 @@ class MySQL extends Base // implements \MonitoLib\Database\Dao
         // \MonitoLib\Dev::ee($sql);
         $stt = $this->parse($sql);
 
-        foreach ($this->model->getFields() as $f) {
-            $var  = Functions::toLowerCamelCase($f['name']);
-            $get  = 'get' . ucfirst($var);
-            $$var = $dto->$get();
+        // foreach ($this->model->getFields() as $f) {
+        //     $var  = Functions::toLowerCamelCase($f['name']);
+        //     $get  = 'get' . ucfirst($var);
 
-            $stt->bindParam(':' . $f['name'], $$var);
-        }
+        //     $stt->bindParam(':' . $f['name'], $$var);
+        // }
 
         $this->execute($stt);
 
         $this->reset();
 
-        if ($stt->rowCount() === 0) {
+        $this->affectedRows = $stt->rowCount();
+
+        \MonitoLib\Dev::e($this->affectedRows);
+
+        // if ($stt->rowCount() === 0) {
             // throw new BadRequest("Não foi possível atualizar a tabela {$this->model->getTableName()}!");
-        }
+        // }
 
         $stt = null;
     }

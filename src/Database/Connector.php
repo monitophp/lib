@@ -84,7 +84,7 @@ class Connector
 		if ($dbms === 'Rest') {
 			return $params;
 		} else {
-			$class = '\MonitoLib\Database\Connector\\' . $dbms;
+			$class = '\MonitoLib\Database\\' . $dbms . '\Connector';
 
 			if (!class_exists($class)) {
 				throw new InternalError("Tipo de conexão $dbms inválido");

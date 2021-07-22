@@ -1,7 +1,7 @@
 <?php
 namespace MonitoLib\Database\Model;
 
-class Field
+class Column
 {
     const VERSION = '1.0.0';
     /**
@@ -17,6 +17,7 @@ class Field
     private $format;
     private $charset = 'utf8';
     private $collation = 'utf8_general_ci';
+    private $alias;
     private $default;
     private $label = '';
     private $maxLength = 0;
@@ -24,6 +25,7 @@ class Field
     private $maxValue = 0;
     private $minValue = 0;
     private $precision;
+    private $restrict = [];
     private $scale;
     private $primary = false;
     private $required = false;
@@ -31,6 +33,15 @@ class Field
     private $unique = false;
     private $unsigned = false;
 
+	/**
+	* getAlias
+	*
+	* @return $alias
+	*/
+	public function getAlias() : ?string
+	{
+		return $this->alias;
+	}
 	/**
 	* getAuto
 	*
@@ -144,7 +155,7 @@ class Field
 	*
 	* @return $precision
 	*/
-	public function getPrecision() : int
+	public function getPrecision() : ?int
 	{
 		return $this->precision;
 	}
@@ -167,11 +178,20 @@ class Field
 		return $this->required;
 	}
 	/**
+	* getRestrict
+	*
+	* @return $restrict
+	*/
+	public function getRestrict() : array
+	{
+		return $this->restrict;
+	}
+	/**
 	* getScale
 	*
 	* @return $scale
 	*/
-	public function getScale() : int
+	public function getScale() : ?int
 	{
 		return $this->scale;
 	}
@@ -180,7 +200,7 @@ class Field
 	*
 	* @return $source
 	*/
-	public function getSource() : string
+	public function getSource() : ?string
 	{
 		return $this->source;
 	}
@@ -219,6 +239,16 @@ class Field
 	public function getUnsigned()
 	{
 		return $this->unsigned;
+	}
+	/**
+	 * setAlias
+	 *
+	 * @param $alias
+	 */
+	public function setAlias(?string $alias)
+	{
+		$this->alias = $alias;
+		return $this;
 	}
 	/**
 	 * setAuto
@@ -295,9 +325,12 @@ class Field
 	 *
 	 * @param $maxLength
 	 */
-	public function setMaxLength($maxLength)
+	public function setMaxLength(?int $maxLength)
 	{
-		$this->maxLength = $maxLength;
+		if (!is_null($maxLength)) {
+			$this->maxLength = $maxLength;
+		}
+
 		return $this;
 	}
 	/**
@@ -345,7 +378,7 @@ class Field
 	 *
 	 * @param $precision
 	 */
-	public function setPrecision($precision)
+	public function setPrecision(?int $precision)
 	{
 		$this->precision = $precision;
 		return $this;
@@ -355,7 +388,7 @@ class Field
 	 *
 	 * @param $primary
 	 */
-	public function setPrimary($primary)
+	public function setPrimary(?bool $primary)
 	{
 		$this->primary = $primary;
 		return $this;
@@ -365,9 +398,19 @@ class Field
 	 *
 	 * @param $required
 	 */
-	public function setRequired($required)
+	public function setRequired(?bool $required)
 	{
 		$this->required = $required;
+		return $this;
+	}
+	/**
+	 * setRestrict
+	 *
+	 * @param $restrict
+	 */
+	public function setRestrict(?array $restrict)
+	{
+		$this->restrict = $restrict;
 		return $this;
 	}
 	/**

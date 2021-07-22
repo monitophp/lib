@@ -10,6 +10,8 @@
  */
 namespace MonitoLib;
 
+use \MonitoLib\App;
+
 class Dev
 {
     const VERSION = '1.0.3';
@@ -29,12 +31,11 @@ class Dev
 
 	private static function breakLine() : void
 	{
-		echo self::isCli() ? PHP_EOL : '<br />';
+		echo App::isCli() ? PHP_EOL : '<br />';
 	}
 	public static function db(int $index = 1) : void
 	{
 		$db = debug_backtrace();
-		// print_r($db);
 		echo (isset($db[$index + 1]) ? $db[$index + 1]['function'] . ', ' : '') . $db[$index]['file'] . ', ' . $db[$index]['line'];
 		self::breakLine();
 	}
@@ -47,16 +48,12 @@ class Dev
 			self::breakLine();
 		}
 	}
-	public static function ee(string $string = 'exited', bool $breakLine = true) : void
+	public static function ee(string $string = 'exited') : void
 	{
 		self::db();
 		echo $string;
 		self::breakLine();
 		exit;
-	}
-	private static function isCli() : bool
-	{
-		return PHP_SAPI === 'cli' ? true : false;
 	}
 	public static function lme(object $class) : void
 	{
@@ -67,13 +64,13 @@ class Dev
 	public static function pr($a, bool $exit = false, int $index = 1) : void
 	{
 		self::db($index);
-		echo self::isCli() ? '' : '<pre>';
+		echo App::isCli() ? '' : '<pre>';
 		print_r($a);
 
 		if ($exit) {
 			exit;
 		} else {
-			echo self::isCli() ? "\n" : '</pre>';
+			echo App::isCli() ? "\n" : '</pre>';
 		}
 	}
 	public static function pre($a) : void
@@ -102,13 +99,13 @@ class Dev
 			$a = self::sliceArrayDepth($a, $depth);
 		}
 
-		echo self::isCli() ? '' : '<pre>';
+		echo App::isCli() ? '' : '<pre>';
 		var_dump($a);
 
 		if ($exit) {
 			exit;
 		} else {
-			echo self::isCli() ? "\n" : '</pre>';
+			echo App::isCli() ? "\n" : '</pre>';
 		}
 	}
 	public static function vde($a, int $depth = 0) : void

@@ -19,7 +19,7 @@ class InvalidModel extends Exception
     * first versioned
     */
 
-    public function __construct(string $message = null, ?array $errors = null, ?int $code = 500, ?\Exception $previous = null)
+    public function __construct(string $message = null, ?array $errors = null, ?int $code = 400, ?\Exception $previous = null)
     {
         http_response_code($code);
         parent::__construct($message, $errors, $code, $previous);

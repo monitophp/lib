@@ -15,7 +15,7 @@ class Dataset
 
     public function __construct(array $data, Pagination $pagination)
     {
-		$this->data  = $data;
+		$this->data = $data;
 		$this->pagination = $pagination;
     }
 	/**

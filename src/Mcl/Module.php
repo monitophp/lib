@@ -46,6 +46,15 @@ class Module // extends \MonitoLib\Mcl
         $this->name = $name;
         return $this;
     }
+    public function showHelp()
+    {
+        $this->showVersion();
+
+        foreach ($this->commands as $command) {
+            echo str_pad($command->getName(), 20) .  $command->getHelp(). "\n";
+        }
+        exit;
+    }
     public function showVersion()
     {
         echo $this->name . ' v' . self::VERSION . "\n";

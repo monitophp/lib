@@ -1,128 +1,142 @@
 <?php
 namespace MonitoLib\Mcl;
 
-use \MonitoLib\Exception\InternalError;
 use \MonitoLib\Exception\NotFound;
-use \MonitoLib\Functions;
 
 class Request
 {
-    const VERSION = '1.0.0';
+    const VERSION = '1.1.0';
     /**
+    * 1.1.0 - 2021-06-30
+    * new: static methods
+    *
     * 1.0.0
+    * Legacy
     */
 
-    private $module;
-    private $command;
-    private $params = [];
-    private $options = [];
+    private static $module;
+    private static $command;
+    private static $params = [];
+    private static $options = [];
 
-    static private $instance;
-
-    private function __construct()
+    /**
+     * addParam
+     *
+     * @param $param
+     */
+    public static function addParam(string $name, $param)
     {
-
-    }
-    public static function getInstance()
-    {
-        if (!isset(self::$instance)) {
-            self::$instance = new Request();
+        if (!isset(self::$params[$name])) {
+            self::$params[] = $param;
         }
-
-        return self::$instance;
+    }
+    /**
+     * addOption
+     *
+     * @param $option
+     */
+    public static function addOption(string $name, $option)
+    {
+        if (!isset(self::$options[$name])) {
+            self::$options[$name] = $option;
+        }
     }
     /**
     * getModule
     *
     * @return $module
     */
-    public function getModule()
+    public static function getModule()
     {
-        return $this->module;
+        return self::$module;
     }
     /**
     * getCommand
     *
     * @return $command
     */
-    public function getCommand()
+    public static function getCommand()
     {
-        return $this->command;
+        return self::$command;
     }
     /**
     * getParam
     *
     * @return $param
     */
-    public function getParam($param)
+    public static function getParam(?string $param)
     {
-        return $this->params[$param] ?? null;
+        if (!isset(self::$params[$param])) {
+            throw new NotFound("Param \033[31m{$param}\033[0m not found in command");
+        }
+
+        return self::$params[$param] ?? null;
     }
     /**
     * getParams
     *
     * @return $params
     */
-    public function getParams()
+    public static function getParams()
     {
-        return $this->params;
+        return self::$params;
     }
     /**
     * getOption
     *
     * @return $option
     */
-    public function getOption($option)
+    public static function getOption($option)
     {
-        return $this->options[$option] ?? null;
+        if (!isset(self::$options[$option])) {
+            throw new NotFound("Option \033[31m{$option}\033[0m not found in command");
+        }
+
+        return self::$options[$option] ?? null;
     }
     /**
     * getOptions
     *
     * @return $options
     */
-    public function getOptions()
+    public static function getOptions()
     {
-        return $this->options;
+        return self::$options;
     }
     /**
      * setModule
      *
      * @param $module
      */
-    public function setModule($module)
+    public static function setModule($module)
     {
-        $this->module = $module;
-        return $this;
+        self::$module = $module;
     }
     /**
      * setCommand
      *
      * @param $command
      */
-    public function setCommand($command)
+    public static function setCommand($command)
     {
-        $this->command = $command;
-        return $this;
+        self::$command = $command;
     }
     /**
      * setParams
      *
      * @param $params
      */
-    public function setParams($params)
+    public static function setParams($params)
     {
-        $this->params = $params;
-        return $this;
+        self::$params = $params;
     }
     /**
      * setOptions
      *
      * @param $options
      */
-    public function setOptions($options)
+    public static function setOptions($options)
     {
-        $this->options = $options;
-        return $this;
+        self::$options = $options;
     }
 }

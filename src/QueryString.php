@@ -1,30 +1,12 @@
 <?php
 namespace MonitoLib;
 
-class Request
+class QueryString
 {
-    const VERSION = '3.0.0';
+    const VERSION = '1.0.0';
     /**
-    * 3.0.0 - 2020-09-18
-    * new: static properties and methods
-    *
-    * 2.0.3 - 2019-12-09
-    * new: nullIt() and $emptyAsNull on getJson()
-    *
-    * 2.0.3 - 2019-10-29
-    * new: property/method asDataset
-    *
-    * 2.0.2 - 2019-09-21
-    * fix: starting $params as array
-    *
-    * 2.0.1 - 2019-06-05
-    * fix: getPage and getPerPage to return only valid numbers
-    *
-    * 2.0.0 - 2019-05-02
-    * new: new gets
-    *
-    * 1.0.0 - 2017-06-26
-    * Inicial release
+    * 1.0.0 - 2021-07-09
+    * Initial release
     */
 
     private static $asDataset = false;
@@ -36,7 +18,7 @@ class Request
     private static $perPage;
     private static $post;
     private static $query;
-    private static $queryString;
+    private static $queryString = [];
     private static $requestUri;
 
     public static function asDataset()
@@ -53,27 +35,23 @@ class Request
 
         return self::$fields;
     }
-    public static function getJson(?bool $emptyAsNull = false, ?bool $asArray = false) : \stdClass
+    public static function getJson(?bool $emptyAsNull = false, ?bool $asArray = false)
     {
-        $json = file_get_contents('php://input');
-
-        if ($json === '') {
-            return new \stdClass();
-        }
-
-        $json = json_decode($json, $asArray, 512, JSON_THROW_ON_ERROR);
+        self::$json = json_decode(file_get_contents('php://input'), $asArray, 512, JSON_THROW_ON_ERROR);
 
         if ($emptyAsNull) {
-            return self::nullIt($json);
+            return self::nullIt(self::$json);
         }
 
-        return $json;
+        return self::$json;
     }
-    private static function nullIt(\StdClass $json) : \StdClass
+    private static function nullIt($json)
     {
-        foreach ($json as $k => $v) {
-            if ($v === '') {
-                $json->$k = null;
+        if ($json instanceof \StdClass) {
+            foreach ($json as $k => $v) {
+                if ($v === '') {
+                    $json->$k = null;
+                }
             }
         }
 
@@ -125,12 +103,8 @@ class Request
             }
         }
     }
-    public static function getQuery(?object $model = null, ?object $dao = null)
+    public static function getQuery()
     {
-        if (is_null(self::$query)) {
-            self::$query = (new \MonitoLib\Database\Query\Parser())->parse(self::$queryString, $model, $dao);
-        }
-
         return self::$query;
     }
     public static function getQueryString($key = null) : string
@@ -155,9 +129,31 @@ class Request
     {
         self::$params = $params;
     }
-    public static function setQueryString($queryString) : void
+    public static function parse(string $queryString) : void
     {
-        self::$queryString = $queryString;
+        $fields = explode('&', $queryString);
+
+        foreach ($fields as $field) {
+            $p = strpos($field, '=');
+            $f = substr($field, 0, $p);
+            $v = substr($field, $p + 1);
+
+            if (!$p && $field === 'ds') {
+                self::$asDataset = true;
+            } else {
+                if (strcasecmp($f, 'fields') === 0) {
+                    self::$queryString['fields'] = $v;
+                } elseif (strcasecmp($f, 'page') === 0) {
+                    self::$page = $v;
+                } elseif (strcasecmp($f, 'perpage') === 0) {
+                    self::$perPage = $v;
+                } elseif (strcasecmp($f, 'orderby') === 0) {
+                    self::$queryString['orderBy'][] = $v;
+                } else {
+                    self::$query[] = [$f => $v];
+                }
+            }
+        }
     }
     public static function setRequestUri($requestUri) : void
     {

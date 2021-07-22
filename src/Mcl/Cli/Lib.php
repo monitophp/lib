@@ -24,7 +24,7 @@ class Lib extends \MonitoLib\Mcl\Controller
         // Cria config/init.php
         $this->createInit();
     }
-    public function install ()
+    public function install()
     {
         // $resposta = $this->question("Iniciar a instalacao da aplicacao?");
 
@@ -39,6 +39,7 @@ class Lib extends \MonitoLib\Mcl\Controller
         $this->createHtaccess();
 
         // Cria gitignore
+        $this->gitignore();
 
         // Cria index
         $this->createIndex();
@@ -99,83 +100,93 @@ class Lib extends \MonitoLib\Mcl\Controller
     }
     private function createHtaccess()
     {
-        $file = App::getDocumentRoot() . '.htaccess';
-
-        // TODO: permitir mudar valores
-        $script = "<IfModule mod_php5.c>\n"
-            . "    php_value max_execution_time 18000\n"
-            . "</IfModule>\n"
-            . "\n"
-            . "Options FollowSymLinks\n"
-            . "RewriteEngine On\n"
-            . "# Scripts PHP\n"
-            . "RewriteCond %{REQUEST_FILENAME} !-f\n"
-            . "RewriteRule (.*) index.php?route=$1 [PT,QSA]\n"
-            . "RewriteCond %{HTTP:Authorization} ^(.*)\n"
-            . "RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]\n";
-
-        file_put_contents($file, $script);
+        $script = <<<FILE
+<IfModule mod_php5.c>\n
+    php_value max_execution_time 18000\n
+</IfModule>\n
+\n
+Options FollowSymLinks\n
+RewriteEngine On\n
+\n
+# Scripts PHP\n
+RewriteCond %{REQUEST_FILENAME} !-f\n
+RewriteRule (.*) index.php?route=$1 [PT,QSA]\n
+RewriteCond %{HTTP:Authorization} ^(.*)\n
+RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]\n
+FILE;
+        return $script;
+    }
+    private function gitignore() : string
+    {
+        $script = <<<FILE
+cache\n
+config/config.php\n
+log\n
+sqlnet.log\n
+storage\n
+tmp\n
+vendor\n
+debug.log
+FILE;
+        return $script;
     }
     private function createInit()
     {
-        $file = App::getConfigPath() . 'init.php';
-
         // TODO: permitir mudar valores
-        $script = "<?php\n"
-            . "ini_set('display_errors', 1);\n"
-            . "ini_set('display_startup_errors', 1);\n"
-            . "error_reporting(E_ALL);\n"
-            . "/**\n"
-            . " * App default timezone\n"
-            . " */\n"
-            . "date_default_timezone_set('America/Bahia');\n"
-            . "\n"
-            . "header('Access-Control-Allow-Origin: *');\n"
-            . "header('Access-Control-Allow-Headers: X-Requested-With, Content-Type, Authorization');\n"
-            . "header('Access-Control-Allow-Methods: GET,PATCH,POST,PUT,DELETE,OPTIONS');\n"
-            . "// \MonitoLib\App::setEnv(2);\n"
-            . "\MonitoLib\App::setDebug(2);\n"
-            . "\n"
-            . "// Autentica o usuário\n"
-            // . "\App\Controller\User::auth();\n"
-            ;
-
-        file_put_contents($file, $script);
+        $script = <<<PHP
+<?php\n
+ini_set('display_errors', 1);\n
+ini_set('display_startup_errors', 1);\n
+error_reporting(E_ALL);\n
+/**\n
+ * App default timezone\n
+ */\n
+date_default_timezone_set('America/Bahia');\n
+\n
+header('Access-Control-Allow-Origin: *');\n
+header('Access-Control-Allow-Headers: X-Requested-With, Content-Type, Authorization');\n
+header('Access-Control-Allow-Methods: GET,PATCH,POST,PUT,DELETE,OPTIONS');\n
+// \MonitoLib\App::setEnv(2);\n
+\MonitoLib\App::setDebug(2);\n
+\n
+// Autentica o usuário\n
+// \App\Controller\User::auth();
+PHP;
+        return $script;
     }
     private function createIndex()
     {
-        $file = App::getDocumentRoot() . 'index.php';
-
         // TODO: permitir mudar valores
-        $script = "<?php\n"
-            . "define('MONITOLIB_ROOT_PATH', substr(__FILE__, 0, (strrpos(str_replace('\\\', '/', __FILE__), '/') + 1)));\n"
-            . "define('MONITOLIB_ROOT_URL', substr(\$_SERVER['PHP_SELF'], 0, (strrpos(str_replace('\\\', '/', \$_SERVER['PHP_SELF']), '/') + 1)));\n"
-            . "\n"
-            . "// function to autoload classes\n"
-            . "function MonitoAutoload (\$className)\n"
-            . "{\n"
-            . "    \$dir = 'src' . DIRECTORY_SEPARATOR;\n"
-            . "\n"
-            . "    if (substr(\$className, 0, 5) === 'cache') {\n"
-            . "        \$dir = '';\n"
-            . "    }\n"
-            . "    \n"
-            . "    \$file = MONITOLIB_ROOT_PATH . DIRECTORY_SEPARATOR . \$dir . str_replace('\\\', '/', \$className) . '.php';\n"
-            . "\n"
-            . "    if (is_readable(\$file)) {\n"
-            . "        require \$file;\n"
-            . "    }\n"
-            . "}\n"
-            . "\n"
-            . "// Registers autoload function\n"
-            . "spl_autoload_register('MonitoAutoload');\n"
-            . "\n"
-            . "// Loads composer autoload class\n"
-            . "require MONITOLIB_ROOT_PATH . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';\n"
-            . "\n"
-            . "// Runs the application\n"
-            . "\MonitoLib\App::run();\n";
-
-        file_put_contents($file, $script);
+        $script = <<<PHP
+<?php\n
+define('MONITOLIB_ROOT_PATH', substr(__FILE__, 0, (strrpos(str_replace('\\\', '/', __FILE__), '/') + 1)));\n
+define('MONITOLIB_ROOT_URL', substr(\$_SERVER['PHP_SELF'], 0, (strrpos(str_replace('\\\', '/', \$_SERVER['PHP_SELF']), '/') + 1)));\n
+\n
+// function to autoload classes\n
+function MonitoAutoload (\$className)\n
+{\n
+    \$dir = 'src' . DIRECTORY_SEPARATOR;\n
+\n
+    if (substr(\$className, 0, 5) === 'cache') {\n
+        \$dir = '';\n
+    }\n
+\n
+    \$file = MONITOLIB_ROOT_PATH . DIRECTORY_SEPARATOR . \$dir . str_replace('\\\', '/', \$className) . '.php';\n
+\n
+    if (is_readable(\$file)) {\n
+        require \$file;\n
+    }\n
+}\n
+\n
+// Registers autoload function\n
+spl_autoload_register('MonitoAutoload');\n
+\n
+// Loads composer autoload class\n
+require MONITOLIB_ROOT_PATH . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';\n
+\n
+// Runs the application\n
+\MonitoLib\App::run();
+PHP;
+        return $script;
     }
 }

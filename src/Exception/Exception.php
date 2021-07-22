@@ -29,7 +29,7 @@ class Exception extends \Exception
     }
     public function getErrors() : array
     {
-        return $this->errors;
+        return $this->errors ?? [];
     }
     private function log() : void
     {
