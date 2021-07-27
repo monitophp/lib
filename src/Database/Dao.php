@@ -95,8 +95,10 @@ class Dao extends \MonitoLib\Database\Query
     {
         $this->getConnection()->commit();
     }
-    public function count() : int
+    public function count(?bool $onlyFixed = false) : int
     {
+        $dml = new Dml($this->model, $this->dbms, $this->getFilter());
+        $sql = $dml->count($onlyFixed);
         $stt = $this->parse($sql);
         $this->execute($stt);
         $res = $this->fetchArrayNum($stt);
@@ -105,14 +107,12 @@ class Dao extends \MonitoLib\Database\Query
     public function dataset()
     {
         $data = [];
+        $dml  = new Dml($this->model, $this->dbms, $this->getFilter());
 
-        $dml   = new Dml($this->model, $this->dbms, $this->getFilter());
-        $sql   = $dml->count(true);
-        $total = $this->count($sql);
+        $total = $this->count(true);
 
         if ($total > 0) {
-            $sql   = $dml->count();
-            $count = $this->count($sql);
+            $count = $this->count();
 
             if ($count > 0) {
                 $filter  = $this->getFilter();

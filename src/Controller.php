@@ -104,53 +104,28 @@ class Controller
 	    $dao   = $this->getDao();
 		$model = $this->getModel();
 
-		if (!empty($keys)) {
-			$primaryKeys = $model->getPrimaryKeys();
-
-			$i = 0;
-
-			foreach ($primaryKeys as $field) {
-				$dao->equal($field, $keys[$i], $dao::FIXED_QUERY);
-				$i++;
-			}
+		if (empty($keys)) {
+			$query = Request::getQuery($model, $dao);
+			$dao->mergeFilter($query);
+    	    return $dao->dataset();
 		}
 
-		$query = Request::getQuery($model, $dao);
-		$dao->mergeFilter($query);
+		$primaryKeys = $model->getPrimaryKeys();
 
-		// \MonitoLib\Dev::pre($query);
+		$i = 0;
 
-		// $query = Request::getFilter();
+		foreach ($primaryKeys as $field) {
+			$dao->equal($field->getId(), $keys[$i], $dao::FIXED);
+			$i++;
+		}
 
-		// $dataset = $this->dataset ?? Request::asDataset();
-		// $fields  = $this->fields  ?? Request::getFields();
-		// $orderBy = $this->orderBy ?? Request::getOrderBy();
-		// $page    = $this->page    ?? Request::getPage();
-		// $perPage = $this->perPage ?? Request::getPerPage();
-		// $query   = $this->query   ?? Request::getQuery();
+		$dto = $dao->get();
 
-	    // $dao->fields($fields)
-	    // 	->setQuery($query);
+		if (is_null($dto)) {
+			throw new NotFound($this->notFound ?? 'Registro não encontrado');
+		}
 
-	    if (empty($keys)) {
-    	    // $dao->setPerPage($perPage)
-    	        // ->setPage($page)
-	        	// ->setOrderBy($orderBy);
-
-    	    // if ($dataset) {
-    	        // return $dao->dataset();
-    	    // } else {
-    	        return $dao->dataset();
-    	    // }
-	    } else {
-    	    $dto = $dao->get();
-
-    	    if (is_null($dto)) {
-    	        throw new NotFound($this->notFound ?? 'Registro não encontrado');
-    	    }
-
-    	    return $dto;
-    	}
+		return $dto;
 	}
 	public function _update(...$keys)
 	{
@@ -158,18 +133,19 @@ class Controller
 		$dao   = $this->getDao();
 		$model = $this->getModel();
 
-		if (!empty($keys)) {
-			$primaryKeys = $model->getPrimaryKeys();
+		// if (!empty($keys)) {
+		// 	$primaryKeys = $model->getPrimaryKeys();
 
-			$i = 0;
+		// 	$i = 0;
 
-			foreach ($primaryKeys as $field) {
-				$dao->equal($field, $keys[$i], $dao::FIXED_QUERY);
-				$i++;
-			}
-		}
+		// 	foreach ($primaryKeys as $field) {
+		// 		$dao->equal($field, $keys[$i], $dao::FIXED);
+		// 		$i++;
+		// 	}
+		// }
 
 		$dto = $this->_get(...$keys);
+		\MonitoLib\Dev::pre($dto);
 
 	    if (is_null($dto)) {
 	        throw new NotFound($this->notFound ?? 'Registro não encontrado');

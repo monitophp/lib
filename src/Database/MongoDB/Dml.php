@@ -1,7 +1,9 @@
 <?php
 namespace MonitoLib\Database\MongoDB;
 
+use MonitoLib\Dev;
 use \MonitoLib\Exception\BadRequest;
+use \MonitoLib\Exception\NotFound;
 use \MonitoLib\Validator;
 
 class Dml
@@ -17,12 +19,24 @@ class Dml
     private $model;
     private $dao;
     private $insertColumns = [];
+    private $dtos = [];
 
     public function __construct(\MonitoLib\Database\Model $model, int $dbms, \MonitoLib\Database\Query\Filter $filter)
     {
         $this->model  = $model;
         $this->dbms   = $dbms;
         $this->filter = $filter;
+    }
+    public function getDtoName(string $index) : array
+    {
+        // \MonitoLib\Dev::pre($this->dtos);
+        $dto = $this->dtos[$index] ?? null;
+
+        if (is_null($dto)) {
+            throw new NotFound("Dto $index not found");
+        }
+
+        return $dto;
     }
     public function getInsertColumns() : array
     {
@@ -47,6 +61,94 @@ class Dml
         // \MonitoLib\Dev::pre($this->insertColumns);
 
         return $this->insertColumns;
+    }
+    private function parseColumns(array $map) : array
+    {
+        $mapx = [];
+
+        foreach ($map as $m) {
+            $position = strpos($m, '.');
+
+            if ($position === false) {
+                $mapx[$m] = 1;
+            } else {
+                $column = substr($m, 0, $position);
+                // \MonitoLib\Dev::e($column);
+
+                if (!isset($mapx[$column])) {
+                    $mapx[$column] = [];
+                }
+
+                $value  = substr($m, $position + 1);
+
+                $value  = [$value];
+
+                // \MonitoLib\Dev::pr($value);
+
+                // $value  = explode('.', $value);
+                $value  = $this->parseColumns($value);
+                $ecaoc  = $mapx[$column] ?? [];
+
+                // \MonitoLib\Dev::pr($ecaoc);
+                // \MonitoLib\Dev::pr($value);
+                // $merged = array_merge_recursive($ecaoc, $value);
+                $mapx[$column] = array_merge_recursive($ecaoc, $value);
+
+                // // $merged = Functions::arrayMergeRecursive($mapx, [$column => $value]);
+                // // $merged = array_combine([$column => $value], $mapx);
+                // \MonitoLib\Dev::pr($merged);
+            }
+        }
+
+        // Aqui vai botar o dto no array
+
+        return $mapx;
+    }
+    private function parseDto(object $model, array $columns, ?string $columnName = 'root') : void
+    {
+        $nven = [];
+
+        foreach ($columns as $key => $value) {
+            $isArray = is_array($value);
+
+            if ($isArray) {
+                $column  = $model->getColumn($key);
+                $type    = $column->getType();
+                $modelName = str_replace('\\Dto', '\\Model', $type);
+
+                // \MonitoLib\Dev::e($modelName);
+
+                $modelx = new $modelName();
+
+                // \MonitoLib\Dev::e($model);
+
+                // \MonitoLib\Dev::pre($column);
+
+                $this->parseDto($modelx, $value, $key);
+            }
+
+            $nven[] = $key;
+        }
+
+        // Compara com as colunas para ver se é igual
+        $xyz = $model->getColumnIds();
+
+        $dh = serialize($nven);
+        $mh = serialize($xyz);
+
+        if ($dh === $mh) {
+            $dto = str_replace('\\Model', '\\Dto', get_class($model));
+        } else {
+            $dto = \MonitoLib\Database\Dto::get($nven, true);
+        }
+
+        // \MonitoLib\Dev::pr($nven);
+        // \MonitoLib\Dev::pre($xyz);
+
+        $this->dtos[$columnName] = [
+            'dto' => $dto,
+            'model' => $model,
+        ];
     }
     public function parseFilter($where) : array
     {
@@ -139,21 +241,24 @@ class Dml
     }
     public function renderFilter(?bool $onlyFixed = false) : array
     {
-        $filter    = $this->filter;
+        $filter = $this->filter;
+
+        // \MonitoLib\Dev::pre($filter);
+
         $whereList = $filter->getWhere();
         $filterArray = [];
 
         $model = $this->model;
 
         foreach ($whereList as $where) {
-            $name         = $where->getColumn();
-            $type         = $where->getType();
-            $comparison   = $where->getComparison();
-            $value        = $where->getValue();
-            $options      = $where->getOptions();
-            $isFixed = $options->isFixed();
+            $name       = $where->getColumn();
+            $type       = $where->getType();
+            $comparison = $where->getComparison();
+            $value      = $where->getValue();
+            $options    = $where->getOptions();
+            $isFixed    = $options->isFixed();
             // $checkNull  = $options->getCheckNull();
-            // $rawQuery   = $options->getRawQuery();
+            // $isRaw      = $options->getRawQuery();
             $operator   = $options->getOperator();
 
             if ($onlyFixed && !$isFixed) {
@@ -161,12 +266,19 @@ class Dml
             }
 
             $column = $model->getColumn($name);
-            $type = $column->getType();
+            $type   = $column->getType();
+            $name   = $column->getName();
 
             // \MonitoLib\Dev::vde($type);
 
             if (in_array($type, ['int','double','float'])) {
                 $value = +$value;
+            }
+
+            if ($type === 'oid') {
+                // $value = new \MongoDB\
+                $value = new \MongoDB\BSON\ObjectID($value);
+
             }
 
             // \MonitoLib\Dev::pre($where);
@@ -239,11 +351,76 @@ class Dml
     }
     public function renderOptions() : array
     {
-        $filter = $this->filter;
         $options = [];
+        $filter  = $this->filter;
+        $columns = $filter->getColumns();
+        $model   = $this->model;
 
-        if (!empty($filter->getColumns())) {
-            $options['projection'] = $filter->getColumns();
+        if (!empty($columns)) {
+            $columnss = $this->parseColumns($columns);
+            $this->parseDto($this->model, $columnss);
+
+            // \MonitoLib\Dev::pre($this->dtos);
+
+            // foreach ($columns as $id => $value) {
+            //     $isArray = is_array($value);
+            // }
+        }
+
+        // \MonitoLib\Dev::pre($this->model);
+        $columns = array_flip($columns);
+
+        // $_model        = $this->model;
+        // $_modelColumns = array_map(function($e) {
+        //     return $e->getId();
+        // }, $_model->getColumns());
+
+        // \MonitoLib\Dev::pr($map);
+        // \MonitoLib\Dev::pre($_modelColumns);
+
+        // $_mapColumns = array_keys((array)$document);
+
+        // \MonitoLib\Dev::pr($_mapColumns);
+        // \MonitoLib\Dev::pre($_modelColumns);
+
+        $columns = array_map(function($v) {
+            return $v = 1;
+        }, $columns);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        if (!empty($columns)) {
+            // $columns = array_map(function($e) use ($model) {
+            //     return $model->getColumn($e)->getName();
+            // }, $columns);
+
+            $projection = [
+                '_id' => 0
+            ];
+
+            $projection = array_merge($projection, $columns);
+
+            // \MonitoLib\Dev::pre($projection);
+
+            // foreach ($columns as $column) {
+            //     $projection[$column] = 1;
+            // }
+
+            $options['projection'] = $projection;
         }
 
         if (!empty($filter->getOrderBy())) {

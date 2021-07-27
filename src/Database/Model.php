@@ -19,6 +19,7 @@ class Model
     * first versioned
     */
 
+    public const ARRAY = 'array';
     public const BOOL = 'bool';
     public const OID = 'oid';
     public const CHAR = 'char';
