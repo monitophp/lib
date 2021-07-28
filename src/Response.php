@@ -62,9 +62,12 @@ class Response
 
 		$return = [];
 
+		// \MonitoLib\Dev::e(gettype($value));
+
 		switch (gettype($value)) {
 			case 'array':
 				$return = Response::toArray($value);
+				// \MonitoLib\Dev::pre($return);
 				break;
 			case 'NULL':
 				$return = [];
@@ -86,6 +89,8 @@ class Response
 			default:
 				throw new BadRequest('Invalid json');
 		}
+
+		// \MonitoLib\Dev::pre($return);
 
 		return self::$return = $return;
 	}
@@ -136,6 +141,7 @@ class Response
 	}
 	public static function toArray($object)
 	{
+		// \MonitoLib\Dev::pre($object);
 		$results = [];
 
 		if (is_array($object)) {
@@ -148,27 +154,45 @@ class Response
 			} else {
 				$result = [];
 				$class  = new \ReflectionClass(get_class($object));
+				$properties = $class->getProperties(\ReflectionProperty::IS_PRIVATE);
 
-			    foreach ($class->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
-			        $methodName = $method->name;
+				// \MonitoLib\Dev::pre($properties);
 
-			        if (strpos($methodName, 'get') === 0 && strlen($methodName) > 3) {
-			            $propertyName = lcfirst(substr($methodName, 3));
-			            $value = $method->invoke($object);
+			    foreach ($properties as $property) {
+			        $propertyName = $property->name;
+			        $getMethod    = 'get' . ucfirst($propertyName);
+
+					if (method_exists($object, $getMethod)) {
+						$value = call_user_func([$object, $getMethod]);
 
 			            if (is_object($value) || is_array($value)) {
 		                    $result[$propertyName] = self::toArray($value);
 			            } else {
 			                $result[$propertyName] = $value ?? '';
 			            }
-			        }
+					}
+
+			        // if (strpos($methodName, 'get') === 0 && strlen($methodName) > 3) {
+			        //     $propertyName = lcfirst(substr($methodName, 3));
+			        //     $value = $method->invoke($object);
+
+			        //     if (is_object($value) || is_array($value)) {
+		            //         $result[$propertyName] = self::toArray($value);
+			        //     } else {
+			        //         $result[$propertyName] = $value ?? '';
+			        //     }
+			        // }
 			    }
+
+				// \MonitoLib\Dev::pr($result);
 
 			    $results = $result;
 			}
 		} else {
 			$results = $object;
 		}
+
+		// \MonitoLib\Dev::pr($results);
 
 		return $results;
 	}

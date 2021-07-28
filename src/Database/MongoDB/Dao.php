@@ -42,7 +42,8 @@ class Dao extends \MonitoLib\Database\Dao
     */
     public function dataset() : Dataset
     {
-        $dml = new Dml($this->model, $this->dbms, $this->getFilter());
+        // $dml = new Dml($this->model, $this->dbms, $this->getFilter());
+        $dml = $this->getDml();
 
         $filter  = $dml->renderFilter();
         $options = $dml->renderOptions();
@@ -93,7 +94,7 @@ class Dao extends \MonitoLib\Database\Dao
     public function delete(...$params)
     {
         if ($this->model->getTableType() == 'view') {
-            throw new BadRequest('Não é possível deletar registros de uma view!');
+            throw new BadRequest('Não é possível deletar registros de uma view');
         }
 
 
@@ -128,9 +129,7 @@ class Dao extends \MonitoLib\Database\Dao
     */
     public function get() : ?object
     {
-        // $dml = $this->getDml();
-        $dml = new \MonitoLib\Database\MongoDB\Dml($this->model, $this->dbms, $this->getFilter());
-
+        $dml     = $this->getDml();
         $filter  = $dml->renderFilter();
         $options = $dml->renderOptions();
 
@@ -142,15 +141,15 @@ class Dao extends \MonitoLib\Database\Dao
         // \MonitoLib\Dev::pre($filter);
         $result = $collection->findOne($filter, $options);
 
-        // \MonitoLib\Dev::pre($result);
-
         if (is_null($result)) {
             return null;
         }
 
+        $data = $this->_parseResult($result);
+
         $this->reset();
 
-        return $this->_parseResult($result);
+        return $data;
     }
     /**
     * getLastId
@@ -177,164 +176,52 @@ class Dao extends \MonitoLib\Database\Dao
     */
     public function list(?\MonitoLib\Database\Query\Dml $dml = null) : array
     {
-        // $dml     = new Dml($this->model, $this->dbms, $this->getFilter());
-        $dml = $this->getDml();
+        $dml     = $this->getDml();
         $filter  = $dml->renderFilter();
         $options = $dml->renderOptions();
 
-        // \MonitoLib\Dev::pre($options);
-
-
-        // $map     = $this->getFilter()->getMap();
-        // $map     = $filter->getMap();
-
-        // $map = [
-        //     'brand',
-        //     'accessory.type',
-        //     // 'accessory.installDate',
-        //     'accessory.installDate.qqcoisa.vamos.ver.ate.onde.vai',
-        //     'accessory.installDate.qqcoisa.vamos.ver.se.da.erro',
-        // ];
-
-        // $map = $this->parseMap($map);
-
-
-
-        // $_modelName    = str_replace('\\Dto\\', '\\Model\\', $dtoName);
-        // $_model        = new $_modelName();
-        // $_model        = $this->model;
-        // $_modelColumns = array_map(function($e) {
-        //     return $e->getId();
-        // }, $_model->getColumns());
-
-        // \MonitoLib\Dev::pr($map);
-        // \MonitoLib\Dev::pre($_modelColumns);
-
-        // $_mapColumns = array_keys((array)$document);
-
-        // \MonitoLib\Dev::pr($_mapColumns);
-        // \MonitoLib\Dev::pre($_modelColumns);
-
-        // $_modelHash = serialize($_modelColumns);
-        // $_mapHash   = serialize($_mapColumns);
-
-        // if ($_modelHash !== $_mapHash) {
-        //     $dtoName = \MonitoLib\Database\Dto::get($_mapColumns, true);
-        // }
-
-        // // \MonitoLib\Dev::pre($dto);
-
-        // $_dto   = new $dtoName();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        // \MonitoLib\Dev::pre($filter);
-
-        // $sql = $dml->select();
-        // $tps = $dml->getTypes();
-
-        // \MonitoLib\Dev::pr($map);
-        // $dto = $this->_parseDto(array_values($this->model->getColumnIds()), array_values($map));
-
-        // \MonitoLib\Dev::pre($dto);
-
-        // $stt = $this->parse($sql);
-        // $this->execute($stt);
-
-        // Identifica o dto a ser usado
-
-        // \MonitoLib\Dev::pr($filter);
-        // \MonitoLib\Dev::pre($options);
-
-        // $dtoName   = $this->dtoName;
-        // $modelName = str_replace('\\Dto\\', '\\Model\\', $dtoName);
-
-        // $model     = new $modelName();
-        // $table     = $model->getTablename();
-
         $table      = $this->model->getTablename();
         $collection = $this->getConnection()->$table;
-
-        // $count = $collection->count($filter);
-        // $total = $count;
-        // $data  = [];
-
-
-        $cursor = $collection->find($filter, $options);
+        $cursor     = $collection->find($filter, $options);
 
         foreach ($cursor as $document) {
-            // \MonitoLib\Dev::pre($document);
             $data[] = $this->_parseResult($document);
         }
-
-        // $perPage = $this->getPerPage();
-
-        // if ($perPage <= 0) {
-        //     $perPage = $count;
-        // }
-
-        // $dataset = new \MonitoLib\Database\Dataset(
-        //     $total,
-        //     $count,
-        //     $this->getPage(),
-        //     $perPage,
-        //     $data
-        // );
-
-        // $dataset = [
-        //     'data' => $data,
-        //     'pagination' => [
-        //         'total'   => $total,
-        //         'count'   => $count,
-        //         'page'    => $this->getPage(),
-        //         'perPage' => $perPage,
-        //     ]
-        // ];
 
         return $data;
     }
     public function parseDocument(string $dtoName, object $document) : object
     {
+        // \MonitoLib\Dev::e($dtoName);
+        // \MonitoLib\Dev::pre($dml);
+
+
         $dml = $this->getDml();
         $dtoName = $dml->getDtoName($dtoName);
 
+        // \MonitoLib\Dev::pre($document);
+
         // \MonitoLib\Dev::pr($dtoName);
 
-        $_dto   = new $dtoName['dto']();
-        $_model = $dtoName['model'];
+        // if (empty($dtoName)) {
+        //     $_model = $this->model;
+
+        //     // \MonitoLib\Dev::vd($_model);
+
+        //     $getDtoName = $_model->getDtoName();
+
+        //     // \MonitoLib\Dev::vd($getDtoName);
+
+        //     $_dto   = new $getDtoName();
+
+        //     // \MonitoLib\Dev::vd($_dto);
+        // } else {
+            $_dto   = new $dtoName['dto']();
+            $_model = new $dtoName['model'];
+        // }
+
+        // \MonitoLib\Dev::pr($_dto);
+
 
         // $_modelName    = str_replace('\\Dto\\', '\\Model\\', $dtoName);
         // $_model        = new $_modelName();
@@ -367,13 +254,14 @@ class Dao extends \MonitoLib\Database\Dao
 
             // \MonitoLib\Dev::vd($_key);
 
-            $_field = $_model->getColumn($_key);
+            $__column = $_model->getColumn($_key);
+            $__type   = $__column->getType() ?? Model::STRING;
+
 
             // if (empty($_field)) {
             //     continue;
             // }
 
-            $__type = $_field->getType() ?? Model::STRING;
 
             // $__type = 'string';
 
@@ -400,41 +288,58 @@ class Dao extends \MonitoLib\Database\Dao
                 case Model::OID:
                     $_value = $_value->__toString();
                     break;
+                case Model::STRING:
+                    // Do nothing
+                    break;
+                // case 'a':
                 default:
-                    if (is_array($__type)) {
-                        $__type = $__type[0];
+                    $valueType = gettype($_value);
 
-                        $_v1 = [];
+                    switch ($valueType) {
+                        case 'array':
+                            $__type = $__type[0];
 
-                        foreach ($_value as $_v) {
-                            // \MonitoLib\Dev::pr($_v);
-                                // $__type = $dml->getDtoName($_key);
-                                // $__type = $__type['dto'];
-                                $__type = $_key;
-                            $_v1[] = $this->parseDocument($__type, $_v->jsonSerialize());
-                        }
+                            $_v1 = [];
 
-                        $_value = $_v1;
-
-                    } else {
-                        // \MonitoLib\Dev::vd($_key);
-
-                        // $__type =
-
-
-                        if (class_exists($__type)) {
-                            if (!is_null($_value)) {
-                                // $__type = $dml->getDtoName($_key);
-                                // $__type = $__type['dto'];
-                                // $__type = new $__type();
-                                $__type = $_key;
-
-                                // \MonitoLib\Dev::vde($__type);
-                                $_value = $this->parseDocument($__type, $_value);
+                            foreach ($_value as $_v) {
+                                // \MonitoLib\Dev::pr($_v);
+                                    // $__type = $dml->getDtoName($_key);
+                                    // $__type = $__type['dto'];
+                                    // $__type = $_key;
+                                $_v1[] = $this->parseDocument($_key, $_v->jsonSerialize());
                             }
-                        }
+
+                            $_value = $_v1;
+                            break;
+                        case 'object':
+                            // \MonitoLib\Dev::e($__type);
+
+
+                            // if (class_exists($__type)) {
+                                // if (!is_null($_value)) {
+                                    // $__type = $dml->getDtoName($_key);
+                                    // $__type = $__type['dto'];
+                                    // $__type = new $__type();
+                                    // $__type = $_key;
+
+                                    // $dn = $dml->getDtoName($_key)['dto'] ?? $__type;
+
+                                    // \MonitoLib\Dev::vde($__type);
+                                    $_value = $this->parseDocument($_key, $_value);
+                                // }
+                            // }
                     }
-                // echo "key: $_key\n";
+
+                //     // If is an array of objects
+                //     if (is_array($__type)) {
+
+                //     } else {
+                //         // \MonitoLib\Dev::vd($_key);
+
+                //         // $__type =
+
+                //     }
+                // // echo "key: $_key\n";
             }
 
             $_method = Functions::toLowerCamelCase($_key);
@@ -444,8 +349,9 @@ class Dao extends \MonitoLib\Database\Dao
                 // echo get_class($_dto) . ', ' . $_set . " E\n";
                 if (!is_null($_value)) {
                     $_dto->$_set($_value);
+                    // call_user_func([$_dto, $_set], $_value);
                 }
-            } else {
+            // } else {
                 // echo get_class($_dto) . ', ' . $_set . " N\n";
             }
         }
@@ -541,13 +447,12 @@ class Dao extends \MonitoLib\Database\Dao
         $index  = 'root';
         $result = $result->jsonSerialize();
 
-
         // $dto = $this->dto[$index];
-
 
         // $daoName = get_class($this);
         // $dtoName = str_replace('\\Dao\\', '\\Dto\\', $daoName);
-        return $this->parseDocument($index, $result);
+        $return = $this->parseDocument($index, $result);
+        return $return;
     }
     /**
     * update

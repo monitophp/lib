@@ -26,15 +26,19 @@ class Dml
         $this->model  = $model;
         $this->dbms   = $dbms;
         $this->filter = $filter;
+        $this->dtos['root'] = [
+            'dto' => str_replace('\\Model', '\\Dto', get_class($model)),
+            'model' => $model
+        ];
     }
     public function getDtoName(string $index) : array
     {
         // \MonitoLib\Dev::pre($this->dtos);
-        $dto = $this->dtos[$index] ?? null;
+        $dto = $this->dtos[$index] ?? [];
 
-        if (is_null($dto)) {
-            throw new NotFound("Dto $index not found");
-        }
+        // if (is_null($dto)) {
+        //     throw new NotFound("Dto $index not found");
+        // }
 
         return $dto;
     }
@@ -62,11 +66,11 @@ class Dml
 
         return $this->insertColumns;
     }
-    private function parseColumns(array $map) : array
+    private function parseColumns(array $columns) : array
     {
         $mapx = [];
 
-        foreach ($map as $m) {
+        foreach ($columns as $m) {
             $position = strpos($m, '.');
 
             if ($position === false) {
@@ -108,47 +112,85 @@ class Dml
     {
         $nven = [];
 
-        foreach ($columns as $key => $value) {
-            $isArray = is_array($value);
+        if (empty($columns)) {
+            $this->dtos['root'] = [
+                'dto'   => $model->getDtoName(),
+                'model' => get_class($model),
+            ];
 
-            if ($isArray) {
-                $column  = $model->getColumn($key);
-                $type    = $column->getType();
-                $modelName = str_replace('\\Dto', '\\Model', $type);
+            $columns = $model->getColumns();
 
-                // \MonitoLib\Dev::e($modelName);
+            foreach ($columns as $column) {
+                $id = $column->getId();
+                $type = $column->getType();
+                $valueType = gettype($type);
 
-                $modelx = new $modelName();
+                if ($valueType === 'array') {
+                    $type = $type[0];
+                }
 
-                // \MonitoLib\Dev::e($model);
+                $isClass = class_exists($type);
 
-                // \MonitoLib\Dev::pre($column);
+                // \MonitoLib\Dev::e("$type: $valueType");
 
-                $this->parseDto($modelx, $value, $key);
+                switch ($isClass) {
+                    case 'object':
+                        $this->dtos[$id] = [
+                            'dto'   => $type,
+                            'model' => str_replace('\\Dto', '\\Model', $type),
+                        ];
+                }
             }
 
-            $nven[] = $key;
-        }
-
-        // Compara com as colunas para ver se é igual
-        $xyz = $model->getColumnIds();
-
-        $dh = serialize($nven);
-        $mh = serialize($xyz);
-
-        if ($dh === $mh) {
-            $dto = str_replace('\\Model', '\\Dto', get_class($model));
         } else {
-            $dto = \MonitoLib\Database\Dto::get($nven, true);
+            foreach ($columns as $key => $value) {
+                $isArray = is_array($value);
+
+                if ($isArray) {
+                    $column  = $model->getColumn($key);
+                    $type    = $column->getType();
+                    $modelName = str_replace('\\Dto', '\\Model', $type);
+
+                    // \MonitoLib\Dev::e($modelName);
+
+                    $modelx = new $modelName();
+
+                    // \MonitoLib\Dev::e($model);
+
+                    // \MonitoLib\Dev::pre($column);
+
+                    $this->parseDto($modelx, $value, $key);
+                }
+
+                $nven[] = $key;
+            }
+
+            // Compara com as colunas para ver se é igual
+            $xyz = $model->getColumnIds();
+            $modelName = get_class($model);
+
+            $dh = serialize($nven);
+            $mh = serialize($xyz);
+
+            if ($dh === $mh) {
+                $dto = str_replace('\\Model', '\\Dto', $modelName);
+            } else {
+                $dto = \MonitoLib\Database\Dto::get($nven, true);
+            }
+
+            // \MonitoLib\Dev::pr($nven);
+            // \MonitoLib\Dev::pre($xyz);
+
+            $this->dtos[$columnName] = [
+                'dto'   => $dto,
+                'model' => $modelName,
+            ];
         }
 
-        // \MonitoLib\Dev::pr($nven);
-        // \MonitoLib\Dev::pre($xyz);
+        // \MonitoLib\Dev::pre($this->dtos);
 
-        $this->dtos[$columnName] = [
-            'dto' => $dto,
-            'model' => $model,
-        ];
+        // \MonitoLib\Dev::pre($columns);
+
     }
     public function parseFilter($where) : array
     {
@@ -357,15 +399,23 @@ class Dml
         $model   = $this->model;
 
         if (!empty($columns)) {
-            $columnss = $this->parseColumns($columns);
-            $this->parseDto($this->model, $columnss);
+            // $columns =
+        }
+
+        $columnss = $this->parseColumns($columns);
+
+        // \MonitoLib\Dev::pre($columnss);
+
+        $this->parseDto($this->model, $columnss);
 
             // \MonitoLib\Dev::pre($this->dtos);
 
             // foreach ($columns as $id => $value) {
             //     $isArray = is_array($value);
             // }
-        }
+        // }
+
+        // \MonitoLib\Dev::pre($this->dtos);
 
         // \MonitoLib\Dev::pre($this->model);
         $columns = array_flip($columns);
@@ -441,6 +491,7 @@ class Dml
             $options['limit'] = $filter->getPerPage();
         }
 
+        // \MonitoLib\Dev::pre($this->dtos);
         // \MonitoLib\Dev::pre($options);
 
         return $options;

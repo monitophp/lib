@@ -34,6 +34,7 @@ class Model
     protected $fields = [];
     private $parsedFields = [];
     private $insertString;
+    private $dtoName;
 
     public function __construct()
     {
@@ -53,7 +54,7 @@ class Model
     public function getColumn(string $fieldName, ?bool $raw = false) : ?\MonitoLib\Database\Model\Column
     {
         if (!isset($this->columns[$fieldName])) {
-            throw new BadRequest("Field $fieldName not found in model " . __CLASS__);
+            throw new BadRequest("Field $fieldName not found in model " . get_class($this));
         }
 
         if ($raw) {
@@ -91,6 +92,43 @@ class Model
         return array_map(function($e) {
             return $e->getId();
         }, $this->getColumns());
+    }
+	/**
+	* getDaoName
+	*
+	* @return string $daoName
+	*/
+    public function getDaoName() : string
+    {
+        if (is_null($this->daoName)) {
+            $classname = get_class($this);
+
+            $this->daoName = Functions::getNamespace($classname, 2)
+                . 'Dto\\'
+                . Functions::getClassname($classname);
+        }
+
+        return $this->daoName;
+    }
+	/**
+	* getDtoName
+	*
+	* @return string $dtoName
+	*/
+    public function getDtoName() : string
+    {
+        if (is_null($this->dtoName)) {
+            // $classname = get_class($this);
+            $this->dtoName = str_replace('\\Model', '\\Dto', get_class($this));
+
+            // $this->dtoName = Functions::getNamespace($classname, 1)
+            //     . 'Dto\\'
+            //     . Functions::getClassname($classname);
+        }
+
+        // \MonitoLib\Dev::ee($this->dtoName);
+
+        return $this->dtoName;
     }
 	/**
 	* getInsertFields
