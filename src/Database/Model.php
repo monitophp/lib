@@ -47,14 +47,14 @@ class Model
         }
     }
 	/**
-	* getField
+	* getColumn
 	*
-	* @return $field | null
+	* @return $fieldName | null
 	*/
     public function getColumn(string $fieldName, ?bool $raw = false) : ?\MonitoLib\Database\Model\Column
     {
         if (!isset($this->columns[$fieldName])) {
-            throw new BadRequest("Field $fieldName not found in model " . get_class($this));
+            throw new BadRequest("Column $fieldName not found in model " . get_class($this));
         }
 
         if ($raw) {
@@ -64,9 +64,9 @@ class Model
         return $this->parsedFields[$fieldName] ?? $this->parseField($fieldName, $this->columns[$fieldName]);
     }
 	/**
-	* getFields
+	* getColumns
 	*
-	* @return array $fields
+	* @return array $columns
 	*/
     public function getColumns(?bool $raw = false) : array
     {

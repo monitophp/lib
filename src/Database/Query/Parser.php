@@ -3,6 +3,7 @@ namespace MonitoLib\Database\Query;
 
 use \MonitoLib\Exception\BadRequest;
 use \MonitoLib\Exception\InternalError;
+use \MonitoLib\Exception\NotFound;
 use \MonitoLib\Functions;
 use \MonitoLib\Validator;
 
@@ -190,6 +191,25 @@ class Parser
 
         // return $this;
     }
+    public function getColumn(\MonitoLib\Database\Model $model, array $columnsName) : \MonitoLib\Database\Model\Column
+    {
+        $column = $model->getColumn($columnsName[0]);
+        array_shift($columnsName);
+
+        if (!empty($columnsName)) {
+            $type  = $column->getType();
+            $model = str_replace('\\Dto', '\\Model', $type);
+
+            if (!class_exists($model)) {
+                throw new NotFound("Class $model not found");
+            }
+
+            $model  = new $model();
+            $column = $this->getColumn($model, $columnsName);
+        }
+
+        return $column;
+    }
     private function parseFilter($filter, string $field, ?string $value, ?object $model = null)
     {
         $type = 'string';
@@ -197,7 +217,7 @@ class Parser
 
         if (!is_null($model)) {
             // Identifica a coluna no modelo
-            $column = $model->getColumn($field);
+            $column = $this->getColumn($model, explode('.', $field));
             $type   = $column->gettype();
         }
 
@@ -254,7 +274,7 @@ class Parser
         $options = new \MonitoLib\Database\Query\Options(0);
         $where = new \MonitoLib\Database\Query\Filter\Where();
         $where
-            ->setColumn($column->getName())
+            ->setColumn($field)
             ->setComparison($comparison)
             ->setValue($value)
             ->setType($type)
@@ -289,8 +309,10 @@ class Parser
                 break;
         }
 
-        if (preg_match($regex, $value, $m)) {
-            $modifier = $m[$index];
+        if ($regex !== '') {
+            if (preg_match($regex, $value, $m)) {
+                $modifier = $m[$index];
+            }
         }
 
         return $modifier;

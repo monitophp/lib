@@ -106,10 +106,14 @@ class Dao extends \MonitoLib\Database\Query
     }
     public function dataset()
     {
-        $data = [];
         $dml  = new Dml($this->model, $this->dbms, $this->getFilter());
 
-        $total = $this->count(true);
+        $data    = [];
+        $total   = $this->count(true);
+        $count   = 0;
+        $page    = 0;
+        $perPage = 0;
+        $pages   = 0;
 
         if ($total > 0) {
             $count = $this->count();
@@ -302,6 +306,35 @@ class Dao extends \MonitoLib\Database\Query
     }
     public function insert(object $dto)
     {
+        if ($this->model->getTableType() === 'view') {
+            throw new BadRequest('Não é possível inserir registros em uma view');
+        }
+
+        if (!$dto instanceof $this->dtoName) {
+            throw new BadRequest('O parâmetro passado não é uma instância de ' . $this->dtoName);
+        }
+
+        // Atualiza o objeto com os valores automáticos, caso não informados
+        $dto = $this->setAutoValues($dto);
+
+        // \MonitoLib\Dev::pre($dto);
+
+        // Valida o objeto dto
+        $validator = new \MonitoLib\Database\Validator();
+        $validator->validate($dto, $this->model);
+
+        // \MonitoLib\Dev::pre($dto);
+
+        // Verifica se existe constraint de chave única
+        // $this->checkUnique($this->model->getUniqueConstraints(), $dto);
+
+        // $columns = $this->model->getInsertColumnsArray();
+        $dml = new Dml($this->model, $this->dbms, $this->getFilter());
+        // $dml = $this->getDml();
+        $sql = $dml->insert($dto);
+        $stt = $this->parse($sql);
+        \MonitoLib\Dev::ee($sql);
+
         if (!$dto instanceof $this->dtoName) {
             throw new BadRequest('O parâmetro passado não é uma instância de ' . $this->dtoName);
         }

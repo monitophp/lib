@@ -89,6 +89,38 @@ class Dml
     {
         return $this->types;
     }
+    public function insert(object $dto) : string
+    {
+        // \MonitoLib\Dev::pre($columns);
+
+        $columns = $this->model->getColumns();
+
+        $fld = '';
+        $val = '';
+        $delimiter = $this->dbms === Dao::DBMS_MYSQL ? '`' : '';
+
+        foreach ($columns as $column) {
+            $id        = $column->getId();
+            $name      = $column->getName();
+            $transform = $column->getTransform();
+            $get       = 'get' . ucfirst($id);
+            $value     = $dto->$get();
+
+            if (!is_null($value)) {
+                $value     = $this->escape($value, $column);
+                $fld .= "{$delimiter}{$name}{$delimiter},";
+                // $val .= ($transform ?? ':' . $name) . ',';
+                $val .= $value . ',';
+            }
+
+        }
+
+        $fld = substr($fld, 0, -1);
+        $val = substr($val, 0, -1);
+
+        $sql = 'INSERT INTO ' . $this->model->getTableName() . " ($fld) VALUES ($val)";
+        return $sql;
+    }
     private function renderFieldsSql() : string
     {
         // bool $format = true, bool $aliases = false
@@ -275,9 +307,8 @@ class Dml
 
         return $sql;
     }
-    public function update(object $dto) : string
+    public function update(array $columns, object $dto) : string
     {
-
         $key = '';
         $fld = '';
 

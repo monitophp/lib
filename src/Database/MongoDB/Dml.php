@@ -108,21 +108,23 @@ class Dml
 
         return $mapx;
     }
-    private function parseDto(object $model, array $columns, ?string $columnName = 'root') : void
+    private function parseDto(object $model, ?string $columnName = 'root') : void
     {
-        $nven = [];
+        // \MonitoLib\Dev::e($columnName);
 
-        if (empty($columns)) {
-            $this->dtos['root'] = [
-                'dto'   => $model->getDtoName(),
-                'model' => get_class($model),
-            ];
+        // if (empty($columns)) {
+        $this->dtos[$columnName] = [
+            'dto'   => $model->getDtoName(),
+            'model' => get_class($model),
+        ];
 
-            $columns = $model->getColumns();
+        $columnsx = $model->getColumns();
 
-            foreach ($columns as $column) {
-                $id = $column->getId();
-                $type = $column->getType();
+        foreach ($columnsx as $column) {
+            $id   = $column->getId();
+            $type = $column->getType();
+
+            if (!in_array($type, ['datetime'])) {
                 $valueType = gettype($type);
 
                 if ($valueType === 'array') {
@@ -135,23 +137,64 @@ class Dml
 
                 switch ($isClass) {
                     case 'object':
-                        $this->dtos[$id] = [
+                        $model  = str_replace('\\Dto', '\\Model', $type);
+                        $morena = $columnName . '.'. $id;
+
+                        $this->dtos[$morena] = [
                             'dto'   => $type,
-                            'model' => str_replace('\\Dto', '\\Model', $type),
+                            'model' => $model,
                         ];
+                        // if (class_exists($model)) {
+                            // \MonitoLib\Dev::e($model);
+                            $this->parseDto(new $model(), $morena);
+                        // }
                 }
             }
+        }
 
-        } else {
+        $filter  = $this->filter;
+        $columns = $filter->getColumns();
+
+        if (!empty($columns)) {
+            $columns = $this->parseColumns($columns);
+            $this->parseCustomDto($this->model, $columns);
+        }
+    }
+    private function parseCustomDto(object $model, array $columns = [], ?string $columnName = 'root') : void
+    {
+        // \MonitoLib\Dev::pr($model);
+
+        // \MonitoLib\Dev::pr($columns);
+
+        // $filter  = $this->filter;
+        // $columns = $filter->getColumns();
+
+        // \MonitoLib\Dev::pre($columns);
+
+        // $columnss = $this->parseColumns($columns);
+
+        if (!empty($columns)) {
+        // } else {
+            $nven = [];
+
             foreach ($columns as $key => $value) {
+                // \MonitoLib\Dev::e($key);
+                // \MonitoLib\Dev::pr($value);
+
                 $isArray = is_array($value);
 
                 if ($isArray) {
-                    $column  = $model->getColumn($key);
-                    $type    = $column->getType();
+                    // \MonitoLib\Dev::ee('???????????????');
+                    $column = $model->getColumn($key);
+                    $type   = $column->getType();
+
+                    if (gettype($type) === 'array') {
+                        $type = $type[0];
+                    }
+
                     $modelName = str_replace('\\Dto', '\\Model', $type);
 
-                    // \MonitoLib\Dev::e($modelName);
+                    // \MonitoLib\Dev::pre($modelName);
 
                     $modelx = new $modelName();
 
@@ -159,22 +202,32 @@ class Dml
 
                     // \MonitoLib\Dev::pre($column);
 
-                    $this->parseDto($modelx, $value, $key);
+                    // \MonitoLib\Dev::vd($value);
+
+                    $this->parseCustomDto($modelx, $value, $columnName . '.' . $key);
                 }
 
                 $nven[] = $key;
             }
 
+
+            // \MonitoLib\Dev::ee($model);
+
             // Compara com as colunas para ver se é igual
+            $model = new $model();
             $xyz = $model->getColumnIds();
             $modelName = get_class($model);
 
             $dh = serialize($nven);
             $mh = serialize($xyz);
 
+            // \MonitoLib\Dev::pre($nven);
+
+
             if ($dh === $mh) {
                 $dto = str_replace('\\Model', '\\Dto', $modelName);
             } else {
+                // \MonitoLib\Dev::pr($nven);
                 $dto = \MonitoLib\Database\Dto::get($nven, true);
             }
 
@@ -190,7 +243,6 @@ class Dml
         // \MonitoLib\Dev::pre($this->dtos);
 
         // \MonitoLib\Dev::pre($columns);
-
     }
     public function parseFilter($where) : array
     {
@@ -281,6 +333,25 @@ class Dml
 
         return $this;
     }
+    public function getColumn(\MonitoLib\Database\Model $model, array $columnsName) : \MonitoLib\Database\Model\Column
+    {
+        $column = $model->getColumn($columnsName[0]);
+        array_shift($columnsName);
+
+        if (!empty($columnsName)) {
+            $type  = $column->getType();
+            $model = str_replace('\\Dto', '\\Model', $type);
+
+            if (!class_exists($model)) {
+                throw new NotFound("Class $model not found");
+            }
+
+            $model  = new $model();
+            $column = $this->getColumn($model, $columnsName);
+        }
+
+        return $column;
+    }
     public function renderFilter(?bool $onlyFixed = false) : array
     {
         $filter = $this->filter;
@@ -307,9 +378,13 @@ class Dml
                 continue;
             }
 
-            $column = $model->getColumn($name);
+            $names = explode('.', $name);
+            $column = $this->getColumn($model, $names);
+
+            // \MonitoLib\Dev::pre($column);
+
             $type   = $column->getType();
-            $name   = $column->getName();
+            // $name   = $column->getName();
 
             // \MonitoLib\Dev::vde($type);
 
@@ -359,8 +434,7 @@ class Dml
         //     ]
         // ];
 
-        // \MonitoLib\Dev::pr($filterArray);
-
+        // \MonitoLib\Dev::pre($filterArray);
 
         return $filterArray;
         // \MonitoLib\Dev::pre($this->criteria);
@@ -378,7 +452,6 @@ class Dml
 
         // \MonitoLib\Dev::pre($this->filter);
 
-
         // return $this->filter;
     }
     public function renderFindOne() : array
@@ -393,20 +466,17 @@ class Dml
     }
     public function renderOptions() : array
     {
+        $this->parseDto($this->model);
+
         $options = [];
         $filter  = $this->filter;
         $columns = $filter->getColumns();
-        $model   = $this->model;
 
         if (!empty($columns)) {
-            // $columns =
-        }
+        // $columnss = $this->parseColumns($columns);
 
-        $columnss = $this->parseColumns($columns);
-
+        // $this->parseDto($this->model, $columnss);
         // \MonitoLib\Dev::pre($columnss);
-
-        $this->parseDto($this->model, $columnss);
 
             // \MonitoLib\Dev::pre($this->dtos);
 
@@ -418,42 +488,25 @@ class Dml
         // \MonitoLib\Dev::pre($this->dtos);
 
         // \MonitoLib\Dev::pre($this->model);
-        $columns = array_flip($columns);
+            $columns = array_flip($columns);
 
-        // $_model        = $this->model;
-        // $_modelColumns = array_map(function($e) {
-        //     return $e->getId();
-        // }, $_model->getColumns());
+            // $_model        = $this->model;
+            // $_modelColumns = array_map(function($e) {
+            //     return $e->getId();
+            // }, $_model->getColumns());
 
-        // \MonitoLib\Dev::pr($map);
-        // \MonitoLib\Dev::pre($_modelColumns);
+            // \MonitoLib\Dev::pr($map);
+            // \MonitoLib\Dev::pre($_modelColumns);
 
-        // $_mapColumns = array_keys((array)$document);
+            // $_mapColumns = array_keys((array)$document);
 
-        // \MonitoLib\Dev::pr($_mapColumns);
-        // \MonitoLib\Dev::pre($_modelColumns);
+            // \MonitoLib\Dev::pr($_mapColumns);
+            // \MonitoLib\Dev::pre($_modelColumns);
 
-        $columns = array_map(function($v) {
-            return $v = 1;
-        }, $columns);
+            $columns = array_map(function($v) {
+                return $v = 1;
+            }, $columns);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        if (!empty($columns)) {
             // $columns = array_map(function($e) use ($model) {
             //     return $model->getColumn($e)->getName();
             // }, $columns);

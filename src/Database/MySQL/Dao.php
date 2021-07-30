@@ -33,10 +33,6 @@ class Dao extends \MonitoLib\Database\Dao
     {
         $this->getConnection()->commit();
     }
-    // private function escape($value)
-    // {
-    //     return is_null($value) ? 'NULL' : "'$value'";
-    // }
     public function execute($stt)
     {
         try {
@@ -145,7 +141,7 @@ class Dao extends \MonitoLib\Database\Dao
     /**
     * insert
     */
-    public function insert($dto)
+    public function insert($dto) : void
     {
         if ($this->model->getTableType() === 'view') {
             throw new BadRequest('Não é possível inserir registros em uma view');
@@ -158,47 +154,33 @@ class Dao extends \MonitoLib\Database\Dao
         // Atualiza o objeto com os valores automáticos, caso não informados
         $dto = $this->setAutoValues($dto);
 
+        // \MonitoLib\Dev::pre($dto);
+
         // Valida o objeto dto
         $validator = new \MonitoLib\Database\Validator();
         $validator->validate($dto, $this->model);
 
+        // \MonitoLib\Dev::pre($dto);
+
         // Verifica se existe constraint de chave única
         // $this->checkUnique($this->model->getUniqueConstraints(), $dto);
 
-        $fld = '';
-        $val = '';
-
-        $columns = $this->model->getInsertColumnsArray();
-        // \MonitoLib\Dev::vde($columns);
+        // $columns = $this->model->getInsertColumnsArray();
+        $dml = $this->getDml();
+        $sql = $dml->insert($dto);
+        $stt = $this->parse($sql);
+        \MonitoLib\Dev::ee($sql);
 
         foreach ($columns as $column) {
             $id        = $column->getId();
             $name      = $column->getName();
             $transform = $column->getTransform();
+            $var       = Functions::toLowerCamelCase($name);
             $get       = 'get' . ucfirst($id);
-            $value     = $this->escape($dto->$get());
+            $$id       = $dto->$get();
 
-            $fld .= '`' . $name . '`,';
-            // $val .= ($transform ?? ':' . $name) . ',';
-            $val .= $value . ',';
+            $stt->bindParam(':' . $name, $$id);
         }
-
-        $fld = substr($fld, 0, -1);
-        $val = substr($val, 0, -1);
-
-        $sql = 'INSERT INTO ' . $this->model->getTableName() . " ($fld) VALUES ($val)";
-
-        // \MonitoLib\Dev::ee($sql);
-//
-        $stt = $this->parse($sql);
-
-        // foreach ($this->model->getFieldsInsert() as $f) {
-        //     $var  = Functions::toLowerCamelCase($f['name']);
-        //     $get  = 'get' . ucfirst($var);
-        //     $$var = $dto->$get();
-
-        //     $stt->bindParam(':' . $f['name'], $$var);
-        // }
 
         $this->execute($stt);
         $this->reset();
@@ -214,7 +196,7 @@ class Dao extends \MonitoLib\Database\Dao
     /**
     * update
     */
-    public function update($dto)
+    public function update(object $dto)
     {
         if ($this->model->getTableType() === 'view') {
             throw new BadRequest('Não é possível atualizar os registros de uma view');

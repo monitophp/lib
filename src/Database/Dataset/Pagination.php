@@ -21,9 +21,9 @@ class Pagination
         $this->total   = $total;
         $this->count   = $count;
         $this->page    = $page;
-        $this->perPage = $perPage === 0 ? 1 : $perPage;
+        $this->perPage = $perPage === 0 ? 0 : $perPage;
         $this->showing = $showing;
-        $this->pages   = ceil($count / $perPage);
+        $this->pages   = $perPage > 0 ? ceil($count / $perPage) : 0;
     }
 	/**
 	* getCount
