@@ -74,7 +74,7 @@ class Table
 	*
 	* @return $columns
 	*/
-	public function getColumns()
+	public function getColumns() : array
 	{
 		return $this->columns;
 	}

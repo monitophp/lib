@@ -171,16 +171,16 @@ class Dao extends \MonitoLib\Database\Dao
         $stt = $this->parse($sql);
         \MonitoLib\Dev::ee($sql);
 
-        foreach ($columns as $column) {
-            $id        = $column->getId();
-            $name      = $column->getName();
-            $transform = $column->getTransform();
-            $var       = Functions::toLowerCamelCase($name);
-            $get       = 'get' . ucfirst($id);
-            $$id       = $dto->$get();
+        // foreach ($columns as $column) {
+        //     $id        = $column->getId();
+        //     $name      = $column->getName();
+        //     $transform = $column->getTransform();
+        //     $var       = Functions::toLowerCamelCase($name);
+        //     $get       = 'get' . ucfirst($id);
+        //     $$id       = $dto->$get();
 
-            $stt->bindParam(':' . $name, $$id);
-        }
+        //     $stt->bindParam(':' . $name, $$id);
+        // }
 
         $this->execute($stt);
         $this->reset();

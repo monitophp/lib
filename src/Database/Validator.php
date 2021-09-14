@@ -20,7 +20,7 @@ class Validator
         if ($value === '') {
             $errors[] = "Campo inválida para o campo {$id}: $value";
         } else {
-            if (!\MonitoLib\Validator::date($value, $format)) {
+            if (!is_null($value) && !\MonitoLib\Validator::date($value, $format)) {
                 if ($format === 'Y-m-d') {
                     $errors[] = "Data inválida para o campo {$id}: $value";
                 } else {
@@ -51,7 +51,6 @@ class Validator
         if ($type === 'float' && !is_float($value)) {
             $errors[] = "O campo {$id} espera um número decimal e {$vType} foi informado";
         }
-
 
         // if (is_numeric($value)) {
             // Verifica o valor máximo do campo
@@ -101,7 +100,7 @@ class Validator
             $minValue  = $column->getMinValue();
             $get       = 'get' . ucfirst($id);
             $value     = $dto->$get();
-            $length    = mb_strlen($value);
+            // $length    = mb_strlen($value);
             $vType     = gettype($value);
             $isNull    = is_null($value);
             $isEmpty   = $value === '';

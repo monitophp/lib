@@ -304,7 +304,7 @@ class Dao extends \MonitoLib\Database\Query
 
         return $this->model;
     }
-    public function insert(object $dto)
+    public function insertOLD(object $dto)
     {
         if ($this->model->getTableType() === 'view') {
             throw new BadRequest('Não é possível inserir registros em uma view');
@@ -333,7 +333,7 @@ class Dao extends \MonitoLib\Database\Query
         // $dml = $this->getDml();
         $sql = $dml->insert($dto);
         $stt = $this->parse($sql);
-        \MonitoLib\Dev::ee($sql);
+        // \MonitoLib\Dev::ee($sql);
 
         if (!$dto instanceof $this->dtoName) {
             throw new BadRequest('O parâmetro passado não é uma instância de ' . $this->dtoName);
