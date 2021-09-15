@@ -52,102 +52,24 @@ class Dao extends \MonitoLib\Database\Query
             $this->model = new $model;
         }
     }
-    public function beginTransaction()
-    {
-        $this->connection->beginTransaction();
-    }
-    public function checkUnique($uniqueConstraints, $dto)
-    {
-        // TODO: erro quando a constraint tem data
-        return true;
-        if (!empty($uniqueConstraints)) {
-            $errors = [];
 
-            foreach ($uniqueConstraints as $uk => $uv) {
-                foreach ($uv as $k => $v) {
-                    $get = 'get' . ucfirst($v);
-                    $this->equal($v, $dto->$get());
 
-                    // Se o dto tiver as chaves primárias com valores, inclui na busca
-                    $primaryKeys = $this->model->getPrimaryKeys();
-
-                    foreach ($primaryKeys as $k) {
-                        $get = 'get' . ucfirst($k);
-                        $val = $dto->$get();
-
-                        if (!is_null($val)) {
-                            $this->notEqual($k, $val);
-                        }
-                    }
-                }
-
-                if ($this->count() > 0) {
-                    $errors[] = "Não foi possível validar a constraint {$uk}";
-                }
-            }
-
-            if (!empty($errors)) {
-                throw new BadRequest('Ocorreu um erro na persistência dos dados', $errors);
-            }
-        }
-    }
-    public function commit()
-    {
-        $this->getConnection()->commit();
-    }
+    /**
+     *
+     */
     public function count(?bool $onlyFixed = false) : int
     {
         $dml = new Dml($this->model, $this->dbms, $this->getFilter());
         $sql = $dml->count($onlyFixed);
+        \MonitoLib\Dev::ee($sql);
         $stt = $this->parse($sql);
         $this->execute($stt);
         $res = $this->fetchArrayNum($stt);
         return +$res[0];
     }
-    public function dataset()
-    {
-        $dml  = new Dml($this->model, $this->dbms, $this->getFilter());
-
-        $data    = [];
-        $total   = $this->count(true);
-        $count   = 0;
-        $page    = 0;
-        $perPage = 0;
-        $pages   = 0;
-
-        if ($total > 0) {
-            $count = $this->count();
-
-            if ($count > 0) {
-                $filter  = $this->getFilter();
-                $page    = $filter->getPage();
-                $perPage = $filter->getPerPage();
-                $pages   = $perPage > 0 ? ceil($count / $perPage) : 1;
-
-                if ($page > $pages) {
-                    throw new BadRequest("Número da página atual ($page) maior que o número de páginas ($pages)");
-                }
-
-                // Reset $sql
-                $this->reset();
-
-                $data = $this->list($dml);
-            }
-        }
-
-        $dataset = (new \MonitoLib\Database\Dataset\Dataset(
-            $data,
-            (new \MonitoLib\Database\Dataset\Pagination(
-                $total,
-                $count,
-                $page,
-                count($data),
-                $perPage
-            ))
-        ));
-
-        return $dataset;
-    }
+    /**
+     *
+     */
     public function delete(...$params)
     {
         if ($this->model->getTableType() === 'view') {
@@ -235,75 +157,9 @@ class Dao extends \MonitoLib\Database\Query
             // throw new BadRequest('Não foi possível deletar');
         // }
     }
-    public function parseDto(array $modelColumns, ?array $mapColumns) : string
-    {
-        $modelHash = serialize($modelColumns);
-        $mapHash   = serialize($mapColumns);
-
-        if ($modelHash === $mapHash) {
-            $dto = $this->getDtoName();
-            // $dto     = new $dtoName;
-        } else {
-            $dto = \MonitoLib\Database\Dto::get($mapColumns, true);
-        }
-
-        // \MonitoLib\Dev::e($modelHash);
-        // \MonitoLib\Dev::ee($mapHash);
-        // $hashModel  = sha1(implode(',', $columns));
-
-        // if ($this->dtos[$hash]) {
-        // }
-
-        // if (!is_null($this->model) && array_map('strtolower', array_keys($result)) === array_map('strtolower', $this->model->listFieldsNames())) {
-        //     $dtoName = $this->getDtoName();
-        //     $dto     = new $dtoName;
-        // } else {
-        //     $dto = \MonitoLib\Database\Dto::get($result, $this->convertName);
-        // }
-
-        return $dto;
-    }
-    public function getConnection()
-    {
-        // \MonitoLib\Dev::vde(\MonitoLib\Database\Connector::getInstance()->getConnection());
-        $connection = \MonitoLib\Database\Connector::getInstance()
-            ->getConnection($this->connectionName);
-
-        if ($this->dbms === self::DBMS_MONGODB) {
-            $database   = $connection->getDatabase();
-            $handler    = $connection->getConnection();
-            return $handler->$database;
-        }
-
-        return $connection->getConnection();
-    }
-    public function getConnectionInfo()
-    {
-        // \MonitoLib\Dev::vde(\MonitoLib\Database\Connector::getInstance()->getConnection());
-        return \MonitoLib\Database\Connector::getInstance()
-            ->getConnection($this->connectionName)
-            ->getConnection();
-    }
-    public function getDtoName()
-    {
-        if (is_null($this->dtoName)) {
-            throw new InternalError('Objeto Dto não informado');
-        }
-
-        return $this->dtoName;
-    }
-    public function getModel()
-    {
-        // $db = debug_backtrace();
-
-        // \MonitoLib\Dev::pr($db);
-
-        if (is_null($this->model)) {
-            throw new InternalError('Objeto Model nulo');
-        }
-
-        return $this->model;
-    }
+    /**
+     *
+     */
     public function insert(object $dto)
     {
         if ($this->model->getTableType() === 'view') {
@@ -401,6 +257,9 @@ class Dao extends \MonitoLib\Database\Query
 
         $stt = $this->execute($stt);
     }
+    /**
+     *
+     */
     public function list(?\MonitoLib\Database\Query\Dml $dml = null) : array
     {
         if (is_null($dml)) {
@@ -431,6 +290,318 @@ class Dao extends \MonitoLib\Database\Query
         $this->reset();
 
         return $data;
+    }
+    /**
+     *
+     */
+    public function max(string $field)
+    {
+        $sql = "SELECT COALESCE(MAX($field), 0) FROM {$this->model->getTableName()}";
+        $stt = $this->parse($sql);
+        $this->execute($stt);
+        $res = $this->connection->fetchArrayNum($stt);
+        return $res[0];
+    }
+    /**
+     *
+     */
+    public function truncate()
+    {
+        $sql = 'TRUNCATE TABLE ' . $this->model->getTableName();
+        $stt = $this->parse($sql);
+        $this->execute($stt);
+    }
+    /**
+     *
+     */
+    public function update(object $dto)
+    {
+        if (!$dto instanceof $this->dtoName) {
+            throw new BadRequest('O parâmetro passado não é uma instância de ' . $this->dtoName);
+        }
+
+        // Atualiza o objeto com os valores automáticos, caso não informados
+        $dto = $this->setAutoValues($dto, true);
+
+        // Valida o objeto dto
+        $validator = new \MonitoLib\Database\Validator();
+        $validator->validate($dto, $this->model);
+
+        // Verifica se existe constraint de chave única
+        // $this->checkUnique($this->model->getUniqueConstraints(), $dto);
+
+        // if (is_null($dml)) {
+            $dml = new Dml($this->model, $this->dbms, $this->getFilter());
+        // }
+
+        $sql = $dml->update($dto);
+        \MonitoLib\Dev::ee($sql);
+
+
+
+        $key = '';
+        $fld = '';
+
+        $columns = $this->model->getInsertColumnsArray();
+        // \MonitoLib\Dev::vde($columns);
+
+        foreach ($columns as $column) {
+            $id        = $column->getId();
+            $name      = $column->getName();
+            $type      = $column->getType();
+            $primary   = $column->getPrimary();
+            $format    = $column->getFormat();
+            $transform = $column->getTransform();
+            $get       = 'get' . ucfirst($id);
+            $value     = $this->escape($dto->$get(), $type);
+
+        // foreach ($this->model->getFields() as $f) {
+            // $name = $f['name'];
+
+            if ($primary) {
+                $key .= "$name = :$name AND ";
+            } else {
+                switch ($type) {
+                    case 'date':
+                        $format = $format === 'Y-m-d H:i:s' ? 'YYYY-MM-DD HH24:MI:SS' : 'YYYY-MM-DD';
+                        $fld .= "$name = TO_DATE(:{$name}, '$format'),";
+                        break;
+                    default:
+                        $fld .= "$name = " . ($transform ?? ":$name") . ',';
+                        break;
+                }
+            }
+        }
+
+        $key = substr($key, 0, -5);
+        $fld = substr($fld, 0, -1);
+
+        $sql = 'UPDATE ' . $this->model->getTableName() . " SET $fld WHERE $key";
+        \MonitoLib\Dev::ee($sql);
+
+
+        $stt = $this->parse($sql);
+
+        foreach ($this->model->getFields() as $f) {
+            $var  = Functions::toLowerCamelCase($f['name']);
+            $get  = 'get' . ucfirst($var);
+            $$var = $dto->$get();
+
+            @oci_bind_by_name($stt, ':' . $f['name'], $$var);
+        }
+
+        $stt = $this->execute($stt);
+
+        if (oci_num_rows($stt) === 0) {
+            throw new BadRequest('Não foi possível atualizar');
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public function beginTransaction()
+    {
+        $this->connection->beginTransaction();
+    }
+    public function checkUnique($uniqueConstraints, $dto)
+    {
+        // TODO: erro quando a constraint tem data
+        return true;
+        if (!empty($uniqueConstraints)) {
+            $errors = [];
+
+            foreach ($uniqueConstraints as $uk => $uv) {
+                foreach ($uv as $k => $v) {
+                    $get = 'get' . ucfirst($v);
+                    $this->equal($v, $dto->$get());
+
+                    // Se o dto tiver as chaves primárias com valores, inclui na busca
+                    $primaryKeys = $this->model->getPrimaryKeys();
+
+                    foreach ($primaryKeys as $k) {
+                        $get = 'get' . ucfirst($k);
+                        $val = $dto->$get();
+
+                        if (!is_null($val)) {
+                            $this->notEqual($k, $val);
+                        }
+                    }
+                }
+
+                if ($this->count() > 0) {
+                    $errors[] = "Não foi possível validar a constraint {$uk}";
+                }
+            }
+
+            if (!empty($errors)) {
+                throw new BadRequest('Ocorreu um erro na persistência dos dados', $errors);
+            }
+        }
+    }
+    public function commit()
+    {
+        $this->getConnection()->commit();
+    }
+    public function dataset()
+    {
+        $dml  = new Dml($this->model, $this->dbms, $this->getFilter());
+
+        $data    = [];
+        $total   = $this->count(true);
+        $count   = 0;
+        $page    = 0;
+        $perPage = 0;
+        $pages   = 0;
+
+        if ($total > 0) {
+            $count = $this->count();
+
+            if ($count > 0) {
+                $filter  = $this->getFilter();
+                $page    = $filter->getPage();
+                $perPage = $filter->getPerPage();
+                $pages   = $perPage > 0 ? ceil($count / $perPage) : 1;
+
+                if ($page > $pages) {
+                    throw new BadRequest("Número da página atual ($page) maior que o número de páginas ($pages)");
+                }
+
+                // Reset $sql
+                $this->reset();
+
+                $data = $this->list($dml);
+            }
+        }
+
+        $dataset = (new \MonitoLib\Database\Dataset\Dataset(
+            $data,
+            (new \MonitoLib\Database\Dataset\Pagination(
+                $total,
+                $count,
+                $page,
+                count($data),
+                $perPage
+            ))
+        ));
+
+        return $dataset;
+    }
+
+    public function parseDto(array $modelColumns, ?array $mapColumns) : string
+    {
+        $modelHash = serialize($modelColumns);
+        $mapHash   = serialize($mapColumns);
+
+        if ($modelHash === $mapHash) {
+            $dto = $this->getDtoName();
+            // $dto     = new $dtoName;
+        } else {
+            $dto = \MonitoLib\Database\Dto::get($mapColumns, true);
+        }
+
+        // \MonitoLib\Dev::e($modelHash);
+        // \MonitoLib\Dev::ee($mapHash);
+        // $hashModel  = sha1(implode(',', $columns));
+
+        // if ($this->dtos[$hash]) {
+        // }
+
+        // if (!is_null($this->model) && array_map('strtolower', array_keys($result)) === array_map('strtolower', $this->model->listFieldsNames())) {
+        //     $dtoName = $this->getDtoName();
+        //     $dto     = new $dtoName;
+        // } else {
+        //     $dto = \MonitoLib\Database\Dto::get($result, $this->convertName);
+        // }
+
+        return $dto;
+    }
+    public function getConnection()
+    {
+        // \MonitoLib\Dev::vde(\MonitoLib\Database\Connector::getInstance()->getConnection());
+        $connection = \MonitoLib\Database\Connector::getInstance()
+            ->getConnection($this->connectionName);
+
+        if ($this->dbms === self::DBMS_MONGODB) {
+            $database   = $connection->getDatabase();
+            $handler    = $connection->getConnection();
+            return $handler->$database;
+        }
+
+        return $connection->getConnection();
+    }
+    public function getConnectionInfo()
+    {
+        // \MonitoLib\Dev::vde(\MonitoLib\Database\Connector::getInstance()->getConnection());
+        return \MonitoLib\Database\Connector::getInstance()
+            ->getConnection($this->connectionName)
+            ->getConnection();
+    }
+    public function getDtoName()
+    {
+        if (is_null($this->dtoName)) {
+            throw new InternalError('Objeto Dto não informado');
+        }
+
+        return $this->dtoName;
+    }
+    public function getModel()
+    {
+        // $db = debug_backtrace();
+
+        // \MonitoLib\Dev::pr($db);
+
+        if (is_null($this->model)) {
+            throw new InternalError('Objeto Model nulo');
+        }
+
+        return $this->model;
     }
     public function parseResult(object $dto, array $result, array $types, ?array $map = []) : object
     {
@@ -525,14 +696,6 @@ class Dao extends \MonitoLib\Database\Query
         }
 
         return $dto;
-    }
-    public function max(string $field)
-    {
-        $sql = "SELECT COALESCE(MAX($field), 0) FROM {$this->model->getTableName()}";
-        $stt = $this->parse($sql);
-        $this->execute($stt);
-        $res = $this->connection->fetchArrayNum($stt);
-        return $res[0];
     }
     protected function parseDeleteParams($params)
     {
@@ -631,7 +794,17 @@ class Dao extends \MonitoLib\Database\Query
                         $this->lastId = $value;
                     }
                 } elseif (!is_null($default)) {
-                    $value = $default;
+
+                    switch ($default) {
+                        case 'now':
+                            $value = new \MonitoLib\Type\DateTime('now');
+                            break;
+                        case 'userId':
+                            $value = App::getUserId();
+                            break;
+                        default:
+                            $value = $default;
+                    }
                 }
 
                 if (!is_null($value)) {
@@ -641,93 +814,5 @@ class Dao extends \MonitoLib\Database\Query
         }
 
         return $dto;
-    }
-    public function truncate()
-    {
-        $sql = 'TRUNCATE TABLE ' . $this->model->getTableName();
-        $stt = $this->parse($sql);
-        $this->execute($stt);
-    }
-    public function update(object $dto)
-    {
-        if (!$dto instanceof $this->dtoName) {
-            throw new BadRequest('O parâmetro passado não é uma instância de ' . $this->dtoName);
-        }
-
-        // Atualiza o objeto com os valores automáticos, caso não informados
-        $dto = $this->setAutoValues($dto, true);
-
-        // Valida o objeto dto
-        $validator = new \MonitoLib\Database\Validator();
-        $validator->validate($dto, $this->model);
-
-        // Verifica se existe constraint de chave única
-        // $this->checkUnique($this->model->getUniqueConstraints(), $dto);
-
-        // if (is_null($dml)) {
-            $dml = new Dml($this->model, $this->dbms, $this->getFilter());
-        // }
-
-        $sql = $dml->update($dto);
-        \MonitoLib\Dev::ee($sql);
-
-
-
-        $key = '';
-        $fld = '';
-
-        $columns = $this->model->getInsertColumnsArray();
-        // \MonitoLib\Dev::vde($columns);
-
-        foreach ($columns as $column) {
-            $id        = $column->getId();
-            $name      = $column->getName();
-            $type      = $column->getType();
-            $primary   = $column->getPrimary();
-            $format    = $column->getFormat();
-            $transform = $column->getTransform();
-            $get       = 'get' . ucfirst($id);
-            $value     = $this->escape($dto->$get(), $type);
-
-        // foreach ($this->model->getFields() as $f) {
-            // $name = $f['name'];
-
-            if ($primary) {
-                $key .= "$name = :$name AND ";
-            } else {
-                switch ($type) {
-                    case 'date':
-                        $format = $format === 'Y-m-d H:i:s' ? 'YYYY-MM-DD HH24:MI:SS' : 'YYYY-MM-DD';
-                        $fld .= "$name = TO_DATE(:{$name}, '$format'),";
-                        break;
-                    default:
-                        $fld .= "$name = " . ($transform ?? ":$name") . ',';
-                        break;
-                }
-            }
-        }
-
-        $key = substr($key, 0, -5);
-        $fld = substr($fld, 0, -1);
-
-        $sql = 'UPDATE ' . $this->model->getTableName() . " SET $fld WHERE $key";
-        \MonitoLib\Dev::ee($sql);
-
-
-        $stt = $this->parse($sql);
-
-        foreach ($this->model->getFields() as $f) {
-            $var  = Functions::toLowerCamelCase($f['name']);
-            $get  = 'get' . ucfirst($var);
-            $$var = $dto->$get();
-
-            @oci_bind_by_name($stt, ':' . $f['name'], $$var);
-        }
-
-        $stt = $this->execute($stt);
-
-        if (oci_num_rows($stt) === 0) {
-            throw new BadRequest('Não foi possível atualizar');
-        }
     }
 }

@@ -29,9 +29,11 @@ class Column
     private $scale;
     private $primary = false;
     private $required = false;
-    private $transform;
+    private $transform = [];
     private $unique = false;
     private $unsigned = false;
+	private $onInsert;
+	private $onUpdate;
 
 	/**
 	* getAlias
@@ -149,6 +151,24 @@ class Column
 	public function getName() : string
 	{
 		return $this->name;
+	}
+	/**
+	* getOnInsert
+	*
+	* @return $onInsert
+	*/
+	public function getOnInsert() : ?string
+	{
+		return $this->onInsert;
+	}
+	/**
+	* getOnUpdate
+	*
+	* @return $onUpdate
+	*/
+	public function getOnUpdate() : ?string
+	{
+		return $this->onUpdate;
 	}
 	/**
 	* getPrecision
@@ -361,6 +381,26 @@ class Column
 	public function setMinValue($minValue)
 	{
 		$this->minValue = $minValue;
+		return $this;
+	}
+	/**
+	 * setOnInsert
+	 *
+	 * @param $onInsert
+	 */
+	public function setOnInsert(string $onInsert)
+	{
+		$this->onInsert = $onInsert;
+		return $this;
+	}
+	/**
+	 * setOnUpdate
+	 *
+	 * @param $onUpdate
+	 */
+	public function setOnUpdate(string $onUpdate)
+	{
+		$this->onUpdate = $onUpdate;
 		return $this;
 	}
 	/**

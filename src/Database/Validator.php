@@ -17,32 +17,36 @@ class Validator
         $id     = $column->getId();
         $format = $column->getFormat();
 
-        if ($value === '') {
-            $errors[] = "Campo inválida para o campo {$id}: $value";
-        } else {
-            if (!\MonitoLib\Validator::date($value, $format)) {
-                if ($format === 'Y-m-d') {
-                    $errors[] = "Data inválida para o campo {$id}: $value";
-                } else {
-                    $errors[] = "Data/hora inválida para o campo {$id}: $value";
-                }
-            }
+        if (!$value instanceof \MonitoLib\Type\DateTime) {
+            $errors[] = "Data/hora inválida para o campo {$id}: $value";
         }
+
+        // if ($value === '') {
+        //     $errors[] = "Campo inválida para o campo {$id}: $value";
+        // } else {
+        //     if (!is_null($value) && !\MonitoLib\Validator::date($value, $format)) {
+        //         if ($format === 'Y-m-d') {
+        //             $errors[] = "Data inválida para o campo {$id}: $value";
+        //         } else {
+        //             $errors[] = "Data/hora inválida para o campo {$id}: $value";
+        //         }
+        //     }
+        // }
 
         return $errors;
     }
     private function number($column, $value) : array
     {
-        $errors   = [];
-        $id       = $column->getId();
-        $type     = $column->getType();
-        $maxValue = $column->getMaxValue();
-        $minValue = $column->getMinValue();
-        $auto     = $column->getAuto();
+        $errors    = [];
+        $id        = $column->getId();
+        $type      = $column->getType();
+        $maxValue  = $column->getMaxValue();
+        $minValue  = $column->getMinValue();
+        $auto      = $column->getAuto();
         $maxLength = $column->getMaxLength();
         $minLength = $column->getMinLength();
-        $vType    = gettype($value);
-            $length    = mb_strlen($value);
+        $vType     = gettype($value);
+        $length    = mb_strlen($value);
 
         if ($type === 'int' && !is_numeric($value) && !$auto) {
             $errors[] = "O campo {$id} espera um número inteiro e {$vType} foi informado";
@@ -51,7 +55,6 @@ class Validator
         if ($type === 'float' && !is_float($value)) {
             $errors[] = "O campo {$id} espera um número decimal e {$vType} foi informado";
         }
-
 
         // if (is_numeric($value)) {
             // Verifica o valor máximo do campo
@@ -85,6 +88,7 @@ class Validator
     }
     public function validate(object $dto, object $model) : void
     {
+        \MonitoLib\Dev::pre($dto);
         $errors  = [];
         $columns = $model->getColumns();
 
@@ -101,7 +105,7 @@ class Validator
             $minValue  = $column->getMinValue();
             $get       = 'get' . ucfirst($id);
             $value     = $dto->$get();
-            $length    = mb_strlen($value);
+            // $length    = mb_strlen($value);
             $vType     = gettype($value);
             $isNull    = is_null($value);
             $isEmpty   = $value === '';

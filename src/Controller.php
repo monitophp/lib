@@ -178,6 +178,8 @@ class Controller
 	}
 	public function jsonToDto($dto, $json)
 	{
+		\MonitoLib\Dev::pre($json);
+		// \MonitoLib\Dev::pre($dto);
 		if (!is_null($json)) {
 			foreach ($json as $k => $v) {
 				$method = 'set' . \MonitoLib\Functions::toUpperCamelCase($k);

@@ -70,7 +70,7 @@ class Dao extends \MonitoLib\Database\Dao
     * @todo validate deleting without parameters
     * @todo validate deleting without all key parameters
     */
-    public function delete(...$params)
+    public function _delete(...$params)
     {
         if ($this->model->getTableType() == 'view') {
             throw new BadRequest('Não é possível deletar registros de uma view');
@@ -141,7 +141,7 @@ class Dao extends \MonitoLib\Database\Dao
     /**
     * insert
     */
-    public function insert($dto) : void
+    public function _insert($dto) : void
     {
         if ($this->model->getTableType() === 'view') {
             throw new BadRequest('Não é possível inserir registros em uma view');
@@ -196,7 +196,7 @@ class Dao extends \MonitoLib\Database\Dao
     /**
     * update
     */
-    public function update(object $dto)
+    public function _update(object $dto)
     {
         if ($this->model->getTableType() === 'view') {
             throw new BadRequest('Não é possível atualizar os registros de uma view');

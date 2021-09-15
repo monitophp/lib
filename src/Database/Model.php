@@ -30,6 +30,10 @@ class Model
     public const STRING = 'string';
     public const TIME = 'time';
 
+    public const NOW = 'now';
+    public const TODAY = 'today';
+    public const USER_ID = 'userId';
+
     protected $daoClass;
     protected $fields = [];
     private $parsedFields = [];

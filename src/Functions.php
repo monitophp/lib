@@ -455,7 +455,7 @@ class Functions
 		if (preg_match('/tchs$/', $string)) {
 			$string = substr($string, 0, -1);
 		}
-		if (preg_match('/[acdeiouglmnprt]s$/', $string)) {
+		if (preg_match('/[acdeiouglkmnprt]s$/', $string)) {
 			$string = substr($string, 0, -1);
 		}
 
