@@ -152,8 +152,8 @@ class Response
 			if ($object instanceof \stdClass) {
 				$results = json_decode(json_encode($object), true);
 			} else {
-				$result = [];
-				$class  = new \ReflectionClass(get_class($object));
+				$result     = [];
+				$class      = new \ReflectionClass(get_class($object));
 				$properties = $class->getProperties(\ReflectionProperty::IS_PRIVATE);
 
 				// \MonitoLib\Dev::pre($properties);
@@ -166,7 +166,12 @@ class Response
 						$value = call_user_func([$object, $getMethod]);
 
 			            if (is_object($value) || is_array($value)) {
-		                    $result[$propertyName] = self::toArray($value);
+							if (method_exists($value, '__toString')) {
+								// \MonitoLib\Dev::vd($value);
+								$result[$propertyName] = $value->__toString();
+							} else {
+		                    	$result[$propertyName] = self::toArray($value);
+							}
 			            } else {
 			                $result[$propertyName] = $value ?? '';
 			            }

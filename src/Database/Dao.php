@@ -61,12 +61,12 @@ class Dao extends \MonitoLib\Database\Query
     {
         $dml = new Dml($this->model, $this->dbms, $this->getFilter());
         $sql = $dml->count($onlyFixed);
-        \MonitoLib\Dev::e($sql);
-        // $stt = $this->parse($sql);
-        // $this->execute($stt);
-        // $res = $this->fetchArrayNum($stt);
-        // return +$res[0];
-        return 1;
+        // \MonitoLib\Dev::e($sql);
+        $stt = $this->parse($sql);
+        $this->execute($stt);
+        $res = $this->fetchArrayNum($stt);
+        return +$res[0];
+        // return 1;
     }
     /**
      * delete
@@ -212,17 +212,17 @@ class Dao extends \MonitoLib\Database\Query
     {
         $this->equal('ROWNUM', 1, self::RAW_QUERY);
 
-        $dml = new Dml($this->model, $this->dbms, $this->getFilter());
-        $sql = $dml->select();
-        \MonitoLib\Dev::ee($sql);
+        // $dml = new Dml($this->model, $this->dbms, $this->getFilter());
+        // $sql = $dml->select();
+        // // \MonitoLib\Dev::ee($sql);
 
 
-        $map = $dml->getMaps();
-        $tps = $dml->getTypes();
+        // $map = $dml->getMaps();
+        // $tps = $dml->getTypes();
 
-        // \MonitoLib\Dev::pr($map);
+        // // \MonitoLib\Dev::pr($map);
 
-        $stt = $this->parse($sql);
+        // $stt = $this->parse($sql);
 
 
         if (!empty($params)) {
@@ -360,26 +360,29 @@ class Dao extends \MonitoLib\Database\Query
         $map = $dml->getMaps();
         $tps = $dml->getTypes();
 
-        // \MonitoLib\Dev::pr($map);
+        // \MonitoLib\Dev::pre($map);
+        // \MonitoLib\Dev::ee($sql);
 
         $stt = $this->parse($sql);
-        \MonitoLib\Dev::ee($sql);
 
         $this->execute($stt);
 
+        // $columnIds = array_values($this->model->getColumnIds());
+        // \MonitoLib\Dev::pre($columnIds);
+
         // Identifica o dto a ser usado
-        $dto = $this->parseDto(array_values($this->model->getColumnIds()), array_values($map));
+        $dto = $this->parseDto($this->model->getColumnIds(), array_values($map));
 
         $data = [];
 
         while ($res = $this->fetchArrayAssoc($stt)) {
-            // \MonitoLib\Dev::pre($res);
-
-            $data[] = $this->parseResult(new $dto(), $res, $tps, $map);
+            $data[] = $this->parseResult(new $dto(), $res);
         }
 
         // Reset filter
         $this->reset();
+
+        // \MonitoLib\Dev::ee($data[0]);
 
         return $data;
     }
@@ -581,31 +584,26 @@ class Dao extends \MonitoLib\Database\Query
     {
         $this->getConnection()->commit();
     }
+    /**
+     * parseDto
+     */
     public function parseDto(array $modelColumns, ?array $mapColumns) : string
     {
-        $modelHash = serialize($modelColumns);
-        $mapHash   = serialize($mapColumns);
+        $map       = $this->getFilter()->getMap();
+        $createDto = false;
 
-        if ($modelHash === $mapHash) {
-            $dto = $this->getDtoName();
-            // $dto     = new $dtoName;
-        } else {
-            $dto = \MonitoLib\Database\Dto::get($mapColumns, true);
+        if (!empty($map)) {
+            $mapped    = array_map(fn($e) => $map[$e] ?? $e, $modelColumns);
+            $modelHash = serialize(array_values($modelColumns));
+            $mapHash   = serialize(array_values($mapped));
+            $createDto = $modelHash !== $mapHash;
         }
 
-        // \MonitoLib\Dev::e($modelHash);
-        // \MonitoLib\Dev::ee($mapHash);
-        // $hashModel  = sha1(implode(',', $columns));
-
-        // if ($this->dtos[$hash]) {
-        // }
-
-        // if (!is_null($this->model) && array_map('strtolower', array_keys($result)) === array_map('strtolower', $this->model->listFieldsNames())) {
-        //     $dtoName = $this->getDtoName();
-        //     $dto     = new $dtoName;
-        // } else {
-        //     $dto = \MonitoLib\Database\Dto::get($result, $this->convertName);
-        // }
+        if ($createDto) {
+            $dto = \MonitoLib\Database\Dto::get($mapColumns, true);
+        } else {
+            $dto = $this->getDtoName();
+        }
 
         return $dto;
     }
@@ -650,194 +648,48 @@ class Dao extends \MonitoLib\Database\Query
 
         return $this->model;
     }
-    public function insertOLD(object $dto)
+    /**
+     * parseResult
+     */
+    public function parseResult(object $dto, array $result) : object
     {
-        if ($this->model->getTableType() === 'view') {
-            throw new BadRequest('Não é possível inserir registros em uma view');
-        }
-
-        if (!$dto instanceof $this->dtoName) {
-            throw new BadRequest('O parâmetro passado não é uma instância de ' . $this->dtoName);
-        }
-
-        // Atualiza o objeto com os valores automáticos, caso não informados
-        $dto = $this->setAutoValues($dto);
-
-        // \MonitoLib\Dev::pre($dto);
-
-        // Valida o objeto dto
-        $validator = new \MonitoLib\Database\Validator();
-        $validator->validate($dto, $this->model);
-
-        // \MonitoLib\Dev::pre($dto);
-
-        // Verifica se existe constraint de chave única
-        // $this->checkUnique($this->model->getUniqueConstraints(), $dto);
-
-        // $columns = $this->model->getInsertColumnsArray();
-        $dml = new Dml($this->model, $this->dbms, $this->getFilter());
-        // $dml = $this->getDml();
-        $sql = $dml->insert($dto);
-        $stt = $this->parse($sql);
-        // \MonitoLib\Dev::ee($sql);
-
-        if (!$dto instanceof $this->dtoName) {
-            throw new BadRequest('O parâmetro passado não é uma instância de ' . $this->dtoName);
-        }
-
-        // Atualiza o objeto com os valores automáticos, caso não informados
-        $dto = $this->setAutoValues($dto);
-
-        // Valida o objeto dto
-        $validator = new \MonitoLib\Database\Validator();
-        $validator->validate($dto, $this->model);
-
-        // Verifica se existe constraint de chave única
-        // $this->checkUnique($this->model->getUniqueConstraints(), $dto);
-
-        $fld = '';
-        $val = '';
-
-        $columns = $this->model->getInsertColumnsArray();
-        // \MonitoLib\Dev::vde($columns);
-
-        foreach ($columns as $column) {
-            $id        = $column->getId();
-            $name      = $column->getName();
-            $type      = $column->getType();
-            $format    = $column->getFormat();
-            $transform = $column->getTransform();
-            $get       = 'get' . ucfirst($id);
-            $value     = $this->escape($dto->$get(), $type);
-
-            $fld .= $name . ',';
-
-            switch ($type) {
-                case 'date':
-                    $format = $format === 'Y-m-d H:i:s' ? 'YYYY-MM-DD HH24:MI:SS' : 'YYYY-MM-DD';
-                    // $val .= "TO_DATE(:{$name}, '$format'),";
-                    $val .= "TO_DATE($value, '$format'),";
-                    break;
-                default:
-                    // $val .= ($transform ?? ':' . $name) . ',';
-                    $val .= ($transform ?? $value) . ',';
-                    break;
-            }
-        }
-
-        $fld = substr($fld, 0, -1);
-        $val = substr($val, 0, -1);
-
-        $sql = 'INSERT INTO ' . $this->model->getTableName() . " ($fld) VALUES ($val)";
-
-        // \MonitoLib\Dev::ee($sql);
-
-        // \MonitoLib\Dev::pre($dto);
-        // \MonitoLib\Dev::e("$sql\n");
-
-        $stt = $this->parse($sql);
-
-        // foreach ($this->model->getFieldsInsert() as $f) {
-        //     $var  = Functions::toLowerCamelCase($f['name']);
-        //     $get  = 'get' . ucfirst($var);
-        //     $$var = $dto->$get();
-
-        //     @oci_bind_by_name($stt, ':' . $f['name'], $$var);
-        // }
-
-        $stt = $this->execute($stt);
-    }
-    public function parseResult(object $dto, array $result, array $types, ?array $map = []) : object
-    {
-        // \MonitoLib\Dev::pre($this);
-        // \MonitoLib\Dev::pre($types);
-
-        // \MonitoLib\Dev::ee($hash);
-
-        // \MonitoLib\Dev::pre($columns);
-
-
-        // // $columnsList = array_map(function($r) use ($map))
-
-        // $maps   = [];
-        // $mapped = [];
-
-        // if (!empty($map)) {
-        //     $newResult = [];
-
-        //     foreach ($result as $key => $value) {
-        //         $mappedKey = $map[$key] ?? null;
-
-        //         // \MonitoLib\Dev::vd($mapped);
-
-        //         if (!is_null($mappedKey)) {
-        //             $maps[$mappedKey] = $key;
-        //             $mapped[$key] = $mappedKey;
-        //             $key = $mappedKey;
-        //         }
-
-        //         $newResult[$key] = $value;
-        //     }
-
-        //     $result = $newResult;
-        //     $newResult = null;
-        // }
+        $map = $this->getFilter()->getMap();
 
         // \MonitoLib\Dev::pre($result);
 
-        // $result = array_map()
-
-        $this->convertName = true;
-        $fields = []; //$this->getModelFields();
-
-        // \MonitoLib\Dev::pre($map);
-        // \MonitoLib\Dev::pr($mapped);
-
         foreach ($result as $name => $v) {
-            // \MonitoLib\Dev::e($name);
-            // $name = ;
-            // $column = $this->model->getColumn($maps[$name] ?? $name);
+            $columnId = Functions::toLowerCamelCase($name);
+            $column   = $this->model->getColumn($columnId);
+            $type     = $column->getType();
+            $method   = $map[$columnId] ?? $columnId;
 
+            // \MonitoLib\Dev::e($method);
 
-            // \MonitoLib\Dev::pr($column);
+            // \MonitoLib\Dev::e($type);
+            // \MonitoLib\Dev::pr($v);
 
-            // \MonitoLib\Dev::e($column->getName());
-            // \MonitoLib\Dev::e($name);
+            // \MonitoLib\Dev::pre($column);
 
-            // $id     = isset($mapped[$column->getName()]) ? $name : $column->getId();
-
-            // \MonitoLib\Dev::e($id);
-
-            // $type   = $column->getType();
-
-            // if (isset($id)) {
-                // $id = 'isquipe';
-            // }
-
-            $name = mb_strtolower($name);
-
-            if (!isset($map[$name])) {
-                $f = $this->convertName ? Functions::toLowerCamelCase($name) : $name;
+            switch ($type) {
+                case Model::FLOAT:
+                case Model::INT:
+                    $v = +$v;
+                    break;
+                case Model::DATE:
+                case Model::DATETIME:
+                case Model::TIME:
+                    if (!is_null($v)) {
+                        $v = new \MonitoLib\Type\DateTime($v);
+                    }
             }
 
-            $f = $map[$name] ?? $name;
+            // \MonitoLib\Dev::pr($v);
 
-            $set = 'set' . ucfirst($f);
-
-            $type = $types[$name];
-
-            if ($type === 'n') {
-                $v = +$v;
-            }
-
-            // if (in_array($type, ['int', 'double', 'float'])) {
-            //     if (!is_null($v)) {
-            //         $v = +$v;
-            //     }
-            // }
-
+            $set = 'set' . ucfirst($method);
             $dto->$set($v);
         }
+
+        // \MonitoLib\Dev::pre($dto);
 
         return $dto;
     }

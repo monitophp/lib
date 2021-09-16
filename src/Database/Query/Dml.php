@@ -142,7 +142,7 @@ class Dml
             $id     = $column->getId();
             $name   = $column->getName();
             $type   = $column->getType();
-            $alias  = $column->getAlias();
+            // $alias  = $column->getAlias();
             // $alias  = $column->map($name) ?? null;
             // $alias = null;
 
@@ -166,26 +166,31 @@ class Dml
                     $type = 's';
             }
 
-            $mapValue = $map[$id] ?? $alias ?? $id ?? $name;
+            // $mapValue = $map[$id] ?? $alias ?? $id ?? $name;
+            $mapValue = $map[$id] ?? $id ?? $name;
 
-            if (is_null($alias)) {
-                $this->maps[$name] = $mapValue;
-                $this->types[$name] = $type;
-            } else {
-                $this->maps[$alias] = $mapValue;
-                $this->types[$alias] = $type;
+            // if (is_null($alias)) {
+            //     $this->maps[$name] = $mapValue;
+            //     $this->types[$name] = $type;
+            // } else {
+            //     // $this->maps[$alias] = $mapValue;
+            //     $this->types[$alias] = $type;
 
-                if ($perigo || !$this->isOracle()) {
-                    $name .= " AS $alias";
-                }
-            }
+            //     if ($perigo || !$this->isOracle()) {
+            //         $name .= " AS $alias";
+            //     }
+            // }
+
 
             $list .= "$name, ";
         }
 
         if (!$perigo) {
-            if ($this->isOracle() && $filter->getPerPage() > 0) {
-                $list .= 'ROWNUM AS rown_, ';
+            if ($this->isOracle()) {
+                $name .= " AS $name";
+                if ($filter->getPerPage() > 0) {
+                    $list .= 'ROWNUM AS rown_, ';
+                }
             }
         }
 
