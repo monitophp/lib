@@ -1,6 +1,8 @@
 <?php
 namespace MonitoLib\Database\Query;
 
+use \MonitoLib\Database\Query\Filter\Where;
+
 class Filter
 {
     const VERSION = '1.0.0';
@@ -43,7 +45,7 @@ class Filter
         $this->orderBy[$column] = $direction;
         return $this;
     }
-    public function addWhere(\MonitoLib\Database\Query\Filter\Where $where)
+    public function addWhere(Where $where)
     {
         $this->where[] = $where;
     }

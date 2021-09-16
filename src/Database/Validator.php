@@ -15,9 +15,9 @@ class Validator
     {
         $errors = [];
         $id     = $column->getId();
-        $format = $column->getFormat();
+        // $format = $column->getFormat();
 
-        if (!$value instanceof \MonitoLib\Type\DateTime) {
+        if (!($value instanceof \MonitoLib\Type\DateTime)) {
             $errors[] = "Data/hora inválida para o campo {$id}: $value";
         }
 
@@ -88,7 +88,7 @@ class Validator
     }
     public function validate(object $dto, object $model) : void
     {
-        \MonitoLib\Dev::pre($dto);
+        // \MonitoLib\Dev::pre($dto);
         $errors  = [];
         $columns = $model->getColumns();
 

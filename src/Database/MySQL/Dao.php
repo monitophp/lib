@@ -70,7 +70,7 @@ class Dao extends \MonitoLib\Database\Dao
     * @todo validate deleting without parameters
     * @todo validate deleting without all key parameters
     */
-    public function _delete(...$params)
+    public function OLDdelete(...$params)
     {
         if ($this->model->getTableType() == 'view') {
             throw new BadRequest('Não é possível deletar registros de uma view');
@@ -99,7 +99,7 @@ class Dao extends \MonitoLib\Database\Dao
     /**
     * get
     */
-    public function get()
+    public function OLDget()
     {
         $res = $this->list();
         return isset($res[0]) ? $res[0] : null;
@@ -107,7 +107,7 @@ class Dao extends \MonitoLib\Database\Dao
     /**
     * getById
     */
-    public function getById(...$params)
+    public function OLDgetById(...$params)
     {
         if (!empty($params)) {
             $keys = $this->model->getPrimaryKeys();
@@ -141,7 +141,7 @@ class Dao extends \MonitoLib\Database\Dao
     /**
     * insert
     */
-    public function _insert($dto) : void
+    public function OLDinsert($dto) : void
     {
         if ($this->model->getTableType() === 'view') {
             throw new BadRequest('Não é possível inserir registros em uma view');
@@ -171,16 +171,16 @@ class Dao extends \MonitoLib\Database\Dao
         $stt = $this->parse($sql);
         \MonitoLib\Dev::ee($sql);
 
-        foreach ($columns as $column) {
-            $id        = $column->getId();
-            $name      = $column->getName();
-            $transform = $column->getTransform();
-            $var       = Functions::toLowerCamelCase($name);
-            $get       = 'get' . ucfirst($id);
-            $$id       = $dto->$get();
+        // foreach ($columns as $column) {
+        //     $id        = $column->getId();
+        //     $name      = $column->getName();
+        //     $transform = $column->getTransform();
+        //     $var       = Functions::toLowerCamelCase($name);
+        //     $get       = 'get' . ucfirst($id);
+        //     $$id       = $dto->$get();
 
-            $stt->bindParam(':' . $name, $$id);
-        }
+        //     $stt->bindParam(':' . $name, $$id);
+        // }
 
         $this->execute($stt);
         $this->reset();
@@ -196,7 +196,7 @@ class Dao extends \MonitoLib\Database\Dao
     /**
     * update
     */
-    public function _update(object $dto)
+    public function OLDupdate(object $dto)
     {
         if ($this->model->getTableType() === 'view') {
             throw new BadRequest('Não é possível atualizar os registros de uma view');

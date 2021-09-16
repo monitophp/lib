@@ -28,9 +28,15 @@ class Connector extends \MonitoLib\Database\Connection
         try {
             $password = Functions::decrypt($this->pass, $this->name . $this->env);
             $string   = "mysql:host={$this->host};dbname={$this->database};charset=UTF8";
+
+            // \MonitoLib\Dev::ee($string);
+
             $this->connection = new \PDO($string, $this->user, $password);
             $this->connection->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         } catch (\PDOException $e) {
+            \MonitoLib\Dev::pre($e);
+
+
             $error = [
                 'message' => $e->getMessage(),
                 'file'    => $e->getFile(),

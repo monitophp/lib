@@ -68,7 +68,7 @@ class Controller
 		$dao = new $this->daoName;
 
 		foreach ($json as $j) {
-		    $dto = $this->jsonToDto(new $this->dtoName, $j);
+		    $dto = $this->jsonToDto($j);
 		    $dao->insert($dto);
 		}
 
@@ -145,7 +145,6 @@ class Controller
 		// }
 
 		$dto = $this->_get(...$keys);
-		\MonitoLib\Dev::pre($dto);
 
 	    if (is_null($dto)) {
 	        throw new NotFound($this->notFound ?? 'Registro não encontrado');
@@ -176,14 +175,34 @@ class Controller
 
 		return $this->model;
 	}
-	public function jsonToDto($dto, $json)
+	public function jsonToDto(object $json)
 	{
-		\MonitoLib\Dev::pre($json);
-		// \MonitoLib\Dev::pre($dto);
+		// $dao   = $this->getDao();
+		$model = $this->getModel();
+		$dto   = new $this->dtoName;
+
+		// \MonitoLib\Dev::vde($json);
+		// \MonitoLib\Dev::pr($dto);
 		if (!is_null($json)) {
 			foreach ($json as $k => $v) {
+				$column = $model->getColumn($k);
+				$type   = $column->getType();
+
+				switch ($type) {
+					case 'date':
+					case 'datetime':
+					case 'time':
+						$v = new \MonitoLib\Type\DateTime($v);
+						break;
+				}
+
+				// \MonitoLib\Dev::pre($column);
+
 				$method = 'set' . \MonitoLib\Functions::toUpperCamelCase($k);
 				if (method_exists($dto, $method)) {
+					// \MonitoLib\Dev::e($method);
+					// \MonitoLib\Dev::vd($v);
+
 					$dto->$method($v);
 				}
 			}
@@ -195,5 +214,4 @@ class Controller
 	{
 		return $value === '' ? null : $value;
 	}
-
 }

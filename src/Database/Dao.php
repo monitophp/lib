@@ -61,14 +61,62 @@ class Dao extends \MonitoLib\Database\Query
     {
         $dml = new Dml($this->model, $this->dbms, $this->getFilter());
         $sql = $dml->count($onlyFixed);
-        \MonitoLib\Dev::ee($sql);
-        $stt = $this->parse($sql);
-        $this->execute($stt);
-        $res = $this->fetchArrayNum($stt);
-        return +$res[0];
+        \MonitoLib\Dev::e($sql);
+        // $stt = $this->parse($sql);
+        // $this->execute($stt);
+        // $res = $this->fetchArrayNum($stt);
+        // return +$res[0];
+        return 1;
     }
     /**
-     *
+     * delete
+     */
+    public function dataset()
+    {
+        $dml  = new Dml($this->model, $this->dbms, $this->getFilter());
+
+        $data    = [];
+        $total   = $this->count(true);
+        $count   = 0;
+        $page    = 0;
+        $perPage = 0;
+        $pages   = 0;
+
+        if ($total > 0) {
+            $count = $this->count();
+
+            if ($count > 0) {
+                $filter  = $this->getFilter();
+                $page    = $filter->getPage();
+                $perPage = $filter->getPerPage();
+                $pages   = $perPage > 0 ? ceil($count / $perPage) : 1;
+
+                if ($page > $pages) {
+                    throw new BadRequest("Número da página atual ($page) maior que o número de páginas ($pages)");
+                }
+
+                // Reset $sql
+                $this->reset();
+
+                $data = $this->list($dml);
+            }
+        }
+
+        $dataset = (new \MonitoLib\Database\Dataset\Dataset(
+            $data,
+            (new \MonitoLib\Database\Dataset\Pagination(
+                $total,
+                $count,
+                $page,
+                count($data),
+                $perPage
+            ))
+        ));
+
+        return $dataset;
+    }
+    /**
+     * delete
      */
     public function delete(...$params)
     {
@@ -156,6 +204,48 @@ class Dao extends \MonitoLib\Database\Query
         // if (oci_num_rows($stt) === 0) {
             // throw new BadRequest('Não foi possível deletar');
         // }
+    }
+    /**
+     *
+     */
+    public function get(int ...$params)
+    {
+        $this->equal('ROWNUM', 1, self::RAW_QUERY);
+
+        $dml = new Dml($this->model, $this->dbms, $this->getFilter());
+        $sql = $dml->select();
+        \MonitoLib\Dev::ee($sql);
+
+
+        $map = $dml->getMaps();
+        $tps = $dml->getTypes();
+
+        // \MonitoLib\Dev::pr($map);
+
+        $stt = $this->parse($sql);
+
+
+        if (!empty($params)) {
+            $keys = $this->model->getPrimaryKeys();
+
+            if (count($params) !== count($keys)) {
+                throw new BadRequest('Invalid parameters number');
+            }
+
+            if (count($params) > 1) {
+                foreach ($params as $p) {
+                    foreach ($keys as $k) {
+                        $this->equal($k, $p);
+                    }
+                }
+            } else {
+                $this->equal($keys[0], $params[0]);
+            }
+        }
+
+        $res = $this->list();
+        $this->reset();
+        return isset($res[0]) ? $res[0] : null;
     }
     /**
      *
@@ -273,6 +363,8 @@ class Dao extends \MonitoLib\Database\Query
         // \MonitoLib\Dev::pr($map);
 
         $stt = $this->parse($sql);
+        \MonitoLib\Dev::ee($sql);
+
         $this->execute($stt);
 
         // Identifica o dto a ser usado
@@ -314,7 +406,7 @@ class Dao extends \MonitoLib\Database\Query
     /**
      *
      */
-    public function update(object $dto)
+    public function update(object $dto, ?bool $replace = false)
     {
         if (!$dto instanceof $this->dtoName) {
             throw new BadRequest('O parâmetro passado não é uma instância de ' . $this->dtoName);
@@ -489,51 +581,6 @@ class Dao extends \MonitoLib\Database\Query
     {
         $this->getConnection()->commit();
     }
-    public function dataset()
-    {
-        $dml  = new Dml($this->model, $this->dbms, $this->getFilter());
-
-        $data    = [];
-        $total   = $this->count(true);
-        $count   = 0;
-        $page    = 0;
-        $perPage = 0;
-        $pages   = 0;
-
-        if ($total > 0) {
-            $count = $this->count();
-
-            if ($count > 0) {
-                $filter  = $this->getFilter();
-                $page    = $filter->getPage();
-                $perPage = $filter->getPerPage();
-                $pages   = $perPage > 0 ? ceil($count / $perPage) : 1;
-
-                if ($page > $pages) {
-                    throw new BadRequest("Número da página atual ($page) maior que o número de páginas ($pages)");
-                }
-
-                // Reset $sql
-                $this->reset();
-
-                $data = $this->list($dml);
-            }
-        }
-
-        $dataset = (new \MonitoLib\Database\Dataset\Dataset(
-            $data,
-            (new \MonitoLib\Database\Dataset\Pagination(
-                $total,
-                $count,
-                $page,
-                count($data),
-                $perPage
-            ))
-        ));
-
-        return $dataset;
-    }
-
     public function parseDto(array $modelColumns, ?array $mapColumns) : string
     {
         $modelHash = serialize($modelColumns);
@@ -602,6 +649,103 @@ class Dao extends \MonitoLib\Database\Query
         }
 
         return $this->model;
+    }
+    public function insertOLD(object $dto)
+    {
+        if ($this->model->getTableType() === 'view') {
+            throw new BadRequest('Não é possível inserir registros em uma view');
+        }
+
+        if (!$dto instanceof $this->dtoName) {
+            throw new BadRequest('O parâmetro passado não é uma instância de ' . $this->dtoName);
+        }
+
+        // Atualiza o objeto com os valores automáticos, caso não informados
+        $dto = $this->setAutoValues($dto);
+
+        // \MonitoLib\Dev::pre($dto);
+
+        // Valida o objeto dto
+        $validator = new \MonitoLib\Database\Validator();
+        $validator->validate($dto, $this->model);
+
+        // \MonitoLib\Dev::pre($dto);
+
+        // Verifica se existe constraint de chave única
+        // $this->checkUnique($this->model->getUniqueConstraints(), $dto);
+
+        // $columns = $this->model->getInsertColumnsArray();
+        $dml = new Dml($this->model, $this->dbms, $this->getFilter());
+        // $dml = $this->getDml();
+        $sql = $dml->insert($dto);
+        $stt = $this->parse($sql);
+        // \MonitoLib\Dev::ee($sql);
+
+        if (!$dto instanceof $this->dtoName) {
+            throw new BadRequest('O parâmetro passado não é uma instância de ' . $this->dtoName);
+        }
+
+        // Atualiza o objeto com os valores automáticos, caso não informados
+        $dto = $this->setAutoValues($dto);
+
+        // Valida o objeto dto
+        $validator = new \MonitoLib\Database\Validator();
+        $validator->validate($dto, $this->model);
+
+        // Verifica se existe constraint de chave única
+        // $this->checkUnique($this->model->getUniqueConstraints(), $dto);
+
+        $fld = '';
+        $val = '';
+
+        $columns = $this->model->getInsertColumnsArray();
+        // \MonitoLib\Dev::vde($columns);
+
+        foreach ($columns as $column) {
+            $id        = $column->getId();
+            $name      = $column->getName();
+            $type      = $column->getType();
+            $format    = $column->getFormat();
+            $transform = $column->getTransform();
+            $get       = 'get' . ucfirst($id);
+            $value     = $this->escape($dto->$get(), $type);
+
+            $fld .= $name . ',';
+
+            switch ($type) {
+                case 'date':
+                    $format = $format === 'Y-m-d H:i:s' ? 'YYYY-MM-DD HH24:MI:SS' : 'YYYY-MM-DD';
+                    // $val .= "TO_DATE(:{$name}, '$format'),";
+                    $val .= "TO_DATE($value, '$format'),";
+                    break;
+                default:
+                    // $val .= ($transform ?? ':' . $name) . ',';
+                    $val .= ($transform ?? $value) . ',';
+                    break;
+            }
+        }
+
+        $fld = substr($fld, 0, -1);
+        $val = substr($val, 0, -1);
+
+        $sql = 'INSERT INTO ' . $this->model->getTableName() . " ($fld) VALUES ($val)";
+
+        // \MonitoLib\Dev::ee($sql);
+
+        // \MonitoLib\Dev::pre($dto);
+        // \MonitoLib\Dev::e("$sql\n");
+
+        $stt = $this->parse($sql);
+
+        // foreach ($this->model->getFieldsInsert() as $f) {
+        //     $var  = Functions::toLowerCamelCase($f['name']);
+        //     $get  = 'get' . ucfirst($var);
+        //     $$var = $dto->$get();
+
+        //     @oci_bind_by_name($stt, ':' . $f['name'], $$var);
+        // }
+
+        $stt = $this->execute($stt);
     }
     public function parseResult(object $dto, array $result, array $types, ?array $map = []) : object
     {

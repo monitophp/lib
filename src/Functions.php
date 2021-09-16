@@ -434,30 +434,58 @@ class Functions
 	{
 		return $value === '' ? null : $value;
 	}
-	public static function toSingular(string $string) : string
+	public static function toSingular(string $string, ?string $language = 'en') : string
 	{
-		if (strtolower($string) == 'status') {
-			return $string;
+		$x = [
+			'en' => [
+				'/status/'                => null,
+				'/people/'                => 'person',
+				'/ies$/'                  => 'y',
+				'/res$/'                  => 'r',
+				'/tchs$/'                 => 'tch',
+				'/([acdeiouglkmnprt])s$/' => '\1',
+			],
+			'pt' => [
+				'/ens$/'                  => 'em',
+				'/oes$/'                  => 'ao',
+				'/res$/'                  => 'r',
+				'/([acdeiouglkmnprt])s$/' => '\1',
+			],
+		];
+
+		foreach($x[$language] as $x1 => $x9) {
+			if (preg_match($x1, $string)) {
+				if (!is_null($x9)) {
+					$string = preg_replace($x1, $x9, $string);
+				}
+				break;
+			}
 		}
-		if (preg_match('/ens$/', $string)) {
-			$string = substr($string, 0, -3) . 'em';
-		}
-		if (preg_match('/ies$/', $string)) {
-			$string = substr($string, 0, -3) . 'y';
-		}
-		if (preg_match('/oes$/', $string)) {
-			$string = substr($string, 0, -3) . 'ao';
-		}
-		//if (preg_match('/res$/', $string))
-		//{
-		//	$string = substr($string, 0, -2);
-		//}
-		if (preg_match('/tchs$/', $string)) {
-			$string = substr($string, 0, -1);
-		}
-		if (preg_match('/[acdeiouglkmnprt]s$/', $string)) {
-			$string = substr($string, 0, -1);
-		}
+
+		// \MonitoLib\Dev::ee($string);
+
+		// if (strtolower($string) == 'status') {
+		// 	return $string;
+		// }
+		// if (preg_match('/ens$/', $string)) {
+		// 	$string = substr($string, 0, -3) . 'em';
+		// }
+		// if (preg_match('/ies$/', $string)) {
+		// 	$string = substr($string, 0, -3) . 'y';
+		// }
+		// if (preg_match('/oes$/', $string)) {
+		// 	$string = substr($string, 0, -3) . 'ao';
+		// }
+		// //if (preg_match('/res$/', $string))
+		// //{
+		// //	$string = substr($string, 0, -2);
+		// //}
+		// if (preg_match('/tchs$/', $string)) {
+		// 	$string = substr($string, 0, -1);
+		// }
+		// if (preg_match('/[acdeiouglkmnprt]s$/', $string)) {
+		// 	$string = substr($string, 0, -1);
+		// }
 
 		return $string;
 	}
