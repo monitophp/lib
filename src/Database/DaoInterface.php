@@ -11,14 +11,23 @@ interface DaoInterface
     * first versioned
     */
 
-	public function count();
-	public function dataset();
-	public function delete(...$params);
-	public function get(...$params);
-	public function getLastId();
-	public function insert($dto);
-	public function list();
-	public function replace($dto);
-	public function truncate();
-	public function update($dto);
+    public function affectedRows() : int;
+	public function beginTransaction() : void;
+    public function commit() : void;
+	// public function count();
+	// public function dataset();
+	// public function delete(...$params);
+    public function execute($stt);
+    public function fetchAll($stt) : array;
+    public function fetchArrayAssoc($stt) : array;
+    public function fetchArrayNum($stt) : array;
+	// public function get(...$params);
+	public function getLastId() : int;
+	// public function insert($dto);
+	// public function list();
+    public function parse(string $sql);
+	// public function replace($dto);
+    public function rollback() : void;
+	// public function truncate();
+	// public function update($dto);
 }

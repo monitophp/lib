@@ -52,8 +52,6 @@ class Dao extends \MonitoLib\Database\Query
             $this->model = new $model;
         }
     }
-
-
     /**
      *
      */
@@ -526,10 +524,10 @@ class Dao extends \MonitoLib\Database\Query
 
 
 
-    public function beginTransaction()
-    {
-        $this->connection->beginTransaction();
-    }
+    // public function beginTransaction()
+    // {
+    //     $this->connection->beginTransaction();
+    // }
     public function checkUnique($uniqueConstraints, $dto)
     {
         // TODO: erro quando a constraint tem data
@@ -565,10 +563,10 @@ class Dao extends \MonitoLib\Database\Query
             }
         }
     }
-    public function commit()
-    {
-        $this->getConnection()->commit();
-    }
+    // public function commit()
+    // {
+    //     $this->getConnection()->commit();
+    // }
     /**
      * parseDto
      */
@@ -717,10 +715,10 @@ class Dao extends \MonitoLib\Database\Query
                 return $value;
         }
     }
-    public function rollback()
-    {
-        $this->connection->rollback();
-    }
+    // public function rollback()
+    // {
+    //     $this->connection->rollback();
+    // }
     protected function setAutoValues(object $dto, ?bool $updating = false) : object
     {
         $columns = $this->model->getColumns();

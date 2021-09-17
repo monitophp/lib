@@ -6,7 +6,7 @@ use \MonitoLib\Exception\DatabaseError;
 use \MonitoLib\Functions;
 use \MonitoLib\Database\Query\Dml;
 
-class Dao extends \MonitoLib\Database\Dao
+class Dao extends \MonitoLib\Database\Dao implements \MonitoLib\Database\DaoInterface
 {
     const VERSION = '1.0.2';
     /**

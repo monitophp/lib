@@ -7,7 +7,7 @@ use \MonitoLib\Functions;
 use \MonitoLib\Database\Query\Dml;
 use \MonitoLib\Database\Query;
 
-class Dao extends \MonitoLib\Database\Dao // implements \MonitoLib\Database\Dao
+class Dao extends \MonitoLib\Database\Dao implements \MonitoLib\Database\DaoInterface
 {
     const VERSION = '1.2.1';
     /**
@@ -45,11 +45,11 @@ class Dao extends \MonitoLib\Database\Dao // implements \MonitoLib\Database\Dao
     {
         return $this->affectedRows;
     }
-    public function beginTransaction()
+    public function beginTransaction() : void
     {
         $this->executeMode = OCI_NO_AUTO_COMMIT;
     }
-    public function commit()
+    public function commit() : void
     {
         @oci_commit($this->getConnection());
         $this->executeMode = OCI_COMMIT_ON_SUCCESS;
@@ -66,20 +66,20 @@ class Dao extends \MonitoLib\Database\Dao // implements \MonitoLib\Database\Dao
         $this->affectedRows = oci_num_rows($stt);
         return $stt;
     }
-    public function fetchAll($stt)
+    public function fetchAll($stt) : array
     {
         oci_fetch_all($stt, $res, null, null, OCI_FETCHSTATEMENT_BY_ROW + OCI_ASSOC);
         return $res;
     }
-    public function fetchArrayAssoc($stt)
+    public function fetchArrayAssoc($stt) : array
     {
         return oci_fetch_array($stt, OCI_ASSOC | OCI_RETURN_NULLS);
     }
-    public function fetchArrayNum($stt)
+    public function fetchArrayNum($stt) : array
     {
         return oci_fetch_array($stt, OCI_NUM | OCI_RETURN_NULLS);
     }
-    public function getLastId()
+    public function getLastId() : int
     {
         return $this->lastId;
     }
@@ -114,7 +114,7 @@ class Dao extends \MonitoLib\Database\Dao // implements \MonitoLib\Database\Dao
 
         return $value;
     }
-    public function parse($sql)
+    public function parse(string $sql)
     {
         $stt = @oci_parse($this->getConnection(), $sql);
 
@@ -187,7 +187,7 @@ class Dao extends \MonitoLib\Database\Dao // implements \MonitoLib\Database\Dao
             return $res;
         }
     }
-    public function rollback()
+    public function rollback() : void
     {
         @oci_rollback($this->getConnection());
         $this->executeMode = OCI_COMMIT_ON_SUCCESS;
