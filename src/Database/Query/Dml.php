@@ -288,8 +288,12 @@ class Dml
     /**
      * parseValue
      */
-    private function parseValue(?string $value, Column $column) : string
+    private function parseValue(?string $value, Column $column, ?bool $isRaw = false) : string
     {
+        if ($isRaw) {
+            return $value;
+        }
+
         if (is_null($value)) {
             return 'NULL';
         }
@@ -307,13 +311,12 @@ class Dml
         $type = $column->getType();
 
         switch ($type) {
-            case 'date':
-            case 'datetime':
-            case 'time':
+            case $this->model::DATE:
+            case $this->model::DATETIME:
+            case $this->model::TIME:
                 return $this->parseDatetime($value, $column);
-            case 'double':
-            case 'float':
-            case 'int':
+            case $this->model::FLOAT:
+            case $this->model::INT:
                 return $value;
             default:
                 return "'$value'";
@@ -462,6 +465,131 @@ class Dml
             . $fld
             . ' WHERE '
             . $key;
+        return $sql;
+    }
+    /**
+     * updateMany
+     */
+    public function updateMany() : string
+    {
+        $fld = '';
+
+        // $columns = $this->model->getColumns();
+        // \MonitoLib\Dev::vde($columns);
+
+        $filter  = $this->filter;
+        $setList = $filter->getSet();
+
+        // \MonitoLib\Dev::pre($setList);
+
+        foreach ($setList as $set) {
+            $name    = $set->getColumn();
+            $value   = $set->getValue();
+            $options = $set->getOptions();
+            $isRaw   = $options->isRaw();
+            $column  = $this->getColumn($name, $isRaw);
+            $fld .= "$name = " . $this->parseValue($value, $column, $isRaw) . ', ';
+
+            // $value = '(' . implode(',', array_map(function($e) use ($column) {
+            //     return $this->parseValue($e, $column);
+            // }, $value)) . ')';
+
+
+            // $column = $this->model->getColumn($columnName);
+
+            // // $fld .= "$columnName = " . $this->parseValue($columnValue, $column) . ', ';
+
+            // $id        = $column->getId();
+            // $name      = $column->getName();
+            // $type      = $column->getType();
+            // $primary   = $column->getPrimary();
+            // $format    = $column->getFormat();
+            // $transform = $column->getTransform();
+            // $get       = 'get' . ucfirst($id);
+            // $value = $dto->$get();
+
+            // if (!is_null($value)) {
+                // if ($this->isOracle() && $type === 'datetime') {
+                    // $value = $this->parseDatetime($value, $column);
+                // } else {
+                // }
+            // }
+
+
+            // if ($this->isOracle() && $xyz->isDatetime($type)) {
+            // }
+
+        // foreach ($this->model->getFields() as $f) {
+            // $name = $f['name'];
+
+            // if ($primary) {
+                // $key .= "$name = $value AND ";
+            // } else {
+                // if ($this->dbms === Dao::DBMS_ORACLE && )
+                // switch ($type) {
+                //     case 'date':
+                //         // $format = $format === 'Y-m-d H:i:s' ? 'YYYY-MM-DD HH24:MI:SS' : 'YYYY-MM-DD';
+                //         $name = $this->oracleDate($format, $name);
+
+                //         $fld .= "$name = TO_DATE($value, '$format'),";
+                //         break;
+                //     default:
+                //         $fld .= "$name = $value" . ',';
+                //         // $fld .= "$name = " . ($transform ?? "$value") . ',';
+                //         break;
+                // }
+            // }
+        }
+
+        //     $id        = $column->getId();
+        //     $name      = $column->getName();
+        //     $type      = $column->getType();
+        //     $primary   = $column->getPrimary();
+        //     $format    = $column->getFormat();
+        //     $transform = $column->getTransform();
+        //     $get       = 'get' . ucfirst($id);
+        //     $value = $dto->$get();
+
+        //     // if (!is_null($value)) {
+        //         // if ($this->isOracle() && $type === 'datetime') {
+        //             // $value = $this->parseDatetime($value, $column);
+        //         // } else {
+        //         // }
+        //     // }
+
+
+        //     // if ($this->isOracle() && $xyz->isDatetime($type)) {
+        //     // }
+
+        // // foreach ($this->model->getFields() as $f) {
+        //     // $name = $f['name'];
+
+        //     if ($primary) {
+        //         $key .= "$name = $value AND ";
+        //     } else {
+        //         // if ($this->dbms === Dao::DBMS_ORACLE && )
+        //         // switch ($type) {
+        //         //     case 'date':
+        //         //         // $format = $format === 'Y-m-d H:i:s' ? 'YYYY-MM-DD HH24:MI:SS' : 'YYYY-MM-DD';
+        //         //         $name = $this->oracleDate($format, $name);
+
+        //         //         $fld .= "$name = TO_DATE($value, '$format'),";
+        //         //         break;
+        //         //     default:
+        //         //         $fld .= "$name = $value" . ',';
+        //         //         // $fld .= "$name = " . ($transform ?? "$value") . ',';
+        //         //         break;
+        //         // }
+        //     }
+        // }
+
+        $fld = substr($fld, 0, -2);
+
+        $sql = 'UPDATE '
+            . $this->model->getTableName()
+            . ' SET '
+            . $fld
+            . $this->where();
         return $sql;
     }
     /**

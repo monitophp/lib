@@ -37,15 +37,13 @@ class Dao extends \MonitoLib\Database\Dao // implements \MonitoLib\Database\Dao
     * first versioned
     */
     protected $dbms = 2;
-    private $executeMode;
-    private $dml;
     protected $lastId;
+    private $executeMode = OCI_COMMIT_ON_SUCCESS;
     private $affectedRows = 0;
 
-    public function __construct()
+    public function affectedRows() : int
     {
-        $this->executeMode = OCI_COMMIT_ON_SUCCESS;
-        parent::__construct();
+        return $this->affectedRows;
     }
     public function beginTransaction()
     {
@@ -65,6 +63,7 @@ class Dao extends \MonitoLib\Database\Dao // implements \MonitoLib\Database\Dao
             throw new DatabaseError('Ocorreu um erro no banco de dados', $e);
         }
 
+        $this->affectedRows = oci_num_rows($stt);
         return $stt;
     }
     public function fetchAll($stt)
@@ -80,109 +79,11 @@ class Dao extends \MonitoLib\Database\Dao // implements \MonitoLib\Database\Dao
     {
         return oci_fetch_array($stt, OCI_NUM | OCI_RETURN_NULLS);
     }
-    public function OLDget(...$params)
-    {
-        if (!empty($params)) {
-            $keys = $this->model->getPrimaryKeys();
-
-            if (count($params) !== count($keys)) {
-                throw new BadRequest('Invalid parameters number');
-            }
-
-            if (count($params) > 1) {
-                foreach ($params as $p) {
-                    foreach ($keys as $k) {
-                        $this->equal($k, $p);
-                    }
-                }
-            } else {
-                $this->equal($keys[0], $params[0]);
-            }
-        }
-
-        $res = $this->list();
-        $this->reset();
-        return isset($res[0]) ? $res[0] : null;
-    }
-    public function getById(...$params)
-    {
-        if (!empty($params)) {
-            $keys = $this->model->getPrimaryKeys();
-
-            if (count($params) !== count($keys)) {
-                throw new BadRequest('Invalid parameters number');
-            }
-
-            if (count($params) > 1) {
-                foreach ($params as $p) {
-                    foreach ($keys as $k) {
-                        $this->equal($k, $p);
-                    }
-                }
-            } else {
-                $this->equal($keys[0], $params[0]);
-            }
-
-            return $this->get();
-        }
-    }
     public function getLastId()
     {
         return $this->lastId;
     }
-    public function insert($dto) : void
-    {
-        if ($this->model->getTableType() === 'view') {
-            throw new BadRequest('Não é possível inserir registros em uma view');
-        }
-
-        if (!$dto instanceof $this->dtoName) {
-            throw new BadRequest('O parâmetro passado não é uma instância de ' . $this->dtoName);
-        }
-
-        // Atualiza o objeto com os valores automáticos, caso não informados
-        $dto = $this->setAutoValues($dto);
-
-        // \MonitoLib\Dev::pre($dto);
-
-        // Valida o objeto dto
-        $validator = new \MonitoLib\Database\Validator();
-        $validator->validate($dto, $this->model);
-
-        // \MonitoLib\Dev::pre($dto);
-
-        // Verifica se existe constraint de chave única
-        // $this->checkUnique($this->model->getUniqueConstraints(), $dto);
-
-        // $columns = $this->model->getInsertColumnsArray();
-        $dml = $this->getDml();
-        $sql = $dml->insert($dto);
-        $stt = $this->parse($sql);
-        // \MonitoLib\Dev::ee($sql);
-
-        // foreach ($columns as $column) {
-        //     $id        = $column->getId();
-        //     $name      = $column->getName();
-        //     $transform = $column->getTransform();
-        //     $var       = Functions::toLowerCamelCase($name);
-        //     $get       = 'get' . ucfirst($id);
-        //     $$id       = $dto->$get();
-
-        //     $stt->bindParam(':' . $name, $$id);
-        // }
-
-        $this->execute($stt);
-        $this->reset();
-    }
-    private function getDml()
-    {
-        if (is_null($this->dml)) {
-            $this->dml = new \MonitoLib\Database\Query\Dml($this->model, $this->dbms, $this->getFilter());
-        }
-
-        return $this->dml;
-    }
-    public function nextValue($sequence)
+    public function nextValue($sequence) : int
     {
         $sql = "SELECT $sequence.nextval FROM dual";
         $stt = $this->parse($sql);

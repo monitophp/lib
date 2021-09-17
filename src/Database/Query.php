@@ -149,7 +149,7 @@ class Query
         $this->filter->setPerPage($page);
         return $this;
     }
-    public function parseWhere(string $comparisonOperator, ?string $column, $value1, $value2 = null, int $options = 0)
+    private function parseWhere(string $comparisonOperator, ?string $column, $value1, $value2 = null, int $options = 0)
     {
         $options = new \MonitoLib\Database\Query\Options($options);
         // \MonitoLib\Dev::pre($options);
@@ -198,5 +198,37 @@ class Query
     public function reset()
     {
         $this->filter = null;
+    }
+    public function set(string $column, $value, int $options = self::NONE) : self
+    {
+        $options = new \MonitoLib\Database\Query\Options($options);
+        // \MonitoLib\Dev::pre($options);
+
+        // $where = $this->parseGroup($options->startGroup(), $options->endGroup());
+        // $value = $value1;
+
+        // if (!is_null($value2)) {
+        //     $value = [$value1, $value2];
+        // }
+
+        // $options = new \MonitoLib\Database\Query\Options($options);
+        // $isRaw   = $options->isRaw();
+
+        // if (!$isRaw) {
+        //     // Valida o campo no modelo
+        //     $column = $this->checkColumn($column);
+        //     $type   = $column->getType();
+        //     $format = $column->getFormat();
+        // }
+
+        $set = new \MonitoLib\Database\Query\Filter\Set();
+        $set
+            ->setColumn($column)
+            ->setValue($value)
+            ->setOptions($options);
+
+        $this->initFilter();
+        $this->filter->addSet($set);
+        return $this;
     }
 }

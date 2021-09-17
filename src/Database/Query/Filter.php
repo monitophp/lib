@@ -1,6 +1,7 @@
 <?php
 namespace MonitoLib\Database\Query;
 
+use \MonitoLib\Database\Query\Filter\Set;
 use \MonitoLib\Database\Query\Filter\Where;
 
 class Filter
@@ -35,6 +36,7 @@ class Filter
     private $perPage = 0;
     private $columns = [];
     private $map     = [];
+    private $set     = [];
     private $where   = [];
     private $orderBy = [];
     private $groupBy = [];
@@ -44,6 +46,10 @@ class Filter
     {
         $this->orderBy[$column] = $direction;
         return $this;
+    }
+    public function addSet(Set $set)
+    {
+        $this->set[] = $set;
     }
     public function addWhere(Where $where)
     {
@@ -83,6 +89,10 @@ class Filter
     {
         $this->perPage = $perPage;
         return $this;
+    }
+    public function getSet() : array
+    {
+        return $this->set;
     }
     public function getWhere() : array
     {

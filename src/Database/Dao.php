@@ -407,12 +407,51 @@ class Dao extends \MonitoLib\Database\Query
         $this->execute($stt);
     }
     /**
-     *
+     * update
      */
-    public function update(object $dto, ?bool $replace = false)
+    public function update(?object $dto = null, ?bool $replace = false)
+    {
+        if (is_null($dto)) {
+            $this->updateMany();
+        } else {
+            $this->updateOne($dto, $replace);
+        }
+    }
+    /**
+     * updateMany
+     */
+    private function updateMany()
+    {
+        $filter = $this->getFilter();
+        $set    = $filter->getSet();
+        // $where  = $filter->getWhere();
+
+        if (empty($set)) {
+            throw new BadRequest('É preciso usar o método set() informar os campos que serão atualizados');
+        }
+
+        // if (empty($where)) {
+        //     throw new BadRequest('Cumé qui tu qué atualizá sem filtro?');
+        // }
+
+        $dml = new Dml($this->model, $this->dbms, $this->getFilter());
+        $sql = $dml->updateMany();
+        \MonitoLib\Dev::ee($sql);
+    }
+    /**
+     * updateOne
+     */
+    private function updateOne(object $dto, ?bool $replace = false)
     {
         if (!$dto instanceof $this->dtoName) {
             throw new BadRequest('O parâmetro passado não é uma instância de ' . $this->dtoName);
+        }
+
+        $filter = $this->getFilter();
+        $set    = $filter->getSet();
+
+        if (!empty($set)) {
+            throw new BadRequest('Não é possível usar o método set() em conjunto com um objeto dto');
         }
 
         // Atualiza o objeto com os valores automáticos, caso não informados
@@ -432,65 +471,11 @@ class Dao extends \MonitoLib\Database\Query
         $sql = $dml->update($dto);
         \MonitoLib\Dev::ee($sql);
 
-
-
-        $key = '';
-        $fld = '';
-
-        $columns = $this->model->getInsertColumnsArray();
-        // \MonitoLib\Dev::vde($columns);
-
-        foreach ($columns as $column) {
-            $id        = $column->getId();
-            $name      = $column->getName();
-            $type      = $column->getType();
-            $primary   = $column->getPrimary();
-            $format    = $column->getFormat();
-            $transform = $column->getTransform();
-            $get       = 'get' . ucfirst($id);
-            $value     = $this->escape($dto->$get(), $type);
-
-        // foreach ($this->model->getFields() as $f) {
-            // $name = $f['name'];
-
-            if ($primary) {
-                $key .= "$name = :$name AND ";
-            } else {
-                switch ($type) {
-                    case 'date':
-                        $format = $format === 'Y-m-d H:i:s' ? 'YYYY-MM-DD HH24:MI:SS' : 'YYYY-MM-DD';
-                        $fld .= "$name = TO_DATE(:{$name}, '$format'),";
-                        break;
-                    default:
-                        $fld .= "$name = " . ($transform ?? ":$name") . ',';
-                        break;
-                }
-            }
-        }
-
-        $key = substr($key, 0, -5);
-        $fld = substr($fld, 0, -1);
-
-        $sql = 'UPDATE ' . $this->model->getTableName() . " SET $fld WHERE $key";
-        \MonitoLib\Dev::ee($sql);
-
-
         $stt = $this->parse($sql);
-
-        foreach ($this->model->getFields() as $f) {
-            $var  = Functions::toLowerCamelCase($f['name']);
-            $get  = 'get' . ucfirst($var);
-            $$var = $dto->$get();
-
-            @oci_bind_by_name($stt, ':' . $f['name'], $$var);
-        }
-
         $stt = $this->execute($stt);
-
-        if (oci_num_rows($stt) === 0) {
-            throw new BadRequest('Não foi possível atualizar');
-        }
+        return $this->affectedRows();
     }
+
 
 
 
