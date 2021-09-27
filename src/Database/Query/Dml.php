@@ -16,6 +16,7 @@ class Dml
     * 1.0.0 - 2019-07-09
     * Initial release
     */
+
     private $dbms;
     private $filter;
     private $model;
@@ -44,25 +45,6 @@ class Dml
     public function delete() : string
     {
         return 'DELETE FROM ' . $this->model->getTableName() . $this->where();
-    }
-    private function escape(string $value, \MonitoLib\Database\Model\Column $column) : string
-    {
-        if (is_null($value)) {
-            return 'NULL';
-        }
-
-        $value = str_replace(["'"],["''"], $value);
-
-        $type = $column->getType();
-
-        switch ($type) {
-            case 'double':
-            case 'float':
-            case 'int':
-                return $value;
-            default:
-                return "'$value'";
-        }
     }
     public function getColumn(string $columnName, bool $isRaw) : \MonitoLib\Database\Model\Column
     {
@@ -107,19 +89,25 @@ class Dml
             $value     = $dto->$get();
 
             if (!is_null($value)) {
-                $value     = $this->escape($value, $column);
+                $value     = $this->parseValue($value, $column);
                 $fld .= "{$delimiter}{$name}{$delimiter},";
                 // $val .= ($transform ?? ':' . $name) . ',';
                 $val .= $value . ',';
             }
-
         }
 
         $fld = substr($fld, 0, -1);
         $val = substr($val, 0, -1);
 
         $sql = 'INSERT INTO ' . $this->model->getTableName() . " ($fld) VALUES ($val)";
+        \MonitoLib\Dev::ee($sql);
         return $sql;
+    }
+    private function oracleDate(string $format, string $value) : string
+    {
+        $mask  = 'YYYY-MM-DD' . ($format === 'Y-m-d H:i:s' ? ' HH24:MI:SS' : '');
+        $value = "TO_CHAR($value, '$mask')";
+        return $value;
     }
     private function renderFieldsSql() : string
     {
@@ -151,23 +139,14 @@ class Dml
             $id     = $column->getId();
             $name   = $column->getName();
             $type   = $column->getType();
-            $format = $column->getFormat();
             $alias  = $column->getAlias();
             // $alias  = $column->map($name) ?? null;
             // $alias = null;
 
             // if ($format && $type === 'date' && $this->dbms === 2) {
-            if ($type === 'datetime' && $this->dbms === 2) {
-                $mask = 'YYYY-MM-DD' . ($format === 'Y-m-d H:i:s' ? ' HH24:MI:SS' : '');
-                $alias ??= $name;
-                $name = "TO_CHAR($name, '$mask')";
-            // } else {
-            //     // if ($aliases && !is_null($alias)) {
-            //     if (!is_null($alias)) {
-            //         $name = $alias;
-            //     } else {
-            //         $name .= is_null($alias) ? '' : " AS $alias";
-            //     }
+            if ($this->dbms === Dao::DBMS_ORACLE && $type === 'datetime') {
+                $format = $column->getFormat();
+                $name = $this->oracleDate($format, $name);
             }
 
             switch ($type) {
@@ -235,6 +214,33 @@ class Dml
 
         return $sql;
     }
+    private function parseValue(string $value, \MonitoLib\Database\Model\Column $column) : string
+    {
+        if (is_null($value)) {
+            return 'NULL';
+        }
+
+        $value = str_replace(
+            [
+                "'",
+            ],
+            [
+                "''",
+            ],
+            $value
+        );
+
+        $type = $column->getType();
+
+        switch ($type) {
+            case 'double':
+            case 'float':
+            case 'int':
+                return $value;
+            default:
+                return "'$value'";
+        }
+    }
     private function parseWhere($where) : string
     {
         $name       = $where->getColumn();
@@ -249,15 +255,15 @@ class Dml
         $column     = $this->getColumn($name, $isRaw);
 
         if ($comparison === Filter::BETWEEN) {
-            $value = $this->escape($value[0], $column) . ' AND ' . $this->escape($value[1], $column);
+            $value = $this->parseValue($value[0], $column) . ' AND ' . $this->parseValue($value[1], $column);
         }
 
         if (is_array($value)) {
             $value = '(' . implode(',', array_map(function($e) use ($column) {
-                return $this->escape($e, $column);
+                return $this->parseValue($e, $column);
             }, $value)) . ')';
         } else {
-            $value = $this->escape($value, $column);
+            $value = $this->parseValue($value, $column);
         }
 
         return " {$operator} {$startGroup}{$name} {$comparison} {$value}{$endGroup}";
@@ -323,7 +329,12 @@ class Dml
             $format    = $column->getFormat();
             $transform = $column->getTransform();
             $get       = 'get' . ucfirst($id);
-            $value     = $this->escape($dto->$get(), $column);
+            $value     = $this->parseValue($dto->$get(), $column);
+
+            if ($this->dbms === Dao::DBMS_ORACLE && $type === 'datetime') {
+                $format = $column->getFormat();
+                $value = $this->oracleDate($format, $value);
+            }
 
         // foreach ($this->model->getFields() as $f) {
             // $name = $f['name'];
@@ -334,7 +345,9 @@ class Dml
                 // if ($this->dbms === Dao::DBMS_ORACLE && )
                 switch ($type) {
                     case 'date':
-                        $format = $format === 'Y-m-d H:i:s' ? 'YYYY-MM-DD HH24:MI:SS' : 'YYYY-MM-DD';
+                        // $format = $format === 'Y-m-d H:i:s' ? 'YYYY-MM-DD HH24:MI:SS' : 'YYYY-MM-DD';
+                        $name = $this->oracleDate($format, $name);
+
                         $fld .= "$name = TO_DATE($value, '$format'),";
                         break;
                     default:

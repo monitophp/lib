@@ -61,9 +61,9 @@ class Router
         $requestMethod = $_SERVER['REQUEST_METHOD'];
         $params = [];
 
-        $uri = trim(Request::getRequestUri(), '/');
+        $uri = Request::getRequestUri();
 
-        $uriParts = explode('/', trim(Request::getRequestUri(), '/'));
+        $uriParts = explode('/', trim($uri, '/'));
         $filename = implode('.', $uriParts);
         $filepath = App::getRoutesPath() . $filename . '.php';
         $count    = count($uriParts);
@@ -80,7 +80,7 @@ class Router
             $filepath = App::getRoutesPath() . 'default.php';
 
             if (!file_exists($filepath)) {
-                throw new InternalError("Não há um arquivo de rotas configurado!");
+                throw new InternalError("Não há um arquivo de rotas configurado");
             }
         }
 
@@ -90,7 +90,7 @@ class Router
         $action = true;
 
         if (!isset(self::$routes)) {
-            throw new InternalError('Não há rotas configuradas!');
+            throw new InternalError('Não há rotas configuradas');
         }
 
         $ri = self::$routes;
@@ -138,7 +138,7 @@ class Router
 
         // Se a url foi encontrada
         if (!$matched) {
-            throw new NotFound('Rota não configurada!');
+            throw new NotFound("Rota $uri não configurada");
         }
 
         $xM = $requestMethod;
@@ -148,7 +148,7 @@ class Router
                 $xM = '*';
             } else {
                 http_response_code(405);
-                throw new \Exception('Método HTTP não permitido!', 405);
+                throw new \Exception('Método HTTP não permitido', 405);
             }
         }
 
@@ -178,36 +178,29 @@ class Router
                     // throw new NotFound('Método do controller não encontrado!');
                 // }
             } else {
-                throw new NotFound("Controller $class não encontrado!");
+                throw new NotFound("Controller $class não encontrado");
             }
         } else {
-            throw new NotFound('Ação não encontrada!');
+            throw new NotFound('Método não encontrada');
         }
     }
-    public static function delete($url, $action, $secure = true)
+    public static function delete($url, $action, $secure = true) : void
     {
         self::add('DELETE', $url, $action, $secure);
     }
-    // static private function error($message)
-    // {
-    //     return $json = [
-    //         'code'    => '1',
-    //         'message' => $message
-    //         ];
-    // }
-    public static function get($url, $action, $secure = true)
+    public static function get($url, $action, $secure = true) : void
     {
         self::add('GET', $url, $action, $secure);
     }
-    public static function patch($url, $action, $secure = true)
+    public static function patch($url, $action, $secure = true) : void
     {
         self::add('PATCH', $url, $action, $secure);
     }
-    public static function post($url, $action, $secure = true)
+    public static function post($url, $action, $secure = true) : void
     {
         self::add('POST', $url, $action, $secure);
     }
-    public static function put($url, $action, $secure = true)
+    public static function put($url, $action, $secure = true) : void
     {
         self::add('PUT', $url, $action, $secure);
     }

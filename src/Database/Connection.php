@@ -36,7 +36,7 @@ class Connection
 	{
 		$this->name     = $d['name'];
 		$this->env      = $d['env'];
-		$this->database = $d['database'] ?? null;
+		$this->database = $d['db'] ?? null;
 		$this->type     = $d['type'];
 		$this->pass     = $d['pass'];
 		$this->host     = $d['host'];
