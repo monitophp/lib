@@ -1,4 +1,5 @@
 <?php
+
 namespace MonitoLib\Database\Query;
 
 use \MonitoLib\Database\Query\Filter\Set;
@@ -8,9 +9,9 @@ class Filter
 {
     const VERSION = '1.0.0';
     /**
-    * 1.0.0 - 2021-07-09
-    * Initial release
-    */
+     * 1.0.0 - 2021-07-09
+     * Initial release
+     */
 
     const BETWEEN         = 'BETWEEN';
     const BIT_AND         = '&';
@@ -55,50 +56,50 @@ class Filter
     {
         $this->where[] = $where;
     }
-    public function getColumns() : array
+    public function getColumns(): array
     {
         return $this->columns;
     }
-    public function getOrderBy() : array
+    public function getOrderBy(): array
     {
         return $this->orderBy;
     }
-    public function getMap() : array
+    public function getMap(): array
     {
         return $this->map;
     }
-    public function getPage() : int
+    public function getPage(): int
     {
         return $this->page;
     }
-    public function getPerPage() : int
+    public function getPerPage(): int
     {
         return $this->perPage;
     }
-    public function setMap(array $map) : self
+    public function setMap(array $map): self
     {
         $this->map = $map;
         return $this;
     }
-    public function setPage(int $page) : self
+    public function setPage(int $page): self
     {
         $this->page = $page;
         return $this;
     }
-    public function setPerPage(int $perPage) : self
+    public function setPerPage(int $perPage): self
     {
         $this->perPage = $perPage;
         return $this;
     }
-    public function getSet() : array
+    public function getSet(): array
     {
         return $this->set;
     }
-    public function getWhere() : array
+    public function getWhere(): array
     {
         return $this->where;
     }
-    public function setColumns(array $columns) : self
+    public function setColumns(array $columns): self
     {
         $this->columns = $columns;
         return $this;

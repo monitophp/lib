@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Exception handler
  * @author Joelson B <joelsonb@msn.com>
@@ -6,18 +7,19 @@
  *
  * @package MonitoLib
  */
+
 namespace MonitoLib\Exception;
 
 class Conflict extends Exception
 {
     const VERSION = '1.1.0';
     /**
-    * 1.1.0 - 2021-06-18
-    * new: inheriting from \MonitoLib\Exception\Exception
-    *
-    * 1.0.0 - 2020-07-09
-    * Initial release
-    */
+     * 1.1.0 - 2021-06-18
+     * new: inheriting from \MonitoLib\Exception\Exception
+     *
+     * 1.0.0 - 2020-07-09
+     * Initial release
+     */
 
     public function __construct(string $message = null, ?array $errors = null, ?int $code = 409, ?\Exception $previous = null)
     {

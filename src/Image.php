@@ -149,6 +149,10 @@ class Image
 
         return $this->base64encode;
     }
+    public function getImage()
+    {
+        return imagejpeg($this->image);
+    }
     public function getHeight() : int
     {
         return $this->height;

@@ -1,4 +1,5 @@
 <?php
+
 namespace MonitoLib\Database;
 
 use \MonitoLib\App;
@@ -11,21 +12,21 @@ class Dao extends \MonitoLib\Database\Query
 {
     const VERSION = '1.2.0';
     /**
-    * 1.2.0 - 2020-09-18
-    * new: parseHook()
-    *
-    * 1.1.2 - 2019-12-09
-    * new: beginConnection(), commit() and rollback()
-    * fix: getValue(): check if int values is null before set value
-    *
-    * 1.1.1 - 2019-08-11
-    * fix: minor fixes
-    *
-    * new: removed parent::__constructor call
-    *
-    * 1.0.0 - 2019-04-17
-    * initial release
-    */
+     * 1.2.0 - 2020-09-18
+     * new: parseHook()
+     *
+     * 1.1.2 - 2019-12-09
+     * new: beginConnection(), commit() and rollback()
+     * fix: getValue(): check if int values is null before set value
+     *
+     * 1.1.1 - 2019-08-11
+     * fix: minor fixes
+     *
+     * new: removed parent::__constructor call
+     *
+     * 1.0.0 - 2019-04-17
+     * initial release
+     */
 
     const DBMS_MYSQL = 1;
     const DBMS_ORACLE = 2;
@@ -55,7 +56,7 @@ class Dao extends \MonitoLib\Database\Query
     /**
      *
      */
-    public function count(?bool $onlyFixed = false) : int
+    public function count(?bool $onlyFixed = false): int
     {
         $dml = new Dml($this->model, $this->dbms, $this->getFilter());
         $sql = $dml->count($onlyFixed);
@@ -164,7 +165,7 @@ class Dao extends \MonitoLib\Database\Query
             // $this->in($name, $p);
 
             // throw new BadRequest('Não foram informados parâmetros para deletar');
-        // } else {
+            // } else {
             // $keys = $this->model->getPrimaryKeys();
 
             // // \MonitoLib\Dev::ee(count($params) . ' !== ' . count($keys));
@@ -200,7 +201,7 @@ class Dao extends \MonitoLib\Database\Query
         $this->reset();
 
         // if (oci_num_rows($stt) === 0) {
-            // throw new BadRequest('Não foi possível deletar');
+        // throw new BadRequest('Não foi possível deletar');
         // }
     }
     /**
@@ -208,7 +209,9 @@ class Dao extends \MonitoLib\Database\Query
      */
     public function get(int ...$params)
     {
-        $this->equal('ROWNUM', 1, self::RAW_QUERY);
+        if ($this->dbms === self::DBMS_ORACLE) {
+            $this->equal('ROWNUM', 1, self::RAW_QUERY);
+        }
 
         // $dml = new Dml($this->model, $this->dbms, $this->getFilter());
         // $sql = $dml->select();
@@ -243,7 +246,7 @@ class Dao extends \MonitoLib\Database\Query
 
         $res = $this->list();
         $this->reset();
-        return isset($res[0]) ? $res[0] : null;
+        return $res->current();
     }
     /**
      *
@@ -348,7 +351,8 @@ class Dao extends \MonitoLib\Database\Query
     /**
      *
      */
-    public function list(?\MonitoLib\Database\Query\Dml $dml = null) : array
+    // public function list(?\MonitoLib\Database\Query\Dml $dml = null) : array
+    public function list(?\MonitoLib\Database\Query\Dml $dml = null): \MonitoLib\Database\Dataset\Collection
     {
         if (is_null($dml)) {
             $dml = new Dml($this->model, $this->dbms, $this->getFilter());
@@ -371,10 +375,13 @@ class Dao extends \MonitoLib\Database\Query
         // Identifica o dto a ser usado
         $dto = $this->parseDto($this->model->getColumnIds(), array_values($map));
 
-        $data = [];
+        $collection = new \MonitoLib\Database\Dataset\Collection();
+        // $data = [];
 
         while ($res = $this->fetchArrayAssoc($stt)) {
-            $data[] = $this->parseResult(new $dto(), $res);
+            $collection->append($this->parseResult(new $dto(), $res));
+            // $collection[] = $this->parseResult(new $dto(), $res);
+            // $data[] = $this->parseResult(new $dto(), $res);
         }
 
         // Reset filter
@@ -382,10 +389,11 @@ class Dao extends \MonitoLib\Database\Query
 
         // \MonitoLib\Dev::ee($data[0]);
 
-        return $data;
+        // return $data;
+        return $collection;
     }
     /**
-     *
+     * max
      */
     public function max(string $field)
     {
@@ -394,6 +402,52 @@ class Dao extends \MonitoLib\Database\Query
         $this->execute($stt);
         $res = $this->connection->fetchArrayNum($stt);
         return $res[0];
+    }
+    /**
+     * parseResult
+     */
+    public function parseResult(object $dto, array $result): object
+    {
+        $map = $this->getFilter()->getMap();
+
+        // \MonitoLib\Dev::pre($result);
+
+        foreach ($result as $name => $v) {
+            $columnId = Functions::toLowerCamelCase($name);
+            $column   = $this->model->getColumn($columnId);
+            $type     = $column->getType();
+            $method   = $map[$columnId] ?? $columnId;
+            $format   = $column->getFormat();
+
+            // \MonitoLib\Dev::e($method);
+
+            // \MonitoLib\Dev::e($type);
+            // \MonitoLib\Dev::pr($v);
+
+            // \MonitoLib\Dev::pre($column);
+
+            switch ($type) {
+                case Model::FLOAT:
+                case Model::INT:
+                    $v = +$v;
+                    break;
+                case Model::DATE:
+                case Model::DATETIME:
+                case Model::TIME:
+                    if (!is_null($v)) {
+                        $v = new \MonitoLib\Type\DateTime($v);
+                    }
+            }
+
+            // \MonitoLib\Dev::pr($v);
+
+            $set = 'set' . ucfirst($method);
+            $dto->$set($v);
+        }
+
+        // \MonitoLib\Dev::pre($dto);
+
+        return $dto;
     }
     /**
      *
@@ -463,7 +517,7 @@ class Dao extends \MonitoLib\Database\Query
         // $this->checkUnique($this->model->getUniqueConstraints(), $dto);
 
         // if (is_null($dml)) {
-            $dml = new Dml($this->model, $this->dbms, $this->getFilter());
+        $dml = new Dml($this->model, $this->dbms, $this->getFilter());
         // }
 
         $sql = $dml->update($dto);
@@ -570,13 +624,13 @@ class Dao extends \MonitoLib\Database\Query
     /**
      * parseDto
      */
-    public function parseDto(array $modelColumns, ?array $mapColumns) : string
+    public function parseDto(array $modelColumns, ?array $mapColumns): string
     {
         $map       = $this->getFilter()->getMap();
         $createDto = false;
 
         if (!empty($map)) {
-            $mapped    = array_map(fn($e) => $map[$e] ?? $e, $modelColumns);
+            $mapped    = array_map(fn ($e) => $map[$e] ?? $e, $modelColumns);
             $modelHash = serialize(array_values($modelColumns));
             $mapHash   = serialize(array_values($mapped));
             $createDto = $modelHash !== $mapHash;
@@ -631,51 +685,8 @@ class Dao extends \MonitoLib\Database\Query
 
         return $this->model;
     }
-    /**
-     * parseResult
-     */
-    public function parseResult(object $dto, array $result) : object
-    {
-        $map = $this->getFilter()->getMap();
 
-        // \MonitoLib\Dev::pre($result);
 
-        foreach ($result as $name => $v) {
-            $columnId = Functions::toLowerCamelCase($name);
-            $column   = $this->model->getColumn($columnId);
-            $type     = $column->getType();
-            $method   = $map[$columnId] ?? $columnId;
-
-            // \MonitoLib\Dev::e($method);
-
-            // \MonitoLib\Dev::e($type);
-            // \MonitoLib\Dev::pr($v);
-
-            // \MonitoLib\Dev::pre($column);
-
-            switch ($type) {
-                case Model::FLOAT:
-                case Model::INT:
-                    $v = +$v;
-                    break;
-                case Model::DATE:
-                case Model::DATETIME:
-                case Model::TIME:
-                    if (!is_null($v)) {
-                        $v = new \MonitoLib\Type\DateTime($v);
-                    }
-            }
-
-            // \MonitoLib\Dev::pr($v);
-
-            $set = 'set' . ucfirst($method);
-            $dto->$set($v);
-        }
-
-        // \MonitoLib\Dev::pre($dto);
-
-        return $dto;
-    }
     protected function parseDeleteParams($params)
     {
         if (!empty($params)) {
@@ -719,7 +730,7 @@ class Dao extends \MonitoLib\Database\Query
     // {
     //     $this->connection->rollback();
     // }
-    protected function setAutoValues(object $dto, ?bool $updating = false) : object
+    protected function setAutoValues(object $dto, ?bool $updating = false): object
     {
         $columns = $this->model->getColumns();
 
@@ -742,7 +753,7 @@ class Dao extends \MonitoLib\Database\Query
             if (is_null($value)) {
                 $default = $column->getDefault();
 
-                if (in_array($sourceType, ['MAX','PARAM','SEQUENCE','TABLE', 'INSERT', 'UPDATE'])) {
+                if (in_array($sourceType, ['MAX', 'PARAM', 'SEQUENCE', 'TABLE', 'INSERT', 'UPDATE'])) {
                     $value       = $dto->$get();
                     $primary     = $column->getPrimary();
                     $sourceValue = $sourceParts[1] ?? null;

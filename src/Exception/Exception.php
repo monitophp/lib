@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Exception handler
  * @author Joelson B <joelsonb@msn.com>
@@ -6,6 +7,7 @@
  *
  * @package MonitoLib
  */
+
 namespace MonitoLib\Exception;
 
 use \MonitoLib\App;
@@ -14,9 +16,9 @@ class Exception extends \Exception
 {
     const VERSION = '1.0.0';
     /**
-    * 1.0.0 - 2021-06-18
-    * Initial release
-    */
+     * 1.0.0 - 2021-06-18
+     * Initial release
+     */
 
     protected $errors = [];
 
@@ -27,11 +29,11 @@ class Exception extends \Exception
         parent::__construct($message, $code, $previous);
         $this->log();
     }
-    public function getErrors() : array
+    public function getErrors(): array
     {
         return $this->errors ?? [];
     }
-    private function log() : void
+    private function log(): void
     {
         $filepath = App::getLogPath() . 'exceptions_' . date('Ymd') . '.log';
         error_log(date('c') . "\n", 3, $filepath);

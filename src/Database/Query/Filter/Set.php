@@ -1,95 +1,96 @@
 <?php
+
 namespace MonitoLib\Database\Query\Filter;
 
 class Set
 {
-    const VERSION = '1.0.0';
-    /**
-    * 1.0.0 - 2021-09-16
-    * Initial release
-    */
+	const VERSION = '1.0.0';
+	/**
+	 * 1.0.0 - 2021-09-16
+	 * Initial release
+	 */
 
 	private $column;
 	private $value;
 	private $options;
 
 	/**
-	* getAlias
-	*
-	* @return $alias
-	*/
+	 * getAlias
+	 *
+	 * @return $alias
+	 */
 	public function getAlias()
 	{
 		return $this->alias;
 	}
 	/**
-	* getColumn
-	*
-	* @return $column
-	*/
+	 * getColumn
+	 *
+	 * @return $column
+	 */
 	public function getColumn()
 	{
 		return $this->column;
 	}
 	/**
-	* getComparison
-	*
-	* @return $comparison
-	*/
+	 * getComparison
+	 *
+	 * @return $comparison
+	 */
 	public function getComparison()
 	{
 		return $this->comparison;
 	}
 	/**
-	* getFormat
-	*
-	* @return $format
-	*/
+	 * getFormat
+	 *
+	 * @return $format
+	 */
 	public function getFormat()
 	{
 		return $this->format;
 	}
 	/**
-	* getName
-	*
-	* @return $name
-	*/
+	 * getName
+	 *
+	 * @return $name
+	 */
 	public function getName()
 	{
 		return $this->name;
 	}
 	/**
-	* getOptions
-	*
-	* @return $options
-	*/
+	 * getOptions
+	 *
+	 * @return $options
+	 */
 	public function getOptions()
 	{
 		return $this->options;
 	}
 	/**
-	* getParsedValue
-	*
-	* @return $parsedValue
-	*/
+	 * getParsedValue
+	 *
+	 * @return $parsedValue
+	 */
 	public function getParsedValue()
 	{
 		return $this->parsedValue;
 	}
 	/**
-	* getType
-	*
-	* @return $type
-	*/
+	 * getType
+	 *
+	 * @return $type
+	 */
 	public function getType()
 	{
 		return $this->type;
 	}
 	/**
-	* getValue
-	*
-	* @return $value
-	*/
+	 * getValue
+	 *
+	 * @return $value
+	 */
 	public function getValue()
 	{
 		return $this->value;

@@ -1,261 +1,262 @@
 <?php
+
 namespace MonitoLib\Database\Model;
 
 class Column
 {
-    const VERSION = '1.0.0';
-    /**
-    * 1.0.0 - 2021-04-21
-    * Initial releasae
-    */
+	const VERSION = '1.0.0';
+	/**
+	 * 1.0.0 - 2021-04-21
+	 * Initial releasae
+	 */
 
-    private $id;
-    private $name;
-    private $auto = false;
-    private $source;
-    private $type = 'string';
-    private $format;
-    private $charset = 'utf8';
-    private $collation = 'utf8_general_ci';
-    private $alias;
-    private $default;
-    private $label = '';
-    private $maxLength = 0;
-    private $minLength = 0;
-    private $maxValue = 0;
-    private $minValue = 0;
-    private $precision;
-    private $restrict = [];
-    private $scale;
-    private $primary = false;
-    private $required = false;
-    private $transform = [];
-    private $unique = false;
-    private $unsigned = false;
+	private $id;
+	private $name;
+	private $auto = false;
+	private $source;
+	private $type = 'string';
+	private $format;
+	private $charset = 'utf8';
+	private $collation = 'utf8_general_ci';
+	private $alias;
+	private $default;
+	private $label = '';
+	private $maxLength = 0;
+	private $minLength = 0;
+	private $maxValue = 0;
+	private $minValue = 0;
+	private $precision;
+	private $restrict = [];
+	private $scale;
+	private $primary = false;
+	private $required = false;
+	private $transform = [];
+	private $unique = false;
+	private $unsigned = false;
 	private $onInsert;
 	private $onUpdate;
 
 	/**
-	* getAlias
-	*
-	* @return $alias
-	*/
-	public function getAlias() : ?string
+	 * getAlias
+	 *
+	 * @return $alias
+	 */
+	public function getAlias(): ?string
 	{
 		return $this->alias;
 	}
 	/**
-	* getAuto
-	*
-	* @return $auto
-	*/
-	public function getAuto() : bool
+	 * getAuto
+	 *
+	 * @return $auto
+	 */
+	public function getAuto(): bool
 	{
 		return $this->auto;
 	}
 	/**
-	* getCharset
-	*
-	* @return $charset
-	*/
+	 * getCharset
+	 *
+	 * @return $charset
+	 */
 	public function getCharset()
 	{
 		return $this->charset;
 	}
 	/**
-	* getCollation
-	*
-	* @return $collation
-	*/
+	 * getCollation
+	 *
+	 * @return $collation
+	 */
 	public function getCollation()
 	{
 		return $this->collation;
 	}
 	/**
-	* getDefault
-	*
-	* @return $default
-	*/
+	 * getDefault
+	 *
+	 * @return $default
+	 */
 	public function getDefault()
 	{
 		return $this->default;
 	}
 	/**
-	* getFormat
-	*
-	* @return $format
-	*/
+	 * getFormat
+	 *
+	 * @return $format
+	 */
 	public function getFormat()
 	{
 		return $this->format;
 	}
 	/**
-	* getId
-	*
-	* @return $id
-	*/
-	public function getId() : string
+	 * getId
+	 *
+	 * @return $id
+	 */
+	public function getId(): string
 	{
 		return $this->id;
 	}
 	/**
-	* getLabel
-	*
-	* @return $label
-	*/
-	public function getLabel() : string
+	 * getLabel
+	 *
+	 * @return $label
+	 */
+	public function getLabel(): string
 	{
 		return $this->label;
 	}
 	/**
-	* getMaxLength
-	*
-	* @return $maxLength
-	*/
-	public function getMaxLength() : int
+	 * getMaxLength
+	 *
+	 * @return $maxLength
+	 */
+	public function getMaxLength(): int
 	{
 		return $this->maxLength;
 	}
 	/**
-	* getMaxValue
-	*
-	* @return $maxValue
-	*/
-	public function getMaxValue() : float
+	 * getMaxValue
+	 *
+	 * @return $maxValue
+	 */
+	public function getMaxValue(): float
 	{
 		return $this->maxValue;
 	}
 	/**
-	* getMinLength
-	*
-	* @return $minLength
-	*/
-	public function getMinLength() : int
+	 * getMinLength
+	 *
+	 * @return $minLength
+	 */
+	public function getMinLength(): int
 	{
 		return $this->minLength;
 	}
 	/**
-	* getMinValue
-	*
-	* @return $minValue
-	*/
-	public function getMinValue() : float
+	 * getMinValue
+	 *
+	 * @return $minValue
+	 */
+	public function getMinValue(): float
 	{
 		return $this->minValue;
 	}
 	/**
-	* getName
-	*
-	* @return $name
-	*/
-	public function getName() : string
+	 * getName
+	 *
+	 * @return $name
+	 */
+	public function getName(): string
 	{
 		return $this->name;
 	}
 	/**
-	* getOnInsert
-	*
-	* @return $onInsert
-	*/
-	public function getOnInsert() : ?string
+	 * getOnInsert
+	 *
+	 * @return $onInsert
+	 */
+	public function getOnInsert(): ?string
 	{
 		return $this->onInsert;
 	}
 	/**
-	* getOnUpdate
-	*
-	* @return $onUpdate
-	*/
-	public function getOnUpdate() : ?string
+	 * getOnUpdate
+	 *
+	 * @return $onUpdate
+	 */
+	public function getOnUpdate(): ?string
 	{
 		return $this->onUpdate;
 	}
 	/**
-	* getPrecision
-	*
-	* @return $precision
-	*/
-	public function getPrecision() : ?int
+	 * getPrecision
+	 *
+	 * @return $precision
+	 */
+	public function getPrecision(): ?int
 	{
 		return $this->precision;
 	}
 	/**
-	* getPrimary
-	*
-	* @return $primary
-	*/
-	public function getPrimary() : bool
+	 * getPrimary
+	 *
+	 * @return $primary
+	 */
+	public function getPrimary(): bool
 	{
 		return $this->primary;
 	}
 	/**
-	* getRequired
-	*
-	* @return $required
-	*/
-	public function getRequired() : bool
+	 * getRequired
+	 *
+	 * @return $required
+	 */
+	public function getRequired(): bool
 	{
 		return $this->required;
 	}
 	/**
-	* getRestrict
-	*
-	* @return $restrict
-	*/
-	public function getRestrict() : array
+	 * getRestrict
+	 *
+	 * @return $restrict
+	 */
+	public function getRestrict(): array
 	{
 		return $this->restrict;
 	}
 	/**
-	* getScale
-	*
-	* @return $scale
-	*/
-	public function getScale() : ?int
+	 * getScale
+	 *
+	 * @return $scale
+	 */
+	public function getScale(): ?int
 	{
 		return $this->scale;
 	}
 	/**
-	* getSource
-	*
-	* @return $source
-	*/
-	public function getSource() : ?string
+	 * getSource
+	 *
+	 * @return $source
+	 */
+	public function getSource(): ?string
 	{
 		return $this->source;
 	}
 	/**
-	* getTransform
-	*
-	* @return $transform
-	*/
+	 * getTransform
+	 *
+	 * @return $transform
+	 */
 	public function getTransform()
 	{
 		return $this->transform;
 	}
 	/**
-	* getType
-	*
-	* @return $type
-	*/
+	 * getType
+	 *
+	 * @return $type
+	 */
 	public function getType()
 	{
 		return $this->type;
 	}
 	/**
-	* getUnique
-	*
-	* @return $unique
-	*/
+	 * getUnique
+	 *
+	 * @return $unique
+	 */
 	public function getUnique()
 	{
 		return $this->unique;
 	}
 	/**
-	* getUnsigned
-	*
-	* @return $unsigned
-	*/
+	 * getUnsigned
+	 *
+	 * @return $unsigned
+	 */
 	public function getUnsigned()
 	{
 		return $this->unsigned;

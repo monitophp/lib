@@ -53,11 +53,14 @@ class Dao extends \MonitoLib\Database\Dao implements \MonitoLib\Database\DaoInte
             throw new DatabaseError('Erro ao executar comando no banco de dados', $error);
         }
     }
-    public function fetchArrayAssoc($stt) : array
+    public function fetchAll($stt)
+    {
+    }
+    public function fetchArrayAssoc($stt)
     {
         return $stt->fetch(\PDO::FETCH_ASSOC);
     }
-    public function fetchArrayNum($stt) : array
+    public function fetchArrayNum($stt)
     {
         return $stt->fetch(\PDO::FETCH_NUM);
     }

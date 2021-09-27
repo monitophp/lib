@@ -71,9 +71,10 @@ class Dao extends \MonitoLib\Database\Dao implements \MonitoLib\Database\DaoInte
         oci_fetch_all($stt, $res, null, null, OCI_FETCHSTATEMENT_BY_ROW + OCI_ASSOC);
         return $res;
     }
-    public function fetchArrayAssoc($stt) : array
+    public function fetchArrayAssoc($stt)
     {
-        return oci_fetch_array($stt, OCI_ASSOC | OCI_RETURN_NULLS);
+        $return = oci_fetch_array($stt, OCI_ASSOC | OCI_RETURN_NULLS);
+        return $return;
     }
     public function fetchArrayNum($stt) : array
     {

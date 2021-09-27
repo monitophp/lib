@@ -1,3 +1,7 @@
+<IfModule mod_php5.c>
+    php_value max_execution_time 18000
+</IfModule>
+
 Options FollowSymLinks
 RewriteEngine On
 # Scripts PHP

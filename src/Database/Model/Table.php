@@ -1,13 +1,14 @@
 <?php
+
 namespace MonitoLib\Database\Model;
 
 class Table
 {
-    const VERSION = '1.0.0';
-    /**
-     * 1.0.0 - 2021-06-30
-     * Initial release
-     */
+	const VERSION = '1.0.0';
+	/**
+	 * 1.0.0 - 2021-06-30
+	 * Initial release
+	 */
 
 	private $name;
 	private $database;
@@ -18,134 +19,134 @@ class Table
 	private $singular;
 	private $prefix;
 	private $type = 'table';
-    private $columns = [];
-    private $constraints = [];
+	private $columns = [];
+	private $constraints = [];
 
-    /**
-     * addColumn
-     *
-     * @param $column
-     */
-    public static function addColumn(Column $column)
-    {
-        self::$columns = array_map(function($e) use ($column) {
-            if ($e->getId() === $column->getId()) {
-                return $column;
-            }
-
-            return $e;
-        }, self::$columns);
-    }
-    /**
-     * addConstraint
-     *
-     * @param $constraint
-     */
-    public static function addConstraint(Constraint $constraint)
-    {
-        self::$constraints = array_map(function($e) use ($constraint) {
-            if ($e->getName() === $constraint->getName() && $e->getPosition() === $constraint->getPosition()) {
-                return $constraint;
-            }
-
-            return $e;
-        }, self::$constraints);
-    }
 	/**
-	* getAlias
-	*
-	* @return $alias
-	*/
+	 * addColumn
+	 *
+	 * @param $column
+	 */
+	public static function addColumn(Column $column)
+	{
+		self::$columns = array_map(function ($e) use ($column) {
+			if ($e->getId() === $column->getId()) {
+				return $column;
+			}
+
+			return $e;
+		}, self::$columns);
+	}
+	/**
+	 * addConstraint
+	 *
+	 * @param $constraint
+	 */
+	public static function addConstraint(Constraint $constraint)
+	{
+		self::$constraints = array_map(function ($e) use ($constraint) {
+			if ($e->getName() === $constraint->getName() && $e->getPosition() === $constraint->getPosition()) {
+				return $constraint;
+			}
+
+			return $e;
+		}, self::$constraints);
+	}
+	/**
+	 * getAlias
+	 *
+	 * @return $alias
+	 */
 	public function getAlias()
 	{
 		return $this->alias;
 	}
 	/**
-	* getClass
-	*
-	* @return $class
-	*/
-	public function getClass() : string
+	 * getClass
+	 *
+	 * @return $class
+	 */
+	public function getClass(): string
 	{
 		return $this->class;
 	}
 	/**
-	* getColumns
-	*
-	* @return $columns
-	*/
-	public function getColumns() : array
+	 * getColumns
+	 *
+	 * @return $columns
+	 */
+	public function getColumns(): array
 	{
 		return $this->columns;
 	}
 	/**
-	* getConstraints
-	*
-	* @return $constraints
-	*/
+	 * getConstraints
+	 *
+	 * @return $constraints
+	 */
 	public function getConstraints()
 	{
 		return $this->constraints;
 	}
 	/**
-	* getDatabase
-	*
-	* @return $database
-	*/
+	 * getDatabase
+	 *
+	 * @return $database
+	 */
 	public function getDatabase()
 	{
 		return $this->database;
 	}
 	/**
-	* getName
-	*
-	* @return $name
-	*/
+	 * getName
+	 *
+	 * @return $name
+	 */
 	public function getName()
 	{
 		return $this->name;
 	}
 	/**
-	* getObject
-	*
-	* @return $object
-	*/
+	 * getObject
+	 *
+	 * @return $object
+	 */
 	public function getObject()
 	{
 		return $this->object;
 	}
 	/**
-	* getPlural
-	*
-	* @return $plural
-	*/
+	 * getPlural
+	 *
+	 * @return $plural
+	 */
 	public function getPlural()
 	{
 		return $this->plural;
 	}
 	/**
-	* getPrefix
-	*
-	* @return $prefix
-	*/
+	 * getPrefix
+	 *
+	 * @return $prefix
+	 */
 	public function getPrefix()
 	{
 		return $this->prefix;
 	}
 	/**
-	* getSingular
-	*
-	* @return $singular
-	*/
+	 * getSingular
+	 *
+	 * @return $singular
+	 */
 	public function getSingular()
 	{
 		return $this->singular;
 	}
 	/**
-	* getType
-	*
-	* @return $type
-	*/
+	 * getType
+	 *
+	 * @return $type
+	 */
 	public function getType()
 	{
 		return $this->type;

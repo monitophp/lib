@@ -1,4 +1,5 @@
 <?php
+
 namespace MonitoLib\Database\Query;
 
 use MonitoLib\Exception\NotFound;
@@ -12,11 +13,11 @@ use \MonitoLib\Validator;
 
 class Dml
 {
-    const VERSION = '1.0.0';
+    public const VERSION = '1.0.0';
     /**
-    * 1.0.0 - 2019-07-09
-    * Initial release
-    */
+     * 1.0.0 - 2019-07-09
+     * Initial release
+     */
 
     private $dbms;
     private $filter;
@@ -28,7 +29,7 @@ class Dml
     private $types = [];
     private $selectSql;
 
-    public function setSelectSql(string $sql) : self
+    public function setSelectSql(string $sql): self
     {
         $this->selectSql = $sql;
         return $this;
@@ -39,22 +40,28 @@ class Dml
         $this->dbms   = $dbms;
         $this->filter = $filter;
     }
-    public function count(bool $all = false) : string
+    public function count(bool $all = false): string
     {
         return 'SELECT COUNT(*) FROM ' . $this->model->getTableName() . $this->where($all);
     }
-    public function delete() : string
+    public function delete(): string
     {
-        return 'DELETE FROM ' . $this->model->getTableName() . $this->where();
+        $where = $this->where();
+
+        if (empty($where)) {
+            throw new BadRequest('Não é possível deletar sem parâmetros');
+        }
+
+        return 'DELETE FROM ' . $this->model->getTableName() . $where;
     }
-    public function getColumn(string $columnName, bool $isRaw) : Column
+    public function getColumn(string $columnName, bool $isRaw): Column
     {
         if ($isRaw) {
             return (new Column())->setName($columnName);
         }
 
         $model   = $this->model;
-        $columns = array_filter($model->getColumns(), function($e) use ($columnName) {
+        $columns = array_filter($model->getColumns(), function ($e) use ($columnName) {
             return $e->getName() === $columnName;
         });
 
@@ -64,15 +71,15 @@ class Dml
 
         return reset($columns);
     }
-    public function getMaps() : array
+    public function getMaps(): array
     {
         return $this->maps;
     }
-    public function getTypes() : array
+    public function getTypes(): array
     {
         return $this->types;
     }
-    public function insert(object $dto) : string
+    public function insert(object $dto): string
     {
         // \MonitoLib\Dev::pre($columns);
 
@@ -104,15 +111,15 @@ class Dml
         \MonitoLib\Dev::ee($sql);
         return $sql;
     }
-    private function isMySQL() : bool
+    private function isMySQL(): bool
     {
         return $this->dbms === Dao::DBMS_MYSQL;
     }
-    private function isOracle() : bool
+    private function isOracle(): bool
     {
         return $this->dbms === Dao::DBMS_ORACLE;
     }
-    private function renderFieldsSql(?bool $perigo = false) : string
+    private function renderFieldsSql(?bool $perigo = false): string
     {
         // bool $format = true, bool $aliases = false
 
@@ -124,7 +131,7 @@ class Dml
         if (empty($columns)) {
             $columns = $model->getColumns();
         } else {
-            $columns = array_map(function($e) use ($model) {
+            $columns = array_map(function ($e) use ($model) {
                 return $model->getColumn($e);
             }, $columns);
         }
@@ -201,7 +208,7 @@ class Dml
 
         return $list;
     }
-    private function limit() : string
+    private function limit(): string
     {
         $filter  = $this->filter;
         $sql     = '';
@@ -214,7 +221,7 @@ class Dml
 
         return $sql;
     }
-    private function orderBy() : string
+    private function orderBy(): string
     {
         $sql     = '';
         $filter  = $this->filter;
@@ -232,7 +239,7 @@ class Dml
 
         return $sql;
     }
-    private function formatDatetime(string $columnName, Column $column) : string
+    private function formatDatetime(string $columnName, Column $column): string
     {
         if (!$this->isOracle()) {
             return $columnName;
@@ -260,7 +267,7 @@ class Dml
     /**
      * parseDatetime
      */
-    private function parseDatetime(string $value, Column $column) : string
+    private function parseDatetime(string $value, Column $column): string
     {
         if (!$this->isOracle()) {
             return "'$value'";
@@ -288,7 +295,7 @@ class Dml
     /**
      * parseValue
      */
-    private function parseValue(?string $value, Column $column, ?bool $isRaw = false) : string
+    private function parseValue(?string $value, Column $column, ?bool $isRaw = false): string
     {
         if ($isRaw) {
             return $value;
@@ -325,7 +332,7 @@ class Dml
     /**
      * parseWhere
      */
-    private function parseWhere($where) : string
+    private function parseWhere($where): string
     {
         $name       = $where->getColumn();
         $comparison = $where->getComparison();
@@ -343,11 +350,15 @@ class Dml
         }
 
         if (is_array($value)) {
-            $value = '(' . implode(',', array_map(function($e) use ($column) {
+            $value = '(' . implode(',', array_map(function ($e) use ($column) {
                 return $this->parseValue($e, $column);
             }, $value)) . ')';
         } else {
             $value = $this->parseValue($value, $column);
+        }
+
+        if (empty($value)) {
+            return '';
         }
 
         return " {$operator} {$startGroup}{$name} {$comparison} {$value}{$endGroup}";
@@ -355,23 +366,22 @@ class Dml
     /**
      * select
      */
-    public function select(?bool $validate = true) : string
+    public function select(?bool $validate = true): string
     {
         // \MonitoLib\Dev::pre($query);
 
         // $sql = $this->sql;
 
         // if (is_null($sql)) {
-            // if ($this->selectSqlReady) {
-                // return $this->getSelectSql();
-            // }
+        // if ($this->selectSqlReady) {
+        // return $this->getSelectSql();
+        // }
         $sql = 'SELECT '
             . $this->renderFieldsSql()
             . ' FROM '
             . $this->model->getTableName()
             . $this->where()
-            . $this->orderBy()
-            ;
+            . $this->orderBy();
 
         if ($this->isOracle()) {
             $filter  = $this->filter;
@@ -404,7 +414,7 @@ class Dml
     /**
      * update
      */
-    public function update(object $dto) : string
+    public function update(object $dto): string
     {
         $key = '';
         $fld = '';
@@ -423,17 +433,17 @@ class Dml
             $value = $dto->$get();
 
             // if (!is_null($value)) {
-                // if ($this->isOracle() && $type === 'datetime') {
-                    // $value = $this->parseDatetime($value, $column);
-                // } else {
-                // }
+            // if ($this->isOracle() && $type === 'datetime') {
+            // $value = $this->parseDatetime($value, $column);
+            // } else {
+            // }
             // }
 
 
             // if ($this->isOracle() && $xyz->isDatetime($type)) {
             // }
 
-        // foreach ($this->model->getFields() as $f) {
+            // foreach ($this->model->getFields() as $f) {
             // $name = $f['name'];
 
             if ($primary) {
@@ -470,7 +480,7 @@ class Dml
     /**
      * updateMany
      */
-    public function updateMany() : string
+    public function updateMany(): string
     {
         $fld = '';
 
@@ -509,35 +519,35 @@ class Dml
             // $value = $dto->$get();
 
             // if (!is_null($value)) {
-                // if ($this->isOracle() && $type === 'datetime') {
-                    // $value = $this->parseDatetime($value, $column);
-                // } else {
-                // }
+            // if ($this->isOracle() && $type === 'datetime') {
+            // $value = $this->parseDatetime($value, $column);
+            // } else {
+            // }
             // }
 
 
             // if ($this->isOracle() && $xyz->isDatetime($type)) {
             // }
 
-        // foreach ($this->model->getFields() as $f) {
+            // foreach ($this->model->getFields() as $f) {
             // $name = $f['name'];
 
             // if ($primary) {
-                // $key .= "$name = $value AND ";
+            // $key .= "$name = $value AND ";
             // } else {
-                // if ($this->dbms === Dao::DBMS_ORACLE && )
-                // switch ($type) {
-                //     case 'date':
-                //         // $format = $format === 'Y-m-d H:i:s' ? 'YYYY-MM-DD HH24:MI:SS' : 'YYYY-MM-DD';
-                //         $name = $this->oracleDate($format, $name);
+            // if ($this->dbms === Dao::DBMS_ORACLE && )
+            // switch ($type) {
+            //     case 'date':
+            //         // $format = $format === 'Y-m-d H:i:s' ? 'YYYY-MM-DD HH24:MI:SS' : 'YYYY-MM-DD';
+            //         $name = $this->oracleDate($format, $name);
 
-                //         $fld .= "$name = TO_DATE($value, '$format'),";
-                //         break;
-                //     default:
-                //         $fld .= "$name = $value" . ',';
-                //         // $fld .= "$name = " . ($transform ?? "$value") . ',';
-                //         break;
-                // }
+            //         $fld .= "$name = TO_DATE($value, '$format'),";
+            //         break;
+            //     default:
+            //         $fld .= "$name = $value" . ',';
+            //         // $fld .= "$name = " . ($transform ?? "$value") . ',';
+            //         break;
+            // }
             // }
         }
 
@@ -595,7 +605,7 @@ class Dml
     /**
      * where
      */
-    private function where(?bool $all = false) : string
+    private function where(?bool $all = false): string
     {
         if ($this->whereString === '') {
             $filter    = $this->filter;
@@ -603,10 +613,15 @@ class Dml
 
             if (!empty($whereList)) {
                 foreach ($whereList as $where) {
-                    $this->whereString .= $this->parseWhere($where);
+                    $parsed = $this->parseWhere($where);
+                    if (!empty($parsed)) {
+                        $this->whereString .= $parsed;
+                    }
                 }
 
-                $this->whereString = ' WHERE' . preg_replace('/^ (AND|OR)/', '', $this->whereString);
+                if (!empty($this->whereString)) {
+                    $this->whereString = ' WHERE' . preg_replace('/^ (AND|OR)/', '', $this->whereString);
+                }
             }
         }
 
