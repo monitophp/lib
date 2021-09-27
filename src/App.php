@@ -216,7 +216,6 @@ class App
             }
 
             $router = \MonitoLib\Router::check();
-            $debug = [];
 
             if ($router->isSecure) {
                 if (!self::$isLoggedIn) {
@@ -235,10 +234,14 @@ class App
             $class  = new $class();
             $return = $class->$method(...$router->params);
 
+            // $return->__toString();
+
+
             if (is_null(Response::getHttpResponseCode())) {
                 Response::setHttpResponseCode(200);
             }
         } catch (\Exception | \ThrowAble $e) {
+            $debug = [];
             $return = [];
 
             $httpCode  = $e->getCode();
@@ -271,19 +274,28 @@ class App
                     $debug['trace'][] = $tr;
                 }
             }
-        } finally {
-            if (self::getDebug() > 0) {
-                $debug['method'] = $_SERVER['REQUEST_METHOD'];
-                $debug['url']    = Request::getRequestUri();
-            }
+
+            // \MonitoLib\Dev::pre($debug);
 
             // Aplica o debug na mensagem, se não estiver vazio
             if (!empty($debug)) {
                 Response::setDebug($debug);
             }
 
-            Response::parse($return);
-            Response::render();
+            $return = json_encode($return);
+
+        } finally {
+            // if (self::getDebug() > 0) {
+            //     $debug['method'] = $_SERVER['REQUEST_METHOD'];
+            //     $debug['url']    = Request::getRequestUri();
+            // }
+
+
+            // \MonitoLib\Dev::pre($return);
+
+
+            // Response::parse($return);
+            Response::render($return);
         }
     }
     public static function setDebug(int $debug) : void

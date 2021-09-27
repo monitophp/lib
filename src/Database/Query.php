@@ -1,4 +1,5 @@
 <?php
+
 namespace MonitoLib\Database;
 
 // use \MonitoLib\Exception\BadRequest;
@@ -8,9 +9,9 @@ class Query
 {
     const VERSION = '1.0.0';
     /**
-    * 1.0.0 - 2021-07-08
-    * Initial release
-    */
+     * 1.0.0 - 2021-07-08
+     * Initial release
+     */
 
     // Options flags
     const NONE        = 0;
@@ -23,117 +24,117 @@ class Query
 
     private $filter;
 
-    public function between(string $field, $value1, $value2, int $options = self::NONE) : self
+    public function between(string $field, $value1, $value2, int $options = self::NONE): self
     {
         $this->parseWhere(Filter::BETWEEN, $field, $value1, $value2, $options);
         return $this;
     }
-    public function bitAnd(string $field, int $value, int $options = 0) : self
+    public function bitAnd(string $field, int $value, int $options = 0): self
     {
         $this->parseWhere(Filter::BIT_AND, $field, $value, null, $options);
         return $this;
     }
-    public function equal(string $field, string $value, int $options = 0) : self
+    public function equal(string $field, string $value, int $options = 0): self
     {
         $this->parseWhere(Filter::EQUAL, $field, $value, null, $options);
         return $this;
     }
-    public function exists(string $value, int $options = 0) : self
+    public function exists(string $value, int $options = 0): self
     {
         return $this;
     }
-    public function columns(array $fields = null) : self
+    public function columns(array $fields = null): self
     {
         $this->initFilter();
         $this->filter->setColumns($fields);
         return $this;
     }
-    public function getFilter() : \MonitoLib\Database\Query\Filter
+    public function getFilter(): \MonitoLib\Database\Query\Filter
     {
         $this->initFilter();
         return $this->filter;
     }
-    public function greater(string $field, $value, int $options = 0) : self
+    public function greater(string $field, $value, int $options = 0): self
     {
         $this->parseWhere(Filter::GREATER, $field, $value, null, $options);
         return $this;
     }
-    public function greaterEqual(string $field, $value, int $options = 0) : self
+    public function greaterEqual(string $field, $value, int $options = 0): self
     {
         $this->parseWhere(Filter::GREATER_EQUAL, $field, $value, null, $options);
         return $this;
     }
-    public function groupBy(array $fields, int $options = 0) : self
+    public function groupBy(array $fields, int $options = 0): self
     {
         $this->query['fields'] = $fields;
         return $this;
     }
-    public function having(string $field, int $options = 0) : self
+    public function having(string $field, int $options = 0): self
     {
         return $this;
     }
-    public function in(string $field, array $values, int $options = 0) : self
+    public function in(string $field, array $values, int $options = 0): self
     {
         $this->parseWhere(Filter::IN, $field, $values, null, $options);
         return $this;
     }
-    private function initFilter() : void
+    private function initFilter(): void
     {
         if (is_null($this->filter)) {
             $this->filter = new \MonitoLib\Database\Query\Filter();
         }
     }
-    public function less(string $field, $value, int $options = 0) : self
+    public function less(string $field, $value, int $options = 0): self
     {
         $this->parseWhere(Filter::LESS, $field, $value, null, $options);
         return $this;
     }
-    public function lessEqual(string $field, $value, int $options = 0) : self
+    public function lessEqual(string $field, $value, int $options = 0): self
     {
         $this->parseWhere(Filter::LESS_EQUAL, $field, $value, null, $options);
         return $this;
     }
-    public function like(string $field, string $value, int $options = 0) : self
+    public function like(string $field, string $value, int $options = 0): self
     {
         $this->parseWhere(Filter::LIKE, $field, $value, null, $options);
         return $this;
     }
-    public function map(array $map) : self
+    public function map(array $map): self
     {
         $this->initFilter();
         $this->filter->setMap($map);
         return $this;
     }
-    public function notEqual(string $field, string $value, int $options = self::NONE) : self
+    public function notEqual(string $field, string $value, int $options = self::NONE): self
     {
         $this->parseWhere(Filter::NOT_EQUAL, $field, $value, null, $options);
         return $this;
     }
-    public function notExists(string $value, int $options = 0) : self
+    public function notExists(string $value, int $options = 0): self
     {
         return $this;
     }
-    public function notIn(string $field, array $values, int $options = 0) : self
+    public function notIn(string $field, array $values, int $options = 0): self
     {
         $this->parseWhere(Filter::NOT_IN, $field, $values, null, $options);
         return $this;
     }
-    public function notLike(string $field, string $value, int $options = 0) : self
+    public function notLike(string $field, string $value, int $options = 0): self
     {
         $this->parseWhere(Filter::NOT_LIKE, $field, $value, null, $options);
         return $this;
     }
-    public function notNull(string $field, int $options = 0) : self
+    public function notNull(string $field, int $options = 0): self
     {
         $this->parseWhere(Filter::IS_NOT_NULL, $field, null, null, $options);
         return $this;
     }
-    public function null(string $field, int $options = 0) : self
+    public function null(string $field, int $options = 0): self
     {
         $this->parseWhere(Filter::IS_NULL, $field, null, null, $options);
         return $this;
     }
-    public function orderBy($column, $direction = 'ASC', $options = 0) : self
+    public function orderBy($column, $direction = 'ASC', $options = 0): self
     {
         $options = new \MonitoLib\Database\Query\Options($options);
         $isRaw   = $options->isRaw();
@@ -143,13 +144,13 @@ class Query
         $this->filter->addOrderBy($column, $direction);
         return $this;
     }
-    public function page(int $page) : self
+    public function page(int $page): self
     {
         $this->initFilter();
         $this->filter->setPerPage($page);
         return $this;
     }
-    public function parseWhere(string $comparisonOperator, ?string $column, $value1, $value2 = null, int $options = 0)
+    private function parseWhere(string $comparisonOperator, ?string $column, $value1, $value2 = null, int $options = 0)
     {
         $options = new \MonitoLib\Database\Query\Options($options);
         // \MonitoLib\Dev::pre($options);
@@ -185,7 +186,7 @@ class Query
 
         // array_push($this->query, $where);
     }
-    public function perPage(int $perPage) : self
+    public function perPage(int $perPage): self
     {
         $this->initFilter();
         $this->filter->setPerPage($perPage);
@@ -198,5 +199,37 @@ class Query
     public function reset()
     {
         $this->filter = null;
+    }
+    public function set(string $column, $value, int $options = self::NONE): self
+    {
+        $options = new \MonitoLib\Database\Query\Options($options);
+        // \MonitoLib\Dev::pre($options);
+
+        // $where = $this->parseGroup($options->startGroup(), $options->endGroup());
+        // $value = $value1;
+
+        // if (!is_null($value2)) {
+        //     $value = [$value1, $value2];
+        // }
+
+        // $options = new \MonitoLib\Database\Query\Options($options);
+        // $isRaw   = $options->isRaw();
+
+        // if (!$isRaw) {
+        //     // Valida o campo no modelo
+        //     $column = $this->checkColumn($column);
+        //     $type   = $column->getType();
+        //     $format = $column->getFormat();
+        // }
+
+        $set = new \MonitoLib\Database\Query\Filter\Set();
+        $set
+            ->setColumn($column)
+            ->setValue($value)
+            ->setOptions($options);
+
+        $this->initFilter();
+        $this->filter->addSet($set);
+        return $this;
     }
 }

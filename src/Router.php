@@ -1,4 +1,5 @@
 <?php
+
 namespace MonitoLib;
 
 use \MonitoLib\App;
@@ -11,23 +12,23 @@ class Router
 {
     const VERSION = '1.1.0';
     /**
-    * 1.1.0 - 2020-09-18
-    * new: \MonitoLib\Request now static
-    * new: remove cli()
-    *
-    * 1.0.2 - 2019-09-20
-    * fix: minor fixes
-    *
-    * 1.0.1 - 2019-05-02
-    * fix: checks OPTIONS request method on check function
-    *
-    * 1.0.0 - 2017-03-16
-    * Inicial release
-    */
+     * 1.1.0 - 2020-09-18
+     * new: \MonitoLib\Request now static
+     * new: remove cli()
+     *
+     * 1.0.2 - 2019-09-20
+     * fix: minor fixes
+     *
+     * 1.0.1 - 2019-05-02
+     * fix: checks OPTIONS request method on check function
+     *
+     * 1.0.0 - 2017-03-16
+     * Inicial release
+     */
 
     static private $routes = [];
 
-    private static function add($method, $url, $action, $secure = true)
+    private static function add(string $method, string $url, string $action, bool $secure = true)
     {
         $parts = explode('/', trim($url, '/'));
 
@@ -168,14 +169,14 @@ class Router
                 // \MonitoLib\Dev::e($class);
                 // \MonitoLib\Dev::ee($method);
                 // if (is_callable([$class, $method])) {
-                    $router = new \StdClass;
-                    $router->class    = $class;
-                    $router->method   = $method;
-                    $router->params   = $params;
-                    $router->isSecure = $secure;
-                    return $router;
+                $router = new \StdClass;
+                $router->class    = $class;
+                $router->method   = $method;
+                $router->params   = $params;
+                $router->isSecure = $secure;
+                return $router;
                 // } else {
-                    // throw new NotFound('Método do controller não encontrado!');
+                // throw new NotFound('Método do controller não encontrado!');
                 // }
             } else {
                 throw new NotFound("Controller $class não encontrado");
@@ -184,23 +185,23 @@ class Router
             throw new NotFound('Método não encontrada');
         }
     }
-    public static function delete($url, $action, $secure = true) : void
+    public static function delete(string $url, string $action, bool $secure = true): void
     {
         self::add('DELETE', $url, $action, $secure);
     }
-    public static function get($url, $action, $secure = true) : void
+    public static function get(string $url, string $action, bool $secure = true): void
     {
         self::add('GET', $url, $action, $secure);
     }
-    public static function patch($url, $action, $secure = true) : void
+    public static function patch(string $url, string $action, bool $secure = true): void
     {
         self::add('PATCH', $url, $action, $secure);
     }
-    public static function post($url, $action, $secure = true) : void
+    public static function post(string $url, string $action, bool $secure = true): void
     {
         self::add('POST', $url, $action, $secure);
     }
-    public static function put($url, $action, $secure = true) : void
+    public static function put(string $url, string $action, bool $secure = true): void
     {
         self::add('PUT', $url, $action, $secure);
     }

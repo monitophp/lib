@@ -3,7 +3,7 @@ namespace MonitoLib\Type;
 
 class DateTime extends \DateTime
 {
-    public function __construct(string $datetime, ?string $timezone = null)
+    public function __construct(?string $datetime = 'now', ?string $timezone = null)
     {
         parent::__construct($datetime);
         $timezone ??= date_default_timezone_get();

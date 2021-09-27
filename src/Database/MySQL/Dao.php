@@ -6,7 +6,7 @@ use \MonitoLib\Exception\DatabaseError;
 use \MonitoLib\Functions;
 use \MonitoLib\Database\Query\Dml;
 
-class Dao extends \MonitoLib\Database\Dao
+class Dao extends \MonitoLib\Database\Dao implements \MonitoLib\Database\DaoInterface
 {
     const VERSION = '1.0.2';
     /**
@@ -20,16 +20,20 @@ class Dao extends \MonitoLib\Database\Dao
     * first versioned
     */
 
-    protected $filter;
     protected $dbms = 1;
-    private $dml;
+    protected $filter;
+    protected $lastId;
     private $affectedRows = 0;
 
-    public function beginTransaction()
+    public function affectedRows() : int
+    {
+        return $this->affectedRows;
+    }
+    public function beginTransaction() : void
     {
         $this->getConnection()->beginTransaction();
     }
-    public function commit()
+    public function commit() : void
     {
         $this->getConnection()->commit();
     }
@@ -37,6 +41,7 @@ class Dao extends \MonitoLib\Database\Dao
     {
         try {
             $stt->execute();
+            $this->affectedRows = $stt->rowCount();
             return $stt;
         } catch (\PDOException $e) {
             $error = [
@@ -47,6 +52,9 @@ class Dao extends \MonitoLib\Database\Dao
 
             throw new DatabaseError('Erro ao executar comando no banco de dados', $error);
         }
+    }
+    public function fetchAll($stt)
+    {
     }
     public function fetchArrayAssoc($stt)
     {
@@ -60,215 +68,15 @@ class Dao extends \MonitoLib\Database\Dao
     {
         return $this->getConnection()->prepare($sql);
     }
-    public function rollback()
+    public function rollback() : void
     {
         $this->getConnection()->rollback();
     }
     /**
-    * delete
-    * @todo allow delete using dtoObject
-    * @todo validate deleting without parameters
-    * @todo validate deleting without all key parameters
-    */
-    public function delete(...$params)
-    {
-        if ($this->model->getTableType() == 'view') {
-            throw new BadRequest('Não é possível deletar registros de uma view');
-        }
-
-        $dml = $this->getDml();
-        $sql = $dml->delete();
-        \MonitoLib\Dev::ee($sql);
-
-        $sql = 'DELETE FROM ';
-        \MonitoLib\Dev::ee($sql);
-
-        $sql = $this->renderDeleteSql();
-        $stt = $this->parse($sql);
-        $this->execute($stt);
-
-        // Reset query
-        $this->reset();
-
-        $this->affectedRows = $stt->rowCount();
-
-        // if ($stt->rowCount() === 0) {
-            // throw new BadRequest('Não foi possível deletar!');
-        // }
-    }
-    /**
-    * get
-    */
-    public function get()
-    {
-        $res = $this->list();
-        return isset($res[0]) ? $res[0] : null;
-    }
-    /**
-    * getById
-    */
-    public function getById(...$params)
-    {
-        if (!empty($params)) {
-            $keys = $this->model->getPrimaryKeys();
-            $countKeys   = count($keys);
-            $countParams = count($params);
-
-            if ($countKeys !== $countParams) {
-                throw new BadRequest('Número inválido de parâmetros');
-            }
-
-            if ($countParams > 1) {
-                foreach ($params as $p) {
-                    foreach ($keys as $k) {
-                        $this->equal($k, $p);
-                    }
-                }
-            } else {
-                $this->equal($keys[0], $params[0]);
-            }
-
-            return $this->get();
-        }
-    }
-    /**
     * getLastId
     */
-    public function getLastId()
+    public function getLastId() : int
     {
         return $this->lastInsertId();
-    }
-    /**
-    * insert
-    */
-    public function insert($dto) : void
-    {
-        if ($this->model->getTableType() === 'view') {
-            throw new BadRequest('Não é possível inserir registros em uma view');
-        }
-
-        if (!$dto instanceof $this->dtoName) {
-            throw new BadRequest('O parâmetro passado não é uma instância de ' . $this->dtoName);
-        }
-
-        // Atualiza o objeto com os valores automáticos, caso não informados
-        $dto = $this->setAutoValues($dto);
-
-        // \MonitoLib\Dev::pre($dto);
-
-        // Valida o objeto dto
-        $validator = new \MonitoLib\Database\Validator();
-        $validator->validate($dto, $this->model);
-
-        // \MonitoLib\Dev::pre($dto);
-
-        // Verifica se existe constraint de chave única
-        // $this->checkUnique($this->model->getUniqueConstraints(), $dto);
-
-        // $columns = $this->model->getInsertColumnsArray();
-        $dml = $this->getDml();
-        $sql = $dml->insert($dto);
-        $stt = $this->parse($sql);
-        \MonitoLib\Dev::ee($sql);
-
-        foreach ($columns as $column) {
-            $id        = $column->getId();
-            $name      = $column->getName();
-            $transform = $column->getTransform();
-            $var       = Functions::toLowerCamelCase($name);
-            $get       = 'get' . ucfirst($id);
-            $$id       = $dto->$get();
-
-            $stt->bindParam(':' . $name, $$id);
-        }
-
-        $this->execute($stt);
-        $this->reset();
-    }
-    private function getDml()
-    {
-        if (is_null($this->dml)) {
-            $this->dml = new \MonitoLib\Database\Query\Dml($this->model, $this->dbms, $this->getFilter());
-        }
-
-        return $this->dml;
-    }
-    /**
-    * update
-    */
-    public function update(object $dto)
-    {
-        if ($this->model->getTableType() === 'view') {
-            throw new BadRequest('Não é possível atualizar os registros de uma view');
-        }
-
-        if (!$dto instanceof $this->dtoName) {
-            throw new BadRequest('O parâmetro passado não é uma instância de ' . $this->dtoName);
-        }
-
-        // Valida o objeto dto
-        // $this->model->validate($dto);
-
-        // Atualiza o objeto com os valores automáticos, caso não informados
-        $dto = $this->setAutoValues($dto);
-
-        // Valida o objeto dto
-        $validator = new \MonitoLib\Database\Validator();
-        $validator->validate($dto, $this->model);
-
-        // Verifica se existe constraint de chave única
-        // $this->checkUnique($this->model->getUniqueConstraints(), $dto);
-
-        $key = '';
-        $fld = '';
-
-        $columns = $this->model->getColumns();
-
-        foreach ($columns as $column) {
-            $id        = $column->getId();
-            $name      = $column->getName();
-            $primary   = $column->getPrimary();
-            $transform = $column->getTransform();
-            $get       = 'get' . ucfirst($id);
-            $value     = $this->escape($dto->$get());
-
-            if ($primary) {
-                // $key .= "`$name` = :$name AND ";
-                $key .= "`$name` = $value AND ";
-            } else {
-                // $fld .= "`$name` = " . ($transform ?? ":$name") . ',';
-                $fld .= "`$name` = " . ($transform ?? "$value") . ',';
-            }
-        }
-
-        $key = substr($key, 0, -5);
-        $fld = substr($fld, 0, -1);
-
-        // \MonitoLib\Dev::pre($dto);
-
-        $sql = 'UPDATE ' . $this->model->getTableName() . " SET $fld WHERE $key";
-        // \MonitoLib\Dev::ee($sql);
-        $stt = $this->parse($sql);
-
-        // foreach ($this->model->getFields() as $f) {
-        //     $var  = Functions::toLowerCamelCase($f['name']);
-        //     $get  = 'get' . ucfirst($var);
-
-        //     $stt->bindParam(':' . $f['name'], $$var);
-        // }
-
-        $this->execute($stt);
-
-        $this->reset();
-
-        $this->affectedRows = $stt->rowCount();
-
-        \MonitoLib\Dev::e($this->affectedRows);
-
-        // if ($stt->rowCount() === 0) {
-            // throw new BadRequest("Não foi possível atualizar a tabela {$this->model->getTableName()}!");
-        // }
-
-        $stt = null;
     }
 }

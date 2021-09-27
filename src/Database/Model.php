@@ -91,10 +91,10 @@ class Model
 	*
 	* @return array $fields
 	*/
-    public function getColumnIds() : array
+    public function getColumnIds(?bool $useAlias = false) : array
     {
-        return array_map(function($e) {
-            return $e->getId();
+        return array_map(function($e) use ($useAlias) {
+            return $useAlias ? $e->getAlias() : $e->getId();
         }, $this->getColumns());
     }
 	/**

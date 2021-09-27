@@ -1,4 +1,5 @@
 <?php
+
 namespace MonitoLib;
 
 use \MonitoLib\Exception\BadRequest;
@@ -8,15 +9,15 @@ use \MonitoLib\Response;
 
 class Controller
 {
-    const VERSION = '2.0.0';
-    /**
-    * 2.0.0 - 2020-09-18
-    * new: overwrite for CRUD methods
-    * new: static Response/Request
-    *
-    * 1.0.0 - 2019-04-17
-    * first versioned
-    */
+	const VERSION = '2.0.0';
+	/**
+	 * 2.0.0 - 2020-09-18
+	 * new: overwrite for CRUD methods
+	 * new: static Response/Request
+	 *
+	 * 1.0.0 - 2019-04-17
+	 * first versioned
+	 */
 
 	private $dao;
 	private $daoName;
@@ -43,20 +44,18 @@ class Controller
 		$this->modelName = $namespace . 'Model\\' . $className;
 	}
 
-	public function __call($name, $arguments)
+	public function __call(string $method, $arguments)
 	{
-		$method = '_' . $name;
-
 		if (!method_exists($this, $method)) {
-	        throw new NotFound("Method $name doesn't exists");
+			throw new NotFound("Method $method doesn't exists");
 		}
 
 		return $this->$method(...$arguments);
 	}
-	public function _create($mix = null)
+	private function create($mix = null)
 	{
 		if (is_null($mix)) {
-	    	$json[] = Request::getJson();
+			$json[] = Request::getJson();
 		} else {
 			if (is_array($mix)) {
 				$json = $mix;
@@ -68,19 +67,20 @@ class Controller
 		$dao = new $this->daoName;
 
 		foreach ($json as $j) {
-		    $dto = $this->jsonToDto(new $this->dtoName, $j);
-		    $dao->insert($dto);
+			$dto = $this->jsonToDto($j);
+			$dao->insert($dto);
 		}
 
-	    Response::setHttpResponseCode(201);
+		Response::setHttpResponseCode(201);
 	}
-	public function _delete(...$keys)
+	private function delete(...$keys)
 	{
-		if (empty($keys)) {
-			throw new BadRequest('Não é possível deletar sem parâmetros');
-		}
+		// if (empty($keys)) {
+		// 	throw new BadRequest('Não é possível deletar sem parâmetros');
+		// }
 
-	    $dao   = $this->getDao();
+		$dao   = $this->getDao();
+		$model = $this->getModel();
 		// $model = $this->getModel();
 
 		// if (!empty($keys)) {
@@ -95,19 +95,24 @@ class Controller
 		// 	}
 		// }
 
+		if (empty($keys)) {
+			$query = Request::getQuery($model, $dao);
+			$dao->mergeFilter($query);
+		}
+
 		$dao->delete(...$keys);
 
-	    Response::setHttpResponseCode(204);
+		Response::setHttpResponseCode(204);
 	}
-	public function _get(...$keys)
+	private function get(...$keys)
 	{
-	    $dao   = $this->getDao();
+		$dao   = $this->getDao();
 		$model = $this->getModel();
 
 		if (empty($keys)) {
 			$query = Request::getQuery($model, $dao);
 			$dao->mergeFilter($query);
-    	    return $dao->dataset();
+			return $dao->dataset();
 		}
 
 		$primaryKeys = $model->getPrimaryKeys();
@@ -127,7 +132,7 @@ class Controller
 
 		return $dto;
 	}
-	public function _update(...$keys)
+	private function update(...$keys)
 	{
 		$json  = Request::getJson();
 		$dao   = $this->getDao();
@@ -145,11 +150,10 @@ class Controller
 		// }
 
 		$dto = $this->_get(...$keys);
-		\MonitoLib\Dev::pre($dto);
 
-	    if (is_null($dto)) {
-	        throw new NotFound($this->notFound ?? 'Registro não encontrado');
-	    }
+		if (is_null($dto)) {
+			throw new NotFound($this->notFound ?? 'Registro não encontrado');
+		}
 
 		$dto = $this->jsonToDto($dto, $json);
 
@@ -158,7 +162,7 @@ class Controller
 
 		$dao->update($dto);
 
-	    Response::setHttpResponseCode(201);
+		Response::setHttpResponseCode(201);
 	}
 	public function getDao()
 	{
@@ -176,12 +180,34 @@ class Controller
 
 		return $this->model;
 	}
-	public function jsonToDto($dto, $json)
+	public function jsonToDto(object $json)
 	{
+		// $dao   = $this->getDao();
+		$model = $this->getModel();
+		$dto   = new $this->dtoName;
+
+		// \MonitoLib\Dev::vde($json);
+		// \MonitoLib\Dev::pr($dto);
 		if (!is_null($json)) {
 			foreach ($json as $k => $v) {
+				$column = $model->getColumn($k);
+				$type   = $column->getType();
+
+				switch ($type) {
+					case 'date':
+					case 'datetime':
+					case 'time':
+						$v = new \MonitoLib\Type\DateTime($v);
+						break;
+				}
+
+				// \MonitoLib\Dev::pre($column);
+
 				$method = 'set' . \MonitoLib\Functions::toUpperCamelCase($k);
 				if (method_exists($dto, $method)) {
+					// \MonitoLib\Dev::e($method);
+					// \MonitoLib\Dev::vd($v);
+
 					$dto->$method($v);
 				}
 			}
@@ -193,5 +219,4 @@ class Controller
 	{
 		return $value === '' ? null : $value;
 	}
-
 }

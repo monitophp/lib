@@ -1,7 +1,8 @@
 <?php
 namespace MonitoLib;
 
-use MonitoLib\Exception\BadRequest;
+use \MonitoLib\Exception\BadRequest;
+use \MonitoLib\Exception\NotFound;
 
 class Response
 {
@@ -30,6 +31,11 @@ class Response
 	{
 		self::$contentType = 'Content-Type: text/html';
 	}
+	public static function image(string $image) : void
+	{
+		self::$contentType = 'Content-Type: image/jpeg';
+		self::render($image);
+	}
 	public static function asJson() : void
 	{
 		self::$contentType = 'Content-Type: application/json';
@@ -45,6 +51,48 @@ class Response
 	public static function asXml() : void
 	{
 		self::$contentType = 'Content-Type: application/xml';
+	}
+	public static function download(string $filePath) : void
+	{
+		$fileName = basename($filePath);
+
+		if (!file_exists($filePath)) {
+			throw new NotFound("File $fileName not found");
+		}
+
+		$mimetype = mime_content_type($filePath);
+
+		// Maximum size of chunks (in bytes).
+		$maxRead = 1 * 1024 * 1024; // 1MB
+
+		// Give a nice name to your download.
+
+		// Open a file in read mode.
+		$fh = fopen($filePath, 'r');
+
+		// These headers will force download on browser,
+		// and set the custom file name for the download, respectively.
+		// header('Content-Type: application/octet-stream');
+		header("Content-Type: $mimetype");
+		self::asPdf();
+		header('Content-Disposition: attachment; filename="' . $fileName . '"');
+		http_response_code(200);
+		// self::setHttpResponseCode(200);
+
+		// Run this until we have read the whole file.
+		// feof (eof means "end of file") returns `true` when the handler
+		// has reached the end of file.
+		while (!feof($fh)) {
+			// Read and output the next chunk.
+			echo fread($fh, $maxRead);
+
+			// Flush the output buffer to free memory.
+			ob_flush();
+			flush();
+		}
+
+		// Exit to make sure not to output anything else.
+		exit;
 	}
 	public static function getContentType()
 	{
@@ -106,25 +154,37 @@ class Response
 
 		return $return;
 	}
-	public static function render()
+	public static function render($return)
 	{
+ 		// $finfo = new \finfo(FILEINFO_MIME_TYPE);
+  		// $mt = $finfo->buffer($return);
+		// \MonitoLib\Dev::ee($mt);
+
+		// \MonitoLib\Dev::pre(self::$contentType);
+
 		http_response_code(self::$httpResponseCode);
 		header(self::$contentType);
 
-		if (empty(self::$return)) {
+		if (empty($return) || is_null($return)) {
 			http_response_code(204);
 		} else {
-			try {
-				if (!empty(self::$debug)) {
-					self::$return['debug'] = self::$debug;
-				}
-
-				$output = json_encode(self::$return, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
-			} catch (\Exception | \ThrowAble $e) {
-				$output = json_encode(['message' => $e->getMessage()]);
-			} finally {
-				echo $output;
+			if (is_string($return) || method_exists($return, '__toString')) {
+			// $return = (string)$return;
+				echo $return;
+			// if (!is_string($return)) {
+			} else {
+				echo '{"message": "Saporra tem que ser istringui e não ' . gettype($return) . '"}';
 			}
+			// try {
+			// 	if (!empty(self::$debug)) {
+			// 		self::$return['debug'] = self::$debug;
+			// 	}
+
+			// 	$output = json_encode(self::$return, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+			// } catch (\Exception | \ThrowAble $e) {
+			// 	$output = json_encode(['message' => $e->getMessage()]);
+			// } finally {
+			// }
 		}
 	}
 	public static function setContentType($contentType)
@@ -152,8 +212,8 @@ class Response
 			if ($object instanceof \stdClass) {
 				$results = json_decode(json_encode($object), true);
 			} else {
-				$result = [];
-				$class  = new \ReflectionClass(get_class($object));
+				$result     = [];
+				$class      = new \ReflectionClass(get_class($object));
 				$properties = $class->getProperties(\ReflectionProperty::IS_PRIVATE);
 
 				// \MonitoLib\Dev::pre($properties);
@@ -166,7 +226,12 @@ class Response
 						$value = call_user_func([$object, $getMethod]);
 
 			            if (is_object($value) || is_array($value)) {
-		                    $result[$propertyName] = self::toArray($value);
+							if (method_exists($value, '__toString')) {
+								// \MonitoLib\Dev::vd($value);
+								$result[$propertyName] = $value->__toString();
+							} else {
+		                    	$result[$propertyName] = self::toArray($value);
+							}
 			            } else {
 			                $result[$propertyName] = $value ?? '';
 			            }

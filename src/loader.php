@@ -4,11 +4,11 @@ define('MONITOLIB_ROOT_URL', str_replace('index.php', '', $_SERVER['PHP_SELF']))
 
 // Registers autoload function
 spl_autoload_register(
-    function($className) {
+    function ($className) {
         $dir = 'src' . DIRECTORY_SEPARATOR;
 
         if (substr($className, 0, 5) === 'Cache') {
-            $dir = 'tmp/';
+            $dir = 'tmp' . DIRECTORY_SEPARATOR;
         }
 
         $file = MONITOLIB_ROOT_PATH . $dir . str_replace('\\', '/', $className) . '.php';

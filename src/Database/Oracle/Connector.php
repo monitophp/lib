@@ -30,9 +30,10 @@ class Connector extends \MonitoLib\Database\Connection
 
 	public function connect()
 	{
+		// Ativa o autocommit como padrão
 		$this->executeMode = OCI_COMMIT_ON_SUCCESS;
-        $password = Functions::decrypt($this->pass, $this->name . $this->env);
 
+        $password = Functions::decrypt($this->pass, $this->name . $this->env);
 		$this->connection = @oci_connect($this->user, $password, $this->host, 'AL32UTF8');
 
 		if (!$this->connection) {
@@ -45,7 +46,7 @@ class Connector extends \MonitoLib\Database\Connection
                 'line'    => $db[1]['line'],
 			];
 
-			throw new DatabaseError('Erro ao conectar no banco de dados!', $error);
+			throw new DatabaseError('Erro ao conectar no banco de dados', $error);
 		}
 	}
 	public function beginTransaction()
@@ -63,7 +64,7 @@ class Connector extends \MonitoLib\Database\Connection
 
         if (!$exe) {
             $e = @oci_error($stt);
-            throw new DatabaseError('Ocorreu um erro no banco de dados!', $e);
+            throw new DatabaseError('Ocorreu um erro no banco de dados', $e);
         }
 
         return $stt;
@@ -82,7 +83,7 @@ class Connector extends \MonitoLib\Database\Connection
 
         if (!$stt) {
             $e = @oci_error($stt);
-            throw new DatabaseError('Ocorreu um erro no banco de dados!', $e);
+            throw new DatabaseError('Ocorreu um erro no banco de dados', $e);
         }
 
         return $stt;

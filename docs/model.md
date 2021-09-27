@@ -104,6 +104,17 @@ private $columns = [
 Tipo de dado da coluna.\
 Tipo de dado: `string`\
 Valor padrão: `'string'`
+Valores possíveis:
+string
+int
+float
+date
+datetime
+time
+object
+array
+json
+\MonitoLib\Datatime
 
 ### format : `string`
 Formato do campo na consulta

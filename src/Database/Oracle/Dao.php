@@ -7,7 +7,7 @@ use \MonitoLib\Functions;
 use \MonitoLib\Database\Query\Dml;
 use \MonitoLib\Database\Query;
 
-class Dao extends \MonitoLib\Database\Dao // implements \MonitoLib\Database\Dao
+class Dao extends \MonitoLib\Database\Dao implements \MonitoLib\Database\DaoInterface
 {
     const VERSION = '1.2.1';
     /**
@@ -37,20 +37,19 @@ class Dao extends \MonitoLib\Database\Dao // implements \MonitoLib\Database\Dao
     * first versioned
     */
     protected $dbms = 2;
-    private $executeMode;
     protected $lastId;
+    private $executeMode = OCI_COMMIT_ON_SUCCESS;
     private $affectedRows = 0;
 
-    public function __construct()
+    public function affectedRows() : int
     {
-        $this->executeMode = OCI_COMMIT_ON_SUCCESS;
-        parent::__construct();
+        return $this->affectedRows;
     }
-    public function beginTransaction()
+    public function beginTransaction() : void
     {
         $this->executeMode = OCI_NO_AUTO_COMMIT;
     }
-    public function commit()
+    public function commit() : void
     {
         @oci_commit($this->getConnection());
         $this->executeMode = OCI_COMMIT_ON_SUCCESS;
@@ -64,72 +63,28 @@ class Dao extends \MonitoLib\Database\Dao // implements \MonitoLib\Database\Dao
             throw new DatabaseError('Ocorreu um erro no banco de dados', $e);
         }
 
+        $this->affectedRows = oci_num_rows($stt);
         return $stt;
     }
-    public function fetchAll($stt)
+    public function fetchAll($stt) : array
     {
         oci_fetch_all($stt, $res, null, null, OCI_FETCHSTATEMENT_BY_ROW + OCI_ASSOC);
         return $res;
     }
     public function fetchArrayAssoc($stt)
     {
-        return oci_fetch_array($stt, OCI_ASSOC | OCI_RETURN_NULLS);
+        $return = oci_fetch_array($stt, OCI_ASSOC | OCI_RETURN_NULLS);
+        return $return;
     }
-    public function fetchArrayNum($stt)
+    public function fetchArrayNum($stt) : array
     {
         return oci_fetch_array($stt, OCI_NUM | OCI_RETURN_NULLS);
     }
-    public function get(...$params)
-    {
-        if (!empty($params)) {
-            $keys = $this->model->getPrimaryKeys();
-
-            if (count($params) !== count($keys)) {
-                throw new BadRequest('Invalid parameters number');
-            }
-
-            if (count($params) > 1) {
-                foreach ($params as $p) {
-                    foreach ($keys as $k) {
-                        $this->equal($k, $p);
-                    }
-                }
-            } else {
-                $this->equal($keys[0], $params[0]);
-            }
-        }
-
-        $res = $this->list();
-        $this->reset();
-        return isset($res[0]) ? $res[0] : null;
-    }
-    public function getById(...$params)
-    {
-        if (!empty($params)) {
-            $keys = $this->model->getPrimaryKeys();
-
-            if (count($params) !== count($keys)) {
-                throw new BadRequest('Invalid parameters number');
-            }
-
-            if (count($params) > 1) {
-                foreach ($params as $p) {
-                    foreach ($keys as $k) {
-                        $this->equal($k, $p);
-                    }
-                }
-            } else {
-                $this->equal($keys[0], $params[0]);
-            }
-
-            return $this->get();
-        }
-    }
-    public function getLastId()
+    public function getLastId() : int
     {
         return $this->lastId;
     }
-    public function nextValue($sequence)
+    public function nextValue($sequence) : int
     {
         $sql = "SELECT $sequence.nextval FROM dual";
         $stt = $this->parse($sql);
@@ -160,7 +115,7 @@ class Dao extends \MonitoLib\Database\Dao // implements \MonitoLib\Database\Dao
 
         return $value;
     }
-    public function parse($sql)
+    public function parse(string $sql)
     {
         $stt = @oci_parse($this->getConnection(), $sql);
 
@@ -233,7 +188,7 @@ class Dao extends \MonitoLib\Database\Dao // implements \MonitoLib\Database\Dao
             return $res;
         }
     }
-    public function rollback()
+    public function rollback() : void
     {
         @oci_rollback($this->getConnection());
         $this->executeMode = OCI_COMMIT_ON_SUCCESS;

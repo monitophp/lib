@@ -455,7 +455,9 @@ class Functions
 
 		foreach($x[$language] as $x1 => $x9) {
 			if (preg_match($x1, $string)) {
-				$string = preg_replace($x1, $x9, $string);
+				if (!is_null($x9)) {
+					$string = preg_replace($x1, $x9, $string);
+				}
 				break;
 			}
 		}
