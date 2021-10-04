@@ -18,6 +18,7 @@ class Validator
         $id     = $column->getId();
         // $format = $column->getFormat();
 
+
         if (!($value instanceof \MonitoLib\Type\DateTime)) {
             $errors[] = "Data/hora inválida para o campo {$id}: $value";
         }
@@ -126,6 +127,7 @@ class Validator
                 case 'date':
                 case 'datetime':
                 case 'time':
+                    $value = new \MonitoLib\Type\DateTime($value);
                     $e = $this->date($column, $value);
                     break;
                 case 'double':
