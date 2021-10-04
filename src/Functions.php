@@ -439,6 +439,7 @@ class Functions
 		$x = [
 			'en' => [
 				'/status/'                => null,
+				'/branches/'              => 'branch',
 				'/people/'                => 'person',
 				'/ies$/'                  => 'y',
 				'/res$/'                  => 'r',
