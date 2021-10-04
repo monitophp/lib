@@ -108,7 +108,7 @@ class Dml
         $val = substr($val, 0, -1);
 
         $sql = 'INSERT INTO ' . $this->model->getTableName() . " ($fld) VALUES ($val)";
-        \MonitoLib\Dev::ee($sql);
+        // \MonitoLib\Dev::ee($sql);
         return $sql;
     }
     private function isMySQL(): bool
@@ -267,7 +267,7 @@ class Dml
     /**
      * parseDatetime
      */
-    private function parseDatetime(string $value, Column $column): string
+    private function parseDatetime(\MonitoLib\Type\DateTime $value, Column $column): string
     {
         if (!$this->isOracle()) {
             return "'$value'";
@@ -281,6 +281,7 @@ class Dml
         switch ($type) {
             case 'date':
                 $format = $date;
+                $value = $value->toDateString();
                 break;
             case 'datetime':
                 $format = "{$date} {$time}";
@@ -321,7 +322,7 @@ class Dml
             case $this->model::DATE:
             case $this->model::DATETIME:
             case $this->model::TIME:
-                return $this->parseDatetime($value, $column);
+                return $this->parseDatetime(new \MonitoLib\Type\DateTime($value), $column);
             case $this->model::FLOAT:
             case $this->model::INT:
                 return $value;

@@ -264,88 +264,13 @@ class Dao extends \MonitoLib\Database\Query
         // Atualiza o objeto com os valores automáticos, caso não informados
         $dto = $this->setAutoValues($dto);
 
-        \MonitoLib\Dev::pre($dto);
-
         // Valida o objeto dto
         $validator = new \MonitoLib\Database\Validator();
         $validator->validate($dto, $this->model);
 
-        // \MonitoLib\Dev::pre($dto);
-
-        // Verifica se existe constraint de chave única
-        // $this->checkUnique($this->model->getUniqueConstraints(), $dto);
-
-        // $columns = $this->model->getInsertColumnsArray();
         $dml = new Dml($this->model, $this->dbms, $this->getFilter());
-        // $dml = $this->getDml();
         $sql = $dml->insert($dto);
         $stt = $this->parse($sql);
-        \MonitoLib\Dev::ee($sql);
-
-        if (!$dto instanceof $this->dtoName) {
-            throw new BadRequest('O parâmetro passado não é uma instância de ' . $this->dtoName);
-        }
-
-        // Atualiza o objeto com os valores automáticos, caso não informados
-        $dto = $this->setAutoValues($dto);
-
-        // Valida o objeto dto
-        $validator = new \MonitoLib\Database\Validator();
-        $validator->validate($dto, $this->model);
-
-        // Verifica se existe constraint de chave única
-        // $this->checkUnique($this->model->getUniqueConstraints(), $dto);
-
-        $fld = '';
-        $val = '';
-
-        $columns = $this->model->getInsertColumnsArray();
-        // \MonitoLib\Dev::vde($columns);
-
-        foreach ($columns as $column) {
-            $id        = $column->getId();
-            $name      = $column->getName();
-            $type      = $column->getType();
-            $format    = $column->getFormat();
-            $transform = $column->getTransform();
-            $get       = 'get' . ucfirst($id);
-            $value     = $this->escape($dto->$get(), $type);
-
-            $fld .= $name . ',';
-
-            switch ($type) {
-                case 'date':
-                    $format = $format === 'Y-m-d H:i:s' ? 'YYYY-MM-DD HH24:MI:SS' : 'YYYY-MM-DD';
-                    // $val .= "TO_DATE(:{$name}, '$format'),";
-                    $val .= "TO_DATE($value, '$format'),";
-                    break;
-                default:
-                    // $val .= ($transform ?? ':' . $name) . ',';
-                    $val .= ($transform ?? $value) . ',';
-                    break;
-            }
-        }
-
-        $fld = substr($fld, 0, -1);
-        $val = substr($val, 0, -1);
-
-        $sql = 'INSERT INTO ' . $this->model->getTableName() . " ($fld) VALUES ($val)";
-
-        // \MonitoLib\Dev::ee($sql);
-
-        // \MonitoLib\Dev::pre($dto);
-        // \MonitoLib\Dev::e("$sql\n");
-
-        $stt = $this->parse($sql);
-
-        // foreach ($this->model->getFieldsInsert() as $f) {
-        //     $var  = Functions::toLowerCamelCase($f['name']);
-        //     $get  = 'get' . ucfirst($var);
-        //     $$var = $dto->$get();
-
-        //     @oci_bind_by_name($stt, ':' . $f['name'], $$var);
-        // }
-
         $stt = $this->execute($stt);
     }
     /**
@@ -410,21 +335,11 @@ class Dao extends \MonitoLib\Database\Query
     {
         $map = $this->getFilter()->getMap();
 
-        // \MonitoLib\Dev::pre($result);
-
         foreach ($result as $name => $v) {
             $columnId = Functions::toLowerCamelCase($name);
             $column   = $this->model->getColumn($columnId);
             $type     = $column->getType();
             $method   = $map[$columnId] ?? $columnId;
-            $format   = $column->getFormat();
-
-            // \MonitoLib\Dev::e($method);
-
-            // \MonitoLib\Dev::e($type);
-            // \MonitoLib\Dev::pr($v);
-
-            // \MonitoLib\Dev::pre($column);
 
             switch ($type) {
                 case Model::FLOAT:
@@ -434,20 +349,37 @@ class Dao extends \MonitoLib\Database\Query
                 case Model::DATE:
                 case Model::DATETIME:
                 case Model::TIME:
+                case '\MonitoLib\Type\DateTime::class':
                     if (!is_null($v)) {
                         $v = new \MonitoLib\Type\DateTime($v);
                     }
             }
 
-            // \MonitoLib\Dev::pr($v);
-
             $set = 'set' . ucfirst($method);
             $dto->$set($v);
         }
 
-        // \MonitoLib\Dev::pre($dto);
-
         return $dto;
+    }
+    public function query(string $sql)
+    {
+        $stt = $this->parse($sql);
+        $this->execute($stt);
+
+        // Identifica o dto a ser usado
+        $dto = $this->parseDto($this->model->getColumnIds(), []);
+
+        $collection = new \MonitoLib\Database\Dataset\Collection();
+
+        while ($res = $this->fetchArrayAssoc($stt)) {
+            $collection->append($this->parseResult(new $dto(), $res));
+        }
+
+        // Reset filter
+        $this->reset();
+
+        // return $data;
+        return $collection;
     }
     /**
      *
@@ -521,7 +453,6 @@ class Dao extends \MonitoLib\Database\Query
         // }
 
         $sql = $dml->update($dto);
-        \MonitoLib\Dev::ee($sql);
 
         $stt = $this->parse($sql);
         $stt = $this->execute($stt);

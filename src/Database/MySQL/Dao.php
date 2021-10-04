@@ -77,6 +77,6 @@ class Dao extends \MonitoLib\Database\Dao implements \MonitoLib\Database\DaoInte
     */
     public function getLastId() : int
     {
-        return $this->lastInsertId();
+        return $this->getConnection()->lastInsertId();
     }
 }
