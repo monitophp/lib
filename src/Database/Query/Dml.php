@@ -345,20 +345,22 @@ class Dml
         $isRaw      = $options->isRaw();
         $column     = $this->getColumn($name, $isRaw);
 
-        if ($comparison === Filter::BETWEEN) {
-            $value = $this->parseValue($value[0], $column) . ' AND ' . $this->parseValue($value[1], $column);
-        }
+        if (!$isRaw) {
+            if ($comparison === Filter::BETWEEN) {
+                $value = $this->parseValue($value[0], $column) . ' AND ' . $this->parseValue($value[1], $column);
+            }
 
-        if (is_array($value)) {
-            $value = '(' . implode(',', array_map(function ($e) use ($column) {
-                return $this->parseValue($e, $column);
-            }, $value)) . ')';
-        } else {
-            $value = $this->parseValue($value, $column);
-        }
+            if (is_array($value)) {
+                $value = '(' . implode(',', array_map(function ($e) use ($column) {
+                    return $this->parseValue($e, $column);
+                }, $value)) . ')';
+            } else {
+                $value = $this->parseValue($value, $column);
+            }
 
-        if (empty($value)) {
-            return '';
+            if (empty($value)) {
+                return '';
+            }
         }
 
         return " {$operator} {$startGroup}{$name} {$comparison} {$value}{$endGroup}";

@@ -1,4 +1,5 @@
 <?php
+
 namespace MonitoLib\Database\Oracle;
 
 use \MonitoLib\Exception\BadRequest;
@@ -11,45 +12,45 @@ class Dao extends \MonitoLib\Database\Dao implements \MonitoLib\Database\DaoInte
 {
     const VERSION = '1.2.1';
     /**
-    * 1.2.1 - 2020-09-18
-    * new: minor changes
-    *
-    * 1.2.0 - 2020-05-19
-    * fix: minor fixes
-    *
-    * 1.1.1 - 2019-12-09
-    * fix: minor fixes
-    *
-    * 1.1.0 - 2019-10-29
-    * new: list() now paginates
-    * fix: minor fixes
-    *
-    * 1.0.3 - 2019-05-05
-    * fix: date format on update
-    *
-    * 1.0.2 - 2019-05-03
-    * fix: dataset for date fields
-    *
-    * 1.0.1 - 2019-05-02
-    * fix: checks returned value from get function
-    *
-    * 1.0.0 - 2019-04-17
-    * first versioned
-    */
+     * 1.2.1 - 2020-09-18
+     * new: minor changes
+     *
+     * 1.2.0 - 2020-05-19
+     * fix: minor fixes
+     *
+     * 1.1.1 - 2019-12-09
+     * fix: minor fixes
+     *
+     * 1.1.0 - 2019-10-29
+     * new: list() now paginates
+     * fix: minor fixes
+     *
+     * 1.0.3 - 2019-05-05
+     * fix: date format on update
+     *
+     * 1.0.2 - 2019-05-03
+     * fix: dataset for date fields
+     *
+     * 1.0.1 - 2019-05-02
+     * fix: checks returned value from get function
+     *
+     * 1.0.0 - 2019-04-17
+     * first versioned
+     */
     protected $dbms = 2;
     protected $lastId;
     private $executeMode = OCI_COMMIT_ON_SUCCESS;
     private $affectedRows = 0;
 
-    public function affectedRows() : int
+    public function affectedRows(): int
     {
         return $this->affectedRows;
     }
-    public function beginTransaction() : void
+    public function beginTransaction(): void
     {
         $this->executeMode = OCI_NO_AUTO_COMMIT;
     }
-    public function commit() : void
+    public function commit(): void
     {
         @oci_commit($this->getConnection());
         $this->executeMode = OCI_COMMIT_ON_SUCCESS;
@@ -66,7 +67,7 @@ class Dao extends \MonitoLib\Database\Dao implements \MonitoLib\Database\DaoInte
         $this->affectedRows = oci_num_rows($stt);
         return $stt;
     }
-    public function fetchAll($stt) : array
+    public function fetchAll($stt): array
     {
         oci_fetch_all($stt, $res, null, null, OCI_FETCHSTATEMENT_BY_ROW + OCI_ASSOC);
         return $res;
@@ -76,15 +77,15 @@ class Dao extends \MonitoLib\Database\Dao implements \MonitoLib\Database\DaoInte
         $return = oci_fetch_array($stt, OCI_ASSOC | OCI_RETURN_NULLS);
         return $return;
     }
-    public function fetchArrayNum($stt) : array
+    public function fetchArrayNum($stt): array
     {
         return oci_fetch_array($stt, OCI_NUM | OCI_RETURN_NULLS);
     }
-    public function getLastId() : int
+    public function getLastId(): int
     {
         return $this->lastId;
     }
-    public function nextValue($sequence) : int
+    public function nextValue($sequence): int
     {
         $sql = "SELECT $sequence.nextval FROM dual";
         $stt = $this->parse($sql);
@@ -121,14 +122,14 @@ class Dao extends \MonitoLib\Database\Dao implements \MonitoLib\Database\DaoInte
 
         if (!$stt) {
             $e = @oci_error($stt);
-            throw new DatabaseError('Ocorreu um erro no banco de dados', $e);
+            throw new DatabaseError('Ocorreu um erro no banco de dados: ' . $sql);
         }
 
         return $stt;
     }
     public function procedure($name, ...$params)
     {
-        $params = array_map(function($item){
+        $params = array_map(function ($item) {
             return is_null($item) ? 'NULL' : (is_numeric($item) ? $item : "'$item'");
         }, $params);
 
@@ -188,7 +189,7 @@ class Dao extends \MonitoLib\Database\Dao implements \MonitoLib\Database\DaoInte
             return $res;
         }
     }
-    public function rollback() : void
+    public function rollback(): void
     {
         @oci_rollback($this->getConnection());
         $this->executeMode = OCI_COMMIT_ON_SUCCESS;

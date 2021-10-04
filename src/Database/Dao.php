@@ -264,7 +264,7 @@ class Dao extends \MonitoLib\Database\Query
         // Atualiza o objeto com os valores automáticos, caso não informados
         $dto = $this->setAutoValues($dto);
 
-        // \MonitoLib\Dev::pre($dto);
+        \MonitoLib\Dev::pre($dto);
 
         // Valida o objeto dto
         $validator = new \MonitoLib\Database\Validator();
