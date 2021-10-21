@@ -15,6 +15,10 @@ trait ToString
 
         // \MonitoLib\Dev::pre($properties);
 
+        unset($properties['daoClassName']);
+        unset($properties['dtoClassName']);
+        unset($properties['modelClassName']);
+
         $properties = array_map(fn ($e) => is_object($e) ? (string)$e : $e, $properties);
         return json_encode($properties);
     }

@@ -32,13 +32,22 @@ class Controller
 	private $perPage;
 	private $query;
 
+	protected $daoClass;
 	protected $notFound;
 
 	public function __construct()
 	{
-		$classParts      = explode('\\', get_class($this));
+		if (is_null($this->daoClass)) {
+			$classParts      = explode('\\', get_class($this));
+		} else {
+			$classParts      = explode('\\', $this->daoClass);
+			// \MonitoLib\Dev::pre($classParts);
+		}
+
 		$namespace       = join('\\', array_slice($classParts, 0, -2)) . '\\';
 		$className       = end($classParts);
+		// \MonitoLib\Dev::pre($this);
+
 		$this->daoName   = $namespace . 'Dao\\' . $className;
 		$this->dtoName   = $namespace . 'Dto\\' . $className;
 		$this->modelName = $namespace . 'Model\\' . $className;

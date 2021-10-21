@@ -10,8 +10,8 @@ class Collection extends \ArrayIterator
      * Initial version
      */
 
-    public function __toString() : string
+    public function __toString(): string
     {
-		return '[' . join(',', array_map(fn($e) => (string)$e, (array)$this)) . ']';
+        return '[' . join(',', array_map(fn ($e) => (string)$e, (array)$this)) . ']';
     }
 }

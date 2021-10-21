@@ -241,6 +241,7 @@ class App
                 Response::setHttpResponseCode(200);
             }
         } catch (\Exception | \ThrowAble $e) {
+            \MonitoLib\Dev::pre($e);
             $debug = [];
             $return = [];
 

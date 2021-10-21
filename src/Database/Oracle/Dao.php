@@ -39,7 +39,6 @@ class Dao extends \MonitoLib\Database\Dao implements \MonitoLib\Database\DaoInte
      */
     protected $dbms = 2;
     protected $lastId;
-    private $executeMode = OCI_COMMIT_ON_SUCCESS;
     private $affectedRows = 0;
 
     public function affectedRows(): int
@@ -48,16 +47,36 @@ class Dao extends \MonitoLib\Database\Dao implements \MonitoLib\Database\DaoInte
     }
     public function beginTransaction(): void
     {
-        $this->executeMode = OCI_NO_AUTO_COMMIT;
+        $connection = $this->getConnectionInfo();
+        $autoCommit = $connection->getAutoCommit();
+
+        if (!$autoCommit) {
+            throw new \Exception('Transaction already started');
+        }
+
+        $connection->setAutoCommit(false);
+        // $connection = $this->getConnectionInfo();
+        // \MonitoLib\Dev::pre($connection);
+        // $this->executeMode = OCI_NO_AUTO_COMMIT;
     }
     public function commit(): void
     {
         @oci_commit($this->getConnection());
-        $this->executeMode = OCI_COMMIT_ON_SUCCESS;
+
+        $connection = $this->getConnectionInfo();
+        $connection->setAutoCommit(true);
     }
     public function execute($stt)
     {
-        $exe = @oci_execute($stt, $this->executeMode);
+        $executeMode = OCI_NO_AUTO_COMMIT;
+        $connection  = $this->getConnectionInfo();
+        $autoCommit  = $connection->getAutoCommit();
+
+        if ($autoCommit) {
+            $executeMode = OCI_COMMIT_ON_SUCCESS;
+        }
+
+        $exe = @oci_execute($stt, $executeMode);
 
         if (!$exe) {
             $e = @oci_error($stt);
@@ -192,6 +211,8 @@ class Dao extends \MonitoLib\Database\Dao implements \MonitoLib\Database\DaoInte
     public function rollback(): void
     {
         @oci_rollback($this->getConnection());
-        $this->executeMode = OCI_COMMIT_ON_SUCCESS;
+
+        $connection = $this->getConnectionInfo();
+        $connection->setAutoCommit(true);
     }
 }

@@ -296,7 +296,7 @@ class Dml
     /**
      * parseValue
      */
-    private function parseValue(?string $value, Column $column, ?bool $isRaw = false): string
+    private function parseValue(?string $value, Column $column, ?string $comparison = '', ?bool $isRaw = false): string
     {
         if ($isRaw) {
             return $value;
@@ -325,6 +325,9 @@ class Dml
                 return $this->parseDatetime(new \MonitoLib\Type\DateTime($value), $column);
             case $this->model::FLOAT:
             case $this->model::INT:
+                if (in_array($comparison, [Filter::LIKE, Filter::NOT_LIKE])) {
+                    return "'$value'";
+                }
                 return $value;
             default:
                 return "'$value'";
@@ -352,11 +355,11 @@ class Dml
             }
 
             if (is_array($value)) {
-                $value = '(' . implode(',', array_map(function ($e) use ($column) {
-                    return $this->parseValue($e, $column);
+                $value = '(' . implode(',', array_map(function ($e) use ($column, $comparison) {
+                    return $this->parseValue($e, $column, $comparison);
                 }, $value)) . ')';
             } else {
-                $value = $this->parseValue($value, $column);
+                $value = $this->parseValue($value, $column, $comparison);
             }
 
             if (empty($value)) {

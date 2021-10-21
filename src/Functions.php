@@ -444,6 +444,7 @@ class Functions
 				'/ies$/'                  => 'y',
 				'/res$/'                  => 'r',
 				'/tchs$/'                 => 'tch',
+				'/es$/'                   => '',
 				'/([acdeiouglkmnprt])s$/' => '\1',
 			],
 			'pt' => [

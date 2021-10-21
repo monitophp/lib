@@ -27,7 +27,7 @@ class Connector extends \MonitoLib\Database\Connection
     {
         try {
             $password = Functions::decrypt($this->pass, $this->name . $this->env);
-            $string   = "mysql:host={$this->host};dbname={$this->database};charset=UTF8";
+            $string   = "mysql:host={$this->host};dbname={$this->db};charset=UTF8";
 
             // \MonitoLib\Dev::ee($string);
 

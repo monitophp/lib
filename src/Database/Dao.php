@@ -3,10 +3,11 @@
 namespace MonitoLib\Database;
 
 use \MonitoLib\App;
+use \MonitoLib\Database\Connector;
+use \MonitoLib\Database\Query\Dml;
 use \MonitoLib\Exception\BadRequest;
 use \MonitoLib\Exception\InternalError;
 use \MonitoLib\Functions;
-use \MonitoLib\Database\Query\Dml;
 
 class Dao extends \MonitoLib\Database\Query
 {
@@ -341,22 +342,24 @@ class Dao extends \MonitoLib\Database\Query
             $type     = $column->getType();
             $method   = $map[$columnId] ?? $columnId;
 
-            switch ($type) {
-                case Model::FLOAT:
-                case Model::INT:
-                    $v = +$v;
-                    break;
-                case Model::DATE:
-                case Model::DATETIME:
-                case Model::TIME:
-                case '\MonitoLib\Type\DateTime::class':
-                    if (!is_null($v)) {
-                        $v = new \MonitoLib\Type\DateTime($v);
-                    }
-            }
+            if (!empty($v)) {
+                switch ($type) {
+                    case Model::FLOAT:
+                    case Model::INT:
+                        $v = +$v;
+                        break;
+                    case Model::DATE:
+                    case Model::DATETIME:
+                    case Model::TIME:
+                    case '\MonitoLib\Type\DateTime::class':
+                        if (!is_null($v)) {
+                            $v = new \MonitoLib\Type\DateTime($v);
+                        }
+                }
 
-            $set = 'set' . ucfirst($method);
-            $dto->$set($v);
+                $set = 'set' . ucfirst($method);
+                $dto->$set($v);
+            }
         }
 
         return $dto;
@@ -578,7 +581,7 @@ class Dao extends \MonitoLib\Database\Query
     public function getConnection()
     {
         // \MonitoLib\Dev::vde(\MonitoLib\Database\Connector::getInstance()->getConnection());
-        $connection = \MonitoLib\Database\Connector::getInstance()
+        $connection = Connector::getInstance()
             ->getConnection($this->connectionName);
 
         if ($this->dbms === self::DBMS_MONGODB) {
@@ -592,9 +595,8 @@ class Dao extends \MonitoLib\Database\Query
     public function getConnectionInfo()
     {
         // \MonitoLib\Dev::vde(\MonitoLib\Database\Connector::getInstance()->getConnection());
-        return \MonitoLib\Database\Connector::getInstance()
-            ->getConnection($this->connectionName)
-            ->getConnection();
+        return Connector::getInstance()
+            ->getConnection($this->connectionName);
     }
     public function getDtoName()
     {

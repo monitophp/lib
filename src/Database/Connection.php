@@ -13,104 +13,114 @@ use \MonitoLib\Exception\InternalError;
 
 class Connection
 {
-    const VERSION = '1.1.0';
-    /**
-    * 1.1.0 - 2020-09-18
-    * new: password and server properties and get/set methods renamed to pass and host
-    *
-    * 1.0.0 - 2020-03-20
-    * first versioned
-    */
+	const VERSION = '1.1.0';
+	/**
+	 * 1.1.0 - 2020-09-18
+	 * new: password and server properties and get/set methods renamed to pass and host
+	 *
+	 * 1.0.0 - 2020-03-20
+	 * first versioned
+	 */
 
-    // TODO: completar parâmetros port e charset
-	protected $chartset;
+	// TODO: completar parâmetros port e charset
+	protected $charset;
 	protected $connection;
-	protected $database;
+	protected $db;
 	protected $host;
 	protected $pass;
 	protected $port;
 	protected $type;
 	protected $user;
+	protected $autoCommit = true;
 
 	public function __construct($d)
 	{
-		$this->name     = $d['name'];
-		$this->env      = $d['env'];
-		$this->database = $d['db'] ?? null;
-		$this->type     = $d['type'];
-		$this->pass     = $d['pass'];
-		$this->host     = $d['host'];
-		$this->user     = $d['user'];
-		$this->port     = $d['port'] ?? null;
-		$this->charset  = $d['charset'] ?? null;
+		$this->name    = $d['name'];
+		$this->env     = $d['env'];
+		$this->db      = $d['db'] ?? null;
+		$this->type    = $d['type'];
+		$this->pass    = $d['pass'];
+		$this->host    = $d['host'];
+		$this->user    = $d['user'];
+		$this->port    = $d['port'] ?? null;
+		$this->charset = $d['charset'] ?? null;
+	}
+	public function getAutoCommit(): bool
+	{
+		return $this->autoCommit;
+	}
+	public function setAutoCommit(bool $autoCommit): self
+	{
+		$this->autoCommit = $autoCommit;
+		return $this;
 	}
 	public function getConnection()
 	{
-	    if (is_null($this->connection)) {
-	        $this->connect();
-	    }
+		if (is_null($this->connection)) {
+			$this->connect();
+		}
 
-	    return $this->connection;
+		return $this->connection;
 	}
 	/**
-	* getDatabase
-	*
-	* @return $database
-	*/
+	 * getDatabase
+	 *
+	 * @return $db
+	 */
 	public function getDatabase()
 	{
-		return $this->database;
+		return $this->db;
 	}
 	/**
-	* getEnv
-	*
-	* @return $env
-	*/
+	 * getEnv
+	 *
+	 * @return $env
+	 */
 	public function getEnv()
 	{
 		return $this->env;
 	}
 	/**
-	* getType
-	*
-	* @return $type
-	*/
+	 * getType
+	 *
+	 * @return $type
+	 */
 	public function getType()
 	{
 		return $this->type;
 	}
 	/**
-	* getName
-	*
-	* @return $name
-	*/
+	 * getName
+	 *
+	 * @return $name
+	 */
 	public function getName()
 	{
 		return $this->name;
 	}
 	/**
-	* getPass
-	*
-	* @return $pass
-	*/
+	 * getPass
+	 *
+	 * @return $pass
+	 */
 	public function getPass()
 	{
 		return $this->pass;
 	}
 	/**
-	* getHost
-	*
-	* @return $host
-	*/
+	 * getHost
+	 *
+	 * @return $host
+	 */
 	public function getHost()
 	{
 		return $this->host;
 	}
 	/**
-	* getUser
-	*
-	* @return $user
-	*/
+	 * getUser
+	 *
+	 * @return $user
+	 */
 	public function getUser()
 	{
 		return $this->user;
