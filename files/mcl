@@ -1,0 +1,9 @@
+#!/usr/local/bin/php
+<?php
+set_time_limit(0);
+
+// Requires app loader
+require './vendor/monitophp/lib/src/loader.php';
+
+// Runs application
+\MonitoLib\Mcl::run();
