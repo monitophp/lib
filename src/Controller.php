@@ -38,14 +38,14 @@ class Controller
 	public function __construct()
 	{
 		if (is_null($this->daoClass)) {
-			$classParts      = explode('\\', get_class($this));
+			$classParts = explode('\\', get_class($this));
 		} else {
-			$classParts      = explode('\\', $this->daoClass);
+			$classParts = explode('\\', $this->daoClass);
 			// \MonitoLib\Dev::pre($classParts);
 		}
 
-		$namespace       = join('\\', array_slice($classParts, 0, -2)) . '\\';
-		$className       = end($classParts);
+		$namespace = join('\\', array_slice($classParts, 0, -2)) . '\\';
+		$className = end($classParts);
 		// \MonitoLib\Dev::pre($this);
 
 		$this->daoName   = $namespace . 'Dao\\' . $className;
