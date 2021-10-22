@@ -49,7 +49,7 @@ class Query
         $this->filter->setColumns($fields);
         return $this;
     }
-    public function getFilter(): \MonitoLib\Database\Query\Filter
+    public function getFilter(): Filter
     {
         $this->initFilter();
         return $this->filter;
@@ -81,7 +81,7 @@ class Query
     private function initFilter(): void
     {
         if (is_null($this->filter)) {
-            $this->filter = new \MonitoLib\Database\Query\Filter();
+            $this->filter = new Filter();
         }
     }
     public function less(string $field, $value, int $options = 0): self
@@ -155,6 +155,8 @@ class Query
         $options = new \MonitoLib\Database\Query\Options($options);
         // \MonitoLib\Dev::pre($options);
 
+        // \MonitoLib\Dev::ee($column);
+
         // $where = $this->parseGroup($options->startGroup(), $options->endGroup());
         $value = $value1;
 
@@ -172,7 +174,7 @@ class Query
         //     $format = $column->getFormat();
         // }
 
-        $where = new \MonitoLib\Database\Query\Filter\Where();
+        $where = new Filter\Where();
         $where
             ->setColumn($column)
             ->setComparison($comparisonOperator)
@@ -192,7 +194,7 @@ class Query
         $this->filter->setPerPage($perPage);
         return $this;
     }
-    public function mergeFilter(\MonitoLib\Database\Query\Filter $filter)
+    public function mergeFilter(Filter $filter)
     {
         $this->filter = $filter;
     }
@@ -222,7 +224,7 @@ class Query
         //     $format = $column->getFormat();
         // }
 
-        $set = new \MonitoLib\Database\Query\Filter\Set();
+        $set = new Filter\Set();
         $set
             ->setColumn($column)
             ->setValue($value)

@@ -49,7 +49,7 @@ class Dml
         $where = $this->where();
 
         if (empty($where)) {
-            throw new BadRequest('Não é possível deletar sem parâmetros');
+            throw new BadRequest('Delete requires parameters');
         }
 
         return 'DELETE FROM ' . $this->model->getTableName() . $where;
@@ -60,7 +60,8 @@ class Dml
             return (new Column())->setName($columnName);
         }
 
-        $model   = $this->model;
+        $model = $this->model;
+
         $columns = array_filter($model->getColumns(), function ($e) use ($columnName) {
             return $e->getName() === $columnName;
         });

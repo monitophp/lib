@@ -129,7 +129,7 @@ class Controller
 		$i = 0;
 
 		foreach ($primaryKeys as $field) {
-			$dao->equal($field->getId(), $keys[$i], $dao::FIXED);
+			$dao->equal($field->getName(), $keys[$i], $dao::FIXED);
 			$i++;
 		}
 

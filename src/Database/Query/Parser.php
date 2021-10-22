@@ -1,6 +1,11 @@
 <?php
+
 namespace MonitoLib\Database\Query;
 
+use \MonitoLib\Database\Model;
+use \MonitoLib\Database\Query\Filter;
+use \MonitoLib\Database\Query\Filter\Where;
+use \MonitoLib\Database\Query\Options;
 use \MonitoLib\Exception\BadRequest;
 use \MonitoLib\Exception\InternalError;
 use \MonitoLib\Exception\NotFound;
@@ -11,20 +16,20 @@ class Parser
 {
     const VERSION = '1.0.0';
     /**
-    * 1.0.0 - 2021-07-09
-    * Initial release
-    */
+     * 1.0.0 - 2021-07-09
+     * Initial release
+     */
 
     private $query;
 
     public function parse(
         ?string $queryString,
-        ?\MonitoLib\Database\Model $model = null,
+        ?Model $model = null,
         ?\MonitoLib\Database\Dao $dao = null
-    ) : \MonitoLib\Database\Query\Filter
+    ): Filter
     {
         $fields = is_null($queryString) ? [] : explode('&', $queryString);
-        $filter = new \MonitoLib\Database\Query\Filter();
+        $filter = new Filter();
 
         foreach ($fields as $field) {
             $p = strpos($field, '=');
@@ -51,147 +56,8 @@ class Parser
         }
 
         return $filter;
-
-
-            // if (!$p && $field === 'ds') {
-            //     self::$asDataset = true;
-            // } else {
-                // if (strcasecmp($f, 'fields') === 0) {
-                // } elseif (strcasecmp($f, 'page') === 0) {
-                // } elseif (strcasecmp($f, 'perpage') === 0) {
-                // } elseif (strcasecmp($f, 'orderby') === 0) {
-                // } else {
-                // }
-            // }
-        // $f      = $this->checkField($field);
-        // $type   = $f['type'];
-        // $format = $f['format'];
-
-
-        switch ($type) {
-            case 'date':
-            case 'datetime':
-                break;
-            case 'double':
-            case 'float':
-            case 'int':
-
-                // Verifica se é intervalo
-                // if (preg_match('/^([0-9.]+)-([0-9.]+)$/', $value, $m)) {
-                //     $this->criteria .= "$field BETWEEN $m[1] AND $m[2] AND ";
-                //     break;
-                // }
-
-                // Verifica se tem algum modificador
-                if (preg_match('/^([><=!]{1,2})?([0-9.\-\s:]+)$/', $value, $m)) {
-                    switch ($m[1]) {
-                        case '>':
-                            $method = 'greater';
-                            break;
-                        case '<':
-                            $method = 'less';
-                            break;
-                        case '>=':
-                            $method = 'greaterEqual';
-                            break;
-                        case '<=':
-                            $method = 'lessEqual';
-                            break;
-                        case '<>':
-                        case '!':
-                            $method = 'notEqual';
-                            break;
-                        default:
-                            $method = 'equal';
-                            break;
-                    }
-
-                    if ($type === 'date') {
-                        $v = $m[2];
-
-                        if (!Validator::date($v, 'Y-m-d') && !Validator::date($v, 'Y-m-d H:i:s')) {
-                            throw new BadRequest('Data inválida: ' . $v);
-                        }
-
-                        $f = 'YYYY-MM-DD HH24:MI:SS';
-
-                        if ($format === 'Y-m-d H:i:s' && Validator::date($v, 'Y-m-d')) {
-                            $field = "TRUNC($field)";
-                        }
-
-                        $this->$method($field, "TO_DATE('$v', '$f')", self::RAW_QUERY);
-                        break;
-                    }
-
-                    $this->$method($field, $m[2]);
-                    break;
-                } elseif ($value === "\x00") {
-                    $this->isNull($field);
-                } elseif ($value === "!\x00") {
-                    $this->isNotNull($field);
-                } else {
-                    throw new BadRequest("Valor inválido: $value!");
-                }
-
-                break;
-            case 'string':
-                $parts = explode(' ', urldecode($value));
-                foreach ($parts as $p) {
-                    $this->like("UPPER($field)", "UPPER('%$p%')", self::RAW_QUERY);
-                }
-                break;
-            default:
-                if (preg_match('/^\[.*\]$/', $value, $m)) {
-                    $this->in($field, explode(',', substr($m[0], 1, -1)));
-                } else {
-
-                    $m = 'equal';
-                    $s = urldecode($value);
-                    $a = '';
-                    $b = '';
-
-                    if (substr($s, 0, 1) === '%') {
-                        $a = '%';
-                        $m = 'like';
-                    }
-
-                    if (substr($s, -1) === '%') {
-                        $b = '%';
-                        $m = 'like';
-                    }
-
-                    $f = substr($s, 0, 1);
-                    $l = substr($s, -1);
-
-                    if ($f === '"' && $l === '"') {
-                        $s = substr($s, 1, -1);
-                    }
-
-                    if ($f === '!') {
-                        $m = 'notLike';
-                        $s = substr($s, 1);
-                        $f = substr($s, 0, 1);
-                    }
-
-                    if ($f === '%') {
-                        $f = substr($s, 0, 1);
-                    } else {
-                        $a = '';
-                    }
-
-                    if ($l === '%') {
-                        $s = substr($s, 0, -1);
-                    } else {
-                        $b = '';
-                    }
-
-                    $this->$m($field, "{$a}{$s}{$b}");
-                }
-        }
-
-        // return $this;
     }
-    public function getColumn(\MonitoLib\Database\Model $model, array $columnsName) : \MonitoLib\Database\Model\Column
+    public function getColumn(Model $model, array $columnsName): \MonitoLib\Database\Model\Column
     {
         $column = $model->getColumn($columnsName[0]);
         array_shift($columnsName);
@@ -218,7 +84,8 @@ class Parser
         if (!is_null($model)) {
             // Identifica a coluna no modelo
             $column = $this->getColumn($model, explode('.', $field));
-            $type   = $column->gettype();
+            $type   = $column->getType();
+            $field  = $column->getName();
         }
 
         $modifier = $this->parseModifier($type, $value);
@@ -231,7 +98,7 @@ class Parser
 
         // \MonitoLib\Dev::pr($value);
 
-        if (in_array($type, ['date','datetime','time'])) {
+        if (in_array($type, ['date', 'datetime', 'time'])) {
             // $regex = '/((\d{4}-\d{2}-\d{2})(?:[ tT](?:\d{2}:\d{2}:\d{2}))?(?:\.(?:\d{6}))?)-((\d{4}-\d{2}-\d{2})(?:[ tT](?:\d{2}:\d{2}:\d{2}))?(?:\.(?:\d{6}))?)/';
             $regex = '/((\d{4}(-\d{2}){2})?(?:[ tT]?(?:\d{2}(:\d{2}){2}))?(?:\.(?:\d{6}))?)-((\d{4}(-\d{2}){2})?(?:[ tT]?(?:\d{2}(:\d{2}){2}))?(?:\.(?:\d{6}))?)/';
 
@@ -264,32 +131,19 @@ class Parser
             }
         }
 
-        // $values = explode(',', $value);
-        // $values = array_map(function($e) {
-        //     return +$e;
-        // }, $values);
-
-        // $values = explode('-', $value);
-
-        $options = new \MonitoLib\Database\Query\Options(0);
-        $where = new \MonitoLib\Database\Query\Filter\Where();
+        $options = new Options(0);
+        $where = new Where();
         $where
             ->setColumn($field)
             ->setComparison($comparison)
             ->setValue($value)
             ->setType($type)
-            // ->setFormat($format)
             ->setOptions($options);
         $filter->addWhere($where);
 
-        // \MonitoLib\Dev::vde($type);
-
-        // \MonitoLib\Dev::pre($column);
-
-        // \MonitoLib\Dev::pre($model);
         return $filter;
     }
-    private function parseModifier($type, $value) : string
+    private function parseModifier($type, $value): string
     {
         $modifier = '';
         $regex    = '';
@@ -320,9 +174,7 @@ class Parser
     private function parseDate($field, $value)
     {
         if (preg_match('/(^[!><=]+)?((\d{4}-\d{2}-\d{2})(?:[ tT](?:\d{2}:\d{2}:\d{2}))?(?:\.(?:\d{6}))?)/', $value, $m)) {
-            // \MonitoLib\Dev::pr($m);
             $modifier = $m[1];
-            // \MonitoLib\Dev::vde($modifier);
             $value    = $m[2];
 
 
@@ -350,7 +202,6 @@ class Parser
             }
         }
 
-        // \MonitoLib\Dev::pre($value);
         return $filter;
     }
     private function parseNumber($field, $value)
@@ -366,7 +217,7 @@ class Parser
             if (preg_match('/(^[^0-9.]+|[-,])/', $value, $m)) {
                 $modifier = $m[0];
 
-                if (in_array($modifier, ['>','<','>=','<=','!'])) {
+                if (in_array($modifier, ['>', '<', '>=', '<=', '!'])) {
                     $value = +str_replace($modifier, '', $value);
                 }
 
@@ -377,7 +228,7 @@ class Parser
                         break;
                     case ',':
                         $values = explode(',', $value);
-                        $values = array_map(function($e) {
+                        $values = array_map(function ($e) {
                             return +$e;
                         }, $values);
                         $this->query->in($field, $values);
@@ -427,7 +278,7 @@ class Parser
             $value = [$value1, $value2];
         }
 
-        $options = new \MonitoLib\Database\Query\Options($options);
+        $options = new Options($options);
         $isRaw   = $options->isRaw();
 
         if (!$isRaw) {
@@ -437,7 +288,7 @@ class Parser
             $format = $column->getFormat();
         }
 
-        $where = new \MonitoLib\Database\Query\Filter\Where();
+        $where = new Where();
         $where
             ->setColumn($column)
             ->setComparison($comparisonOperator)
