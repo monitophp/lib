@@ -24,8 +24,8 @@ class Filter
     const GREATER         = '>';
     const GREATER_EQUAL   = '>=';
     const IN              = 'IN';
-    const IS_NOT_NULL     = 'IS NOT NULL';
-    const IS_NULL         = 'IS NULL';
+    const IS_NOT_NULL     = 'IS NOT';
+    const IS_NULL         = 'IS';
     const LESS            = '<';
     const LESS_EQUAL      = '<=';
     const LIKE            = 'LIKE';

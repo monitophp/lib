@@ -81,23 +81,24 @@ class Functions
 
         foreach ($words as $w) {
             $w = trim($w);
-            $w = self::removeAccents($w);
 
-            if (preg_match('/^[a-zA-Z]+$/', $w)) {
-                $w = strtolower($w);
-                $w = ucfirst($w);
+			if (!empty($w)) {
+				if (preg_match('/^[a-zA-Z]+$/', $w)) {
+					$w = strtolower($w);
+					$w = ucfirst($w);
 
-                if (in_array($w, [
-                    'Da',
-                    'De',
-                    'Dos',
-                    'E'
-                ])) {
-                    $w = strtolower($w);
-                }
-            }
+					if (in_array($w, [
+						'Da',
+						'De',
+						'Dos',
+						'E'
+					])) {
+						$w = strtolower($w);
+					}
+				}
 
-            $name .= "$w ";
+				$name .= $w . ' ';
+			}
         }
 
         return trim($name);
