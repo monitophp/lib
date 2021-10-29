@@ -342,7 +342,7 @@ class Dao extends \MonitoLib\Database\Query
             $type     = $column->getType();
             $method   = $map[$columnId] ?? $columnId;
 
-            if (!empty($v)) {
+            if (!is_null($v)) {
                 switch ($type) {
                     case Model::FLOAT:
                     case Model::INT:

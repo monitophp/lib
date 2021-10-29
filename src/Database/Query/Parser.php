@@ -48,7 +48,10 @@ class Parser
                     $filter = $filter->setPerPage($v);
                     break;
                 case 'orderby';
-                    $filter = $filter->addOrderBy($v, 'ASC');
+                    $parts = explode(',', $v);
+                    $c = $parts[0];
+                    $d = $parts[1] ?? 'ASC';
+                    $filter = $filter->addOrderBy($c, $d);
                     break;
                 default:
                     $filter = $this->parseFilter($filter, $f, $v, $model);

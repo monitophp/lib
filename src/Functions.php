@@ -441,6 +441,7 @@ class Functions
 			'en' => [
 				'/status/'                => null,
 				'/branches/'              => 'branch',
+				'/sources/'               => 'source',
 				'/people/'                => 'person',
 				'/ies$/'                  => 'y',
 				'/res$/'                  => 'r',
