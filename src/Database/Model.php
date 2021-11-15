@@ -1,4 +1,5 @@
 <?php
+
 namespace MonitoLib\Database;
 
 use \MonitoLib\Exception\BadRequest;
@@ -7,17 +8,17 @@ use \MonitoLib\Validator;
 
 class Model
 {
-    private const VERSION = '1.0.1';
+    public const VERSION = '1.0.1';
     /**
-    * 1.0.2 - 2021-05-04
-    * new: getField return
-    *
-    * 1.0.1 - 2019-06-05
-    * new: model name in validate thrown error message
-    *
-    * 1.0.0 - 2019-04-17
-    * first versioned
-    */
+     * 1.0.2 - 2021-05-04
+     * new: getField return
+     *
+     * 1.0.1 - 2019-06-05
+     * new: model name in validate thrown error message
+     *
+     * 1.0.0 - 2019-04-17
+     * first versioned
+     */
 
     public const ARRAY = 'array';
     public const BOOL = 'bool';
@@ -50,12 +51,12 @@ class Model
                 . Functions::getClassname($classname);
         }
     }
-	/**
-	* getColumn
-	*
-	* @return $fieldName | null
-	*/
-    public function getColumn(string $fieldName, ?bool $raw = false) : ?\MonitoLib\Database\Model\Column
+    /**
+     * getColumn
+     *
+     * @return $fieldName | null
+     */
+    public function getColumn(string $fieldName, ?bool $raw = false): ?\MonitoLib\Database\Model\Column
     {
         if (!isset($this->columns[$fieldName])) {
             throw new BadRequest("Column $fieldName not found in model " . get_class($this));
@@ -67,12 +68,12 @@ class Model
 
         return $this->parsedFields[$fieldName] ?? $this->parseField($fieldName, $this->columns[$fieldName]);
     }
-	/**
-	* getColumns
-	*
-	* @return array $columns
-	*/
-    public function getColumns(?bool $raw = false) : array
+    /**
+     * getColumns
+     *
+     * @return array $columns
+     */
+    public function getColumns(?bool $raw = false): array
     {
         if ($raw) {
             return $this->columns;
@@ -86,23 +87,23 @@ class Model
 
         return $this->parsedFields;
     }
-	/**
-	* getFields
-	*
-	* @return array $fields
-	*/
-    public function getColumnIds(?bool $useAlias = false) : array
+    /**
+     * getFields
+     *
+     * @return array $fields
+     */
+    public function getColumnIds(?bool $useAlias = false): array
     {
-        return array_map(function($e) use ($useAlias) {
+        return array_map(function ($e) use ($useAlias) {
             return $useAlias ? $e->getAlias() : $e->getId();
         }, $this->getColumns());
     }
-	/**
-	* getDaoName
-	*
-	* @return string $daoName
-	*/
-    public function getDaoName() : string
+    /**
+     * getDaoName
+     *
+     * @return string $daoName
+     */
+    public function getDaoName(): string
     {
         if (is_null($this->daoName)) {
             $classname = get_class($this);
@@ -114,12 +115,12 @@ class Model
 
         return $this->daoName;
     }
-	/**
-	* getDtoName
-	*
-	* @return string $dtoName
-	*/
-    public function getDtoName() : string
+    /**
+     * getDtoName
+     *
+     * @return string $dtoName
+     */
+    public function getDtoName(): string
     {
         if (is_null($this->dtoName)) {
             // $classname = get_class($this);
@@ -134,14 +135,14 @@ class Model
 
         return $this->dtoName;
     }
-	/**
-	* getInsertFields
-	*
-	* @return string getInsertFields
-	*/
-    public function getInsertColumnsArray() : array
+    /**
+     * getInsertFields
+     *
+     * @return string getInsertFields
+     */
+    public function getInsertColumnsArray(): array
     {
-        return array_filter($this->getColumns(), function($column) {
+        return array_filter($this->getColumns(), function ($column) {
             if (!$column->getPrimary() || (!$column->getAuto() && !is_null($column->getSource()))) {
                 return $column;
             }
@@ -160,7 +161,7 @@ class Model
         return $insertArray;
 
 
-        return array_map(function($e) {
+        return array_map(function ($e) {
             if (!$e->getPrimary() || (!$e->getAuto() && !is_null($e->getSource()))) {
                 return $e->getId();
             }
@@ -169,7 +170,7 @@ class Model
         if (is_null($this->insertArray)) {
             $insertArray = [];
 
-            array_map(function($e) use ($insertArray) {
+            array_map(function ($e) use ($insertArray) {
                 if (!$e->getPrimary() || (!$e->getAuto() && !is_null($e->getSource()))) {
                     $insertArray[] = $e->getId();
                 }
@@ -180,17 +181,17 @@ class Model
 
         return $this->insertArray;
     }
-	/**
-	* getInsertFields
-	*
-	* @return string getInsertFields
-	*/
-    public function getInsertColumns() : string
+    /**
+     * getInsertFields
+     *
+     * @return string getInsertFields
+     */
+    public function getInsertColumns(): string
     {
         if (is_null($this->insertString)) {
             $insertString = '';
 
-            array_map(function($e) use ($insertString) {
+            array_map(function ($e) use ($insertString) {
                 if (!$e->getPrimary() || (!$e->getAuto() && !is_null($e->getSource()))) {
                     $insertString .= $e->getId() . ',';
                 }
@@ -201,17 +202,17 @@ class Model
 
         return $this->insertString;
     }
-	/**
-	* getInsertValues
-	*
-	* @return string getInsertValues
-	*/
-    public function getInsertValues() : string
+    /**
+     * getInsertValues
+     *
+     * @return string getInsertValues
+     */
+    public function getInsertValues(): string
     {
         if (is_null($this->insertString)) {
             $insertString = '';
 
-            array_map(function($e) use ($insertString) {
+            array_map(function ($e) use ($insertString) {
                 if (!$e->getPrimary() || (!$e->getAuto() && !is_null($e->getSource()))) {
                     $insertString .= $e->getId() . ',';
                 }
@@ -222,25 +223,30 @@ class Model
 
         return $this->insertString;
     }
-	/**
-	* getPrimaryKeys
-	*
-	* @return string getPrimaryKeys
-	*/
-    public function getPrimaryKeys() : array
+    /**
+     * getPrimaryKeys
+     *
+     * @return string getPrimaryKeys
+     */
+    public function getPrimaryKeys(): array
     {
-        return array_filter($this->getColumns(), function($column) {
-            if ($column->getPrimary()) {
-                return $column;
-            }
-        });
+        return array_filter($this->getColumns(), fn($column) => $column->getPrimary());
     }
-	/**
-	* parseField
-	*
-	* @return \MonitoLib\Database\Model\Field $field
-	*/
-    private function parseField(string $id, array $field) : \MonitoLib\Database\Model\Column
+    /**
+     * getQueryFields
+     *
+     * @return string getQueryFields
+     */
+    public function getQueryFields(): array
+    {
+        return array_filter($this->getColumns(), fn($column) => $column->getQuery());
+    }
+    /**
+     * parseField
+     *
+     * @return \MonitoLib\Database\Model\Field $field
+     */
+    private function parseField(string $id, array $field): \MonitoLib\Database\Model\Column
     {
         // if (!isset($this->fields[$fieldName])) {
         //     throw new BadRequest("O campo $fieldName não existe no modelo");
@@ -262,21 +268,21 @@ class Model
 
         return $fieldObj;
     }
-	/**
-	* getTableName
-	*
-	* @return string $tableName
-	*/
-    public function getTableName() : string
+    /**
+     * getTableName
+     *
+     * @return string $tableName
+     */
+    public function getTableName(): string
     {
-        return $this->table['name'];
+        return $this->table['name'] ?? $this->table;
     }
-	/**
-	* getTableType
-	*
-	* @return string $tableType
-	*/
-    public function getTableType() : string
+    /**
+     * getTableType
+     *
+     * @return string $tableType
+     */
+    public function getTableType(): string
     {
         return $this->table['type'] ?? 'table';
     }
@@ -287,27 +293,25 @@ class Model
 
 
 
-// $this->model->getFields()
-// $this->model->getFields()
+    // $this->model->getFields()
+    // $this->model->getFields()
 
-// $this->model->getFieldsInsert()
-// $this->model->getFieldsInsert()
+    // $this->model->getFieldsInsert()
+    // $this->model->getFieldsInsert()
 
-// $this->model->getPrimaryKeys();
-// $this->model->getPrimaryKeys();
+    // $this->model->getPrimaryKeys();
+    // $this->model->getPrimaryKeys();
 
-// $this->model->getTableName()
-// $this->model->getTableName()
+    // $this->model->getTableName()
+    // $this->model->getTableName()
 
-// $this->model->getTableType()
+    // $this->model->getTableType()
 
-// $this->model->getUniqueConstraints(),
-// $this->model->getUniqueConstraints(),
+    // $this->model->getUniqueConstraints(),
+    // $this->model->getUniqueConstraints(),
 
-// $this->model->validate($dto
-// $this->model->validate($dto
-
-
+    // $this->model->validate($dto
+    // $this->model->validate($dto
 
 
 
@@ -335,162 +339,164 @@ class Model
 
 
 
-//     protected $constraints;
-//     protected $tableType = 'table';
-//     protected $fieldsInsert;
-//     private $parsedFields = [];
 
-//     public function getUniqueConstraints()
-//     {
-//         return $this->constraints['unique'] ?? null;
-//     }
-//     public function getField($field)
-//     {
-//         if (!isset($parsedFields)) {
-//             $this->parsedFields[$field] = $this->parseField($field);
-//         }
 
-//         return $this->parsedFields[$field];
-//     }
-//     public function getFieldName($field)
-//     {
-//         if (isset($this->fields[$field])) {
-//             return $this->fields[$field]['name'];
-//         }
-//     }
-//     public function getFields()
-//     {
-//         $fields = $this->fields;
+    //     protected $constraints;
+    //     protected $tableType = 'table';
+    //     protected $fieldsInsert;
+    //     private $parsedFields = [];
 
-//         $func = function ($fields) {
-//             $f = Functions::arrayMergeRecursive($this->fieldDefaults, $fields);
+    //     public function getUniqueConstraints()
+    //     {
+    //         return $this->constraints['unique'] ?? null;
+    //     }
+    //     public function getField($field)
+    //     {
+    //         if (!isset($parsedFields)) {
+    //             $this->parsedFields[$field] = $this->parseField($field);
+    //         }
 
-//             if ($f['type'] === 'date' && is_null($f['format'])) {
-//                 $f['format'] = 'Y-m-d';
-//             }
+    //         return $this->parsedFields[$field];
+    //     }
+    //     public function getFieldName($field)
+    //     {
+    //         if (isset($this->fields[$field])) {
+    //             return $this->fields[$field]['name'];
+    //         }
+    //     }
+    //     public function getFields()
+    //     {
+    //         $fields = $this->fields;
 
-//             if (!is_null($f['transform'])) {
-//                 $transform = explode(',', $f['transform']);
-//                 $insert = ':' . $f['name'];
+    //         $func = function ($fields) {
+    //             $f = Functions::arrayMergeRecursive($this->fieldDefaults, $fields);
 
-//                 foreach ($transform as $t) {
-//                     $insert = $t . '(' . $insert . ')';
-//                 }
+    //             if ($f['type'] === 'date' && is_null($f['format'])) {
+    //                 $f['format'] = 'Y-m-d';
+    //             }
 
-//                 $f['transform'] = $insert;
-//             }
+    //             if (!is_null($f['transform'])) {
+    //                 $transform = explode(',', $f['transform']);
+    //                 $insert = ':' . $f['name'];
 
-//             return $f;
-//         };
+    //                 foreach ($transform as $t) {
+    //                     $insert = $t . '(' . $insert . ')';
+    //                 }
 
-//         $fields = array_map($func, $fields);
+    //                 $f['transform'] = $insert;
+    //             }
 
-//         return $fields;
-//     }
-//     // Retorna string com campos da tabela separados por vírgula, ignorando campos de auto incremento
-//     public function getFieldsInsert()
-//     {
-//         if (is_null($this->fieldsInsert)) {
-//             $func = function ($value) {
-//                 if (!$value['primary'] || !is_null($value['auto'])) {
-//                     return true;
-//                 }
-//             };
+    //             return $f;
+    //         };
 
-//             $this->fieldsInsert = array_filter($this->getFields(), $func);
-//         }
+    //         $fields = array_map($func, $fields);
 
-//         return $this->fieldsInsert;
-//     }
-//     // Retorna array com lista dos campos da tabela
-//     public function getFieldsList()
-//     {
-//         return array_keys($this->fields);
-//     }
-//     public function getName()
-//     {
-//         $class = get_class($this);
-//         return substr($class, strrpos($class, '\\') + 1);
-//     }
-//     public function getPrimaryKeys()
-//     {
-//         return $this->keys;
-//     }
-//     public function getPrimaryKey()
-//     {
-//         $keys = 'id';
+    //         return $fields;
+    //     }
+    //     // Retorna string com campos da tabela separados por vírgula, ignorando campos de auto incremento
+    //     public function getFieldsInsert()
+    //     {
+    //         if (is_null($this->fieldsInsert)) {
+    //             $func = function ($value) {
+    //                 if (!$value['primary'] || !is_null($value['auto'])) {
+    //                     return true;
+    //                 }
+    //             };
 
-//         if (!is_null($this->keys)) {
-//             $keys = null;
+    //             $this->fieldsInsert = array_filter($this->getFields(), $func);
+    //         }
 
-//             foreach ($this->keys as $k) {
-//                 $keys .= "$k,";
-//             }
+    //         return $this->fieldsInsert;
+    //     }
+    //     // Retorna array com lista dos campos da tabela
+    //     public function getFieldsList()
+    //     {
+    //         return array_keys($this->fields);
+    //     }
+    //     public function getName()
+    //     {
+    //         $class = get_class($this);
+    //         return substr($class, strrpos($class, '\\') + 1);
+    //     }
+    //     public function getPrimaryKeys()
+    //     {
+    //         return $this->keys;
+    //     }
+    //     public function getPrimaryKey()
+    //     {
+    //         $keys = 'id';
 
-//             $keys = substr($keys, 0, -1);
-//         }
+    //         if (!is_null($this->keys)) {
+    //             $keys = null;
 
-//         return $keys;
-//     }
-//     public function listFieldsNames()
-//     {
-//         $list = [];
+    //             foreach ($this->keys as $k) {
+    //                 $keys .= "$k,";
+    //             }
 
-//         foreach ($this->fields as $key => $value) {
-//             if (isset($value['name'])) {
-//                 $list[] = $value['name'];
-//             } else {
-//                 $list[] = $key;
-//             }
-//         }
+    //             $keys = substr($keys, 0, -1);
+    //         }
 
-//         return $list;
-//     }
-//     public function getTableName()
-//     {
-//         return $this->tableName;
-//     }
-//     public function getTableType()
-//     {
-//         return $this->tableType;
-//     }
-//     private function parseField(string $fieldName)
-//     {
-//         if (!isset($this->fields[$fieldName])) {
-//             return [];
-//             // throw new BadRequest("O campo $fieldName não existe no modelo");
-//         }
+    //         return $keys;
+    //     }
+    //     public function listFieldsNames()
+    //     {
+    //         $list = [];
 
-//         $field = new \MonitoLib\Database\Model\Field();
-//         $field->setId($fieldName)
-//             ->setName($fieldName);
+    //         foreach ($this->fields as $key => $value) {
+    //             if (isset($value['name'])) {
+    //                 $list[] = $value['name'];
+    //             } else {
+    //                 $list[] = $key;
+    //             }
+    //         }
 
-//         foreach ($this->fields[$fieldName] as $property => $value) {
-//             $set = 'set' . ucfirst($property);
-//             $field->$set($value);
-//         }
+    //         return $list;
+    //     }
+    //     public function getTableName()
+    //     {
+    //         return $this->tableName;
+    //     }
+    //     public function getTableType()
+    //     {
+    //         return $this->tableType;
+    //     }
+    //     private function parseField(string $fieldName)
+    //     {
+    //         if (!isset($this->fields[$fieldName])) {
+    //             return [];
+    //             // throw new BadRequest("O campo $fieldName não existe no modelo");
+    //         }
 
-//         // $field
-//         //     ->setAuto($auto)
-//         //     ->setSource($source)
-//         //     ->setType($type)
-//         //     ->setFormat($format)
-//         //     ->setCharset($charset)
-//         //     ->setCollation($collation)
-//         //     ->setDefault($default)
-//         //     ->setLabel($label)
-//         //     ->setMaxLength($maxLength)
-//         //     ->setMinLength($minLength)
-//         //     ->setMaxValue($maxValue)
-//         //     ->setMinValue($minValue)
-//         //     ->setPrecision($precision)
-//         //     ->setScale($scale)
-//         //     ->setPrimary($primary)
-//         //     ->setRequired($required)
-//         //     ->setTransform($transform)
-//         //     ->setUnique($unique)
-//         //     ->setUnsigned($unsigned);
+    //         $field = new \MonitoLib\Database\Model\Field();
+    //         $field->setId($fieldName)
+    //             ->setName($fieldName);
 
-//         return $field;
-//     }
+    //         foreach ($this->fields[$fieldName] as $property => $value) {
+    //             $set = 'set' . ucfirst($property);
+    //             $field->$set($value);
+    //         }
+
+    //         // $field
+    //         //     ->setAuto($auto)
+    //         //     ->setSource($source)
+    //         //     ->setType($type)
+    //         //     ->setFormat($format)
+    //         //     ->setCharset($charset)
+    //         //     ->setCollation($collation)
+    //         //     ->setDefault($default)
+    //         //     ->setLabel($label)
+    //         //     ->setMaxLength($maxLength)
+    //         //     ->setMinLength($minLength)
+    //         //     ->setMaxValue($maxValue)
+    //         //     ->setMinValue($minValue)
+    //         //     ->setPrecision($precision)
+    //         //     ->setScale($scale)
+    //         //     ->setPrimary($primary)
+    //         //     ->setRequired($required)
+    //         //     ->setTransform($transform)
+    //         //     ->setUnique($unique)
+    //         //     ->setUnsigned($unsigned);
+
+    //         return $field;
+    //     }
 }

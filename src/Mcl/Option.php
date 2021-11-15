@@ -3,13 +3,13 @@ namespace MonitoLib\Mcl;
 
 class Option
 {
-    protected $alias;
-    protected $help;
-    protected $method;
-    protected $name;
-    protected $required;
-    protected $type;
-    protected $value;
+    protected ?string $alias = null;
+    protected ?string $help = null;
+    protected ?string $method = null;
+    protected ?string $name = null;
+    protected bool $required = false;
+    protected ?string $type = null;
+    protected ?string $value = null;
 
     /**
     * getAlias

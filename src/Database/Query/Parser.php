@@ -2,15 +2,13 @@
 
 namespace MonitoLib\Database\Query;
 
-use \MonitoLib\Database\Model;
-use \MonitoLib\Database\Query\Filter;
-use \MonitoLib\Database\Query\Filter\Where;
-use \MonitoLib\Database\Query\Options;
-use \MonitoLib\Exception\BadRequest;
-use \MonitoLib\Exception\InternalError;
-use \MonitoLib\Exception\NotFound;
-use \MonitoLib\Functions;
-use \MonitoLib\Validator;
+use MonitoLib\Database\Model;
+use MonitoLib\Database\Query;
+use MonitoLib\Database\Query\Filter;
+use MonitoLib\Database\Query\Filter\Where;
+use MonitoLib\Database\Query\Options;
+use MonitoLib\Exception\BadRequest;
+use MonitoLib\Exception\NotFound;
 
 class Parser
 {
@@ -22,14 +20,11 @@ class Parser
 
     private $query;
 
-    public function parse(
-        ?string $queryString,
-        ?Model $model = null,
-        ?\MonitoLib\Database\Dao $dao = null
-    ): Filter
+    public function parse(?string $queryString, ?Model $model = null): Filter
     {
         $fields = is_null($queryString) ? [] : explode('&', $queryString);
         $filter = new Filter();
+        $query  = '';
 
         foreach ($fields as $field) {
             $p = strpos($field, '=');
@@ -48,15 +43,21 @@ class Parser
                     $filter = $filter->setPerPage($v);
                     break;
                 case 'orderby';
-                    $parts = explode(',', $v);
-                    $c = $parts[0];
-                    $d = $parts[1] ?? 'ASC';
+                    $parts  = explode(',', $v);
+                    $c      = $parts[0];
+                    $d      = $parts[1] ?? 'ASC';
                     $filter = $filter->addOrderBy($c, $d);
                     break;
                 default:
-                    $filter = $this->parseFilter($filter, $f, $v, $model);
+                    if ($f === 'q') {
+                        $query = $v;
+                    } else {
+                        $filter = $this->parseFilter($filter, $f, $v, $model);
+                    }
             }
         }
+
+        $filter = $this->parseQuery($filter, $query, $model);
 
         return $filter;
     }
@@ -79,14 +80,17 @@ class Parser
 
         return $column;
     }
-    private function parseFilter($filter, string $field, ?string $value, ?object $model = null)
+    private function parseFilter(Filter $filter, string $field, ?string $value, ?object $model = null): Filter
     {
         $type = 'string';
         $comparison = '=';
 
+
         if (!is_null($model)) {
+            $columnsName = explode('.', $field);
+
             // Identifica a coluna no modelo
-            $column = $this->getColumn($model, explode('.', $field));
+            $column = $this->getColumn($model, $columnsName);
             $type   = $column->getType();
             $field  = $column->getName();
         }
@@ -258,6 +262,41 @@ class Parser
     private function parseNumberValue(string $value)
     {
         return $value;
+    }
+    private function parseQuery(Filter $filter, string $value, ?object $model = null): Filter
+    {
+        $qf = $model->getQueryFields();
+
+        $total = count($qf);
+        $i = 1;
+
+        foreach ($qf as $q) {
+            if ($i === 1) {
+                $o = Query::START_GROUP;
+            } else {
+                $o = Query::OR;
+
+                if ($i >= $total) {
+                    $o += Query::END_GROUP;
+                }
+            }
+
+            $i++;
+
+            $options = new Options($o);
+
+            $field = $q->getName();
+            $where = new Where();
+            $where
+                ->setColumn($field)
+                ->setComparison('LIKE')
+                ->setValue("%{$value}%")
+                ->setType('strin')
+                ->setOptions($options);
+            $filter->addWhere($where);
+        }
+
+        return $filter;
     }
     private function parseString($field, $value)
     {

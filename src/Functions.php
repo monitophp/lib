@@ -466,31 +466,6 @@ class Functions
 			}
 		}
 
-		// \MonitoLib\Dev::ee($string);
-
-		// if (strtolower($string) == 'status') {
-		// 	return $string;
-		// }
-		// if (preg_match('/ens$/', $string)) {
-		// 	$string = substr($string, 0, -3) . 'em';
-		// }
-		// if (preg_match('/ies$/', $string)) {
-		// 	$string = substr($string, 0, -3) . 'y';
-		// }
-		// if (preg_match('/oes$/', $string)) {
-		// 	$string = substr($string, 0, -3) . 'ao';
-		// }
-		// //if (preg_match('/res$/', $string))
-		// //{
-		// //	$string = substr($string, 0, -2);
-		// //}
-		// if (preg_match('/tchs$/', $string)) {
-		// 	$string = substr($string, 0, -1);
-		// }
-		// if (preg_match('/[acdeiouglkmnprt]s$/', $string)) {
-		// 	$string = substr($string, 0, -1);
-		// }
-
 		return $string;
 	}
 	public static function toUpperCamelCase(string $string) : string

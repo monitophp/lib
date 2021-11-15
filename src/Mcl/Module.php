@@ -1,16 +1,14 @@
 <?php
-namespace MonitoLib\Mcl;
 
-use \MonitoLib\Exception\InternalError;
-use \MonitoLib\Functions;
+namespace MonitoLib\Mcl;
 
 class Module // extends \MonitoLib\Mcl
 {
     const VERSION = '1.0.0';
 
-    protected $commands = [];
-    protected $name;
-    protected $help;
+    protected array $commands = [];
+    protected string $name = '';
+    protected string $help = '';
 
     public function addCommand(\MonitoLib\Mcl\Command $command)
     {
@@ -51,7 +49,7 @@ class Module // extends \MonitoLib\Mcl
         $this->showVersion();
 
         foreach ($this->commands as $command) {
-            echo str_pad($command->getName(), 20) .  $command->getHelp(). "\n";
+            echo str_pad($command->getName(), 20) .  $command->getHelp() . "\n";
         }
         exit;
     }

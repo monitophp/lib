@@ -98,7 +98,7 @@ class Validator
             $id        = $column->getId();
             $auto      = $column->getAuto();
             $type      = $column->getType();
-            $format    = $column->getFormat();
+            // $format    = $column->getFormat();
             $required  = $column->getRequired();
             $default   = $column->getDefault();
             $maxLength = $column->getMaxLength();

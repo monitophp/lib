@@ -6,10 +6,10 @@ use \MonitoLib\Functions;
 
 class Param // extends \MonitoLib\Mcl
 {
-    protected $help;
-    protected $name;
+    protected string $help = '';
+    protected string $name = '';
     protected $required;
-    protected $value;
+    protected ?string $value;
 
     public function addCommand(\MonitoLib\Mcl\Command $command)
     {

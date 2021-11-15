@@ -12,10 +12,10 @@ class Column
 
 	private $id;
 	private $name;
-	private $auto = false;
+	private bool $auto = false;
 	private $source;
 	private $type = 'string';
-	private $format;
+	private ?string $format;
 	private $charset = 'utf8';
 	private $collation = 'utf8_general_ci';
 	private $alias;
@@ -35,6 +35,7 @@ class Column
 	private $unsigned = false;
 	private $onInsert;
 	private $onUpdate;
+	private bool $query = false;
 
 	/**
 	 * getAlias
@@ -188,6 +189,15 @@ class Column
 	public function getPrimary(): bool
 	{
 		return $this->primary;
+	}
+	/**
+	 * getQuery
+	 *
+	 * @return $query
+	 */
+	public function getQuery(): bool
+	{
+		return $this->query;
 	}
 	/**
 	 * getRequired
@@ -432,6 +442,16 @@ class Column
 	public function setPrimary(?bool $primary)
 	{
 		$this->primary = $primary;
+		return $this;
+	}
+	/**
+	 * setQuery
+	 *
+	 * @param $query
+	 */
+	public function setQuery(?bool $query)
+	{
+		$this->query = $query;
 		return $this;
 	}
 	/**

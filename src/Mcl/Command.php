@@ -6,12 +6,12 @@ use \MonitoLib\Functions;
 
 class Command // extends \MonitoLib\Mcl
 {
-    protected $class;
-    protected $help;
-    protected $method;
-    protected $name;
-    protected $options = [];
-    protected $params = [];
+    protected string $class = '';
+    protected string $help = '';
+    protected string $method = '';
+    protected string $name = '';
+    protected array $options = [];
+    protected array $params = [];
 
     public function addOption(\MonitoLib\Mcl\Option $option)
     {

@@ -21,7 +21,16 @@ class Dataset implements \JsonSerializable
 	}
 	public function __toString(): string
 	{
-		return '{"data": ' . (string)$this->data . ','
+		// $db = \MonitoLib\Dev::db();
+		// \MonitoLib\Dev::pre($db);
+
+		$data = $this->data;
+
+		if (is_array($data)) {
+			$data = '[]';
+		}
+
+		return '{"data": ' . (string)$data . ','
 			. '"pagination": ' . (string)$this->pagination
 			. '}';
 		// return join(array_map(fn($e) => (string)$e, $this->data));

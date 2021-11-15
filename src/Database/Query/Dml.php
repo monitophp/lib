@@ -434,7 +434,7 @@ class Dml
             $name      = $column->getName();
             $type      = $column->getType();
             $primary   = $column->getPrimary();
-            $format    = $column->getFormat();
+            // $format    = $column->getFormat();
             $transform = $column->getTransform();
             $get       = 'get' . ucfirst($id);
             $value = $dto->$get();
@@ -631,6 +631,8 @@ class Dml
                 }
             }
         }
+
+        // \MonitoLib\Dev::ee($this->whereString);
 
         return $this->whereString;
     }
