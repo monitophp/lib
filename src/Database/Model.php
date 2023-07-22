@@ -1,55 +1,51 @@
 <?php
+/**
+ * Database\Model.
+ *
+ * @version 1.0.2
+ */
+
 namespace MonitoLib\Database;
 
-use \MonitoLib\Exception\InvalidModel;
-use \MonitoLib\Exception\BadRequest;
-use \MonitoLib\Functions;
-use \MonitoLib\Validator;
+use MonitoLib\Exception\InvalidModelException;
+use MonitoLib\Validator;
 
 class Model
 {
-    const VERSION = '1.0.1';
-    /**
-    * 1.0.2 - 2021-05-04
-    * new: getField return
-    *
-    * 1.0.1 - 2019-06-05
-    * new: model name in validate thrown error message
-    *
-    * 1.0.0 - 2019-04-17
-    * first versioned
-    */
-
     protected $constraints;
     protected $tableType = 'table';
+    protected $fields;
+    protected $keys;
+    protected $tableName;
     protected $fieldDefaults = [
-        'auto'      => false,
-        'source'    => null,
-        'type'      => 'string',
-        'format'    => null,
-        'charset'   => 'utf8',
+        'auto' => false,
+        'source' => null,
+        'type' => 'string',
+        'format' => null,
+        'charset' => 'utf8',
         'collation' => 'utf8_general_ci',
-        'default'   => null,
-        'label'     => '',
+        'default' => null,
+        'label' => '',
         'maxLength' => 0,
         'minLength' => 0,
-        'maxValue'  => 0,
-        'minValue'  => 0,
+        'maxValue' => 0,
+        'minValue' => 0,
         'precision' => null,
-        'scale'     => null,
-        'primary'   => false,
-        'required'  => false,
+        'scale' => null,
+        'primary' => false,
+        'required' => false,
         'transform' => null,
-        'unique'    => false,
-        'unsigned'  => false,
+        'unique' => false,
+        'unsigned' => false,
     ];
     protected $fieldsInsert;
     private $parsedFields = [];
 
-    public function getUniqueConstraints ()
+    public function getUniqueConstraints()
     {
         return $this->constraints['unique'] ?? null;
     }
+
     public function getField($field)
     {
         if (!isset($parsedFields)) {
@@ -58,18 +54,20 @@ class Model
 
         return $this->parsedFields[$field];
     }
-    public function getFieldName ($field)
+
+    public function getFieldName($field)
     {
         if (isset($this->fields[$field])) {
             return $this->fields[$field]['name'];
         }
     }
-    public function getFields ()
+
+    public function getFields()
     {
         $fields = $this->fields;
 
         $func = function ($fields) {
-            $f = Functions::arrayMergeRecursive($this->fieldDefaults, $fields);
+            $f = ml_array_merge_recursive($this->fieldDefaults, $fields);
 
             if ($f['type'] === 'date' && is_null($f['format'])) {
                 $f['format'] = 'Y-m-d';
@@ -89,12 +87,10 @@ class Model
             return $f;
         };
 
-        $fields = array_map($func, $fields);
-
-        return $fields;
+        return array_map($func, $fields);
     }
-    // Retorna string com campos da tabela separados por vírgula, ignorando campos de auto incremento
-    public function getFieldsInsert ()
+
+    public function getFieldsInsert()
     {
         if (is_null($this->fieldsInsert)) {
             $func = function ($value) {
@@ -108,21 +104,25 @@ class Model
 
         return $this->fieldsInsert;
     }
-    // Retorna array com lista dos campos da tabela
-    public function getFieldsList ()
+
+    public function getFieldsList()
     {
         return array_keys($this->fields);
     }
-    public function getName ()
+
+    public function getName()
     {
         $class = get_class($this);
+
         return substr($class, strrpos($class, '\\') + 1);
     }
-    public function getPrimaryKeys ()
+
+    public function getPrimaryKeys()
     {
         return $this->keys;
     }
-    public function getPrimaryKey ()
+
+    public function getPrimaryKey()
     {
         $keys = 'id';
 
@@ -130,7 +130,7 @@ class Model
             $keys = null;
 
             foreach ($this->keys as $k) {
-                $keys .= "$k,";
+                $keys .= "{$k},";
             }
 
             $keys = substr($keys, 0, -1);
@@ -138,7 +138,8 @@ class Model
 
         return $keys;
     }
-    public function listFieldsNames ()
+
+    public function listFieldsNames()
     {
         $list = [];
 
@@ -152,53 +153,17 @@ class Model
 
         return $list;
     }
-    public function getTableName ()
+
+    public function getTableName()
     {
         return $this->tableName;
     }
-    public function getTableType ()
+
+    public function getTableType()
     {
         return $this->tableType;
     }
-    private function parseField(string $fieldName)
-    {
-        if (!isset($this->fields[$fieldName])) {
-            return [];
-            // throw new BadRequest("O campo $fieldName não existe no modelo");
-        }
 
-        $field = new \MonitoLib\Database\Model\Field();
-        $field->setId($fieldName)
-            ->setName($fieldName);
-
-        foreach ($this->fields[$fieldName] as $property => $value) {
-            $set = 'set' . ucfirst($property);
-            $field->$set($value);
-        }
-
-        // $field
-        //     ->setAuto($auto)
-        //     ->setSource($source)
-        //     ->setType($type)
-        //     ->setFormat($format)
-        //     ->setCharset($charset)
-        //     ->setCollation($collation)
-        //     ->setDefault($default)
-        //     ->setLabel($label)
-        //     ->setMaxLength($maxLength)
-        //     ->setMinLength($minLength)
-        //     ->setMaxValue($maxValue)
-        //     ->setMinValue($minValue)
-        //     ->setPrecision($precision)
-        //     ->setScale($scale)
-        //     ->setPrimary($primary)
-        //     ->setRequired($required)
-        //     ->setTransform($transform)
-        //     ->setUnique($unique)
-        //     ->setUnsigned($unsigned);
-
-        return $field;
-    }
     public function validate(object $dto)
     {
         $errors = [];
@@ -206,74 +171,87 @@ class Model
         $fields = $this->getFields();
 
         foreach ($fields as $fk => $fv) {
-            $get       = 'get' . ucfirst($fk);
-            $value     = $dto->$get();
-            $label     = $fv['label'];
-            $auto      = $fv['auto'];
-            $type      = $fv['type'];
-            $format    = $fv['format'];
-            $required  = $fv['required'];
-            $default   = $fv['default'];
+            $get = 'get' . ucfirst($fk);
+            $value = $dto->{$get}();
+            $label = $fv['label'];
+            $auto = $fv['auto'];
+            $type = $fv['type'];
+            $format = $fv['format'];
+            $required = $fv['required'];
+            $default = $fv['default'];
             $maxLength = $fv['maxLength'];
             $minLength = $fv['minLength'];
-            $maxValue  = $fv['maxValue'];
-            $minValue  = $fv['minValue'];
-            $length    = mb_strlen($value);
-            $vType     = gettype($value);
+            $maxValue = $fv['maxValue'];
+            $minValue = $fv['minValue'];
+            $length = is_string($value) ? mb_strlen($value) : 0;
+            $vType = gettype($value);
 
             if (is_null($value) || $value === '') {
-                // Verifica se um campo requerido foi informado
                 if ($required) {
                     if (!$auto && ((is_null($value) || $value === '') && is_null($default))) {
-                        $errors[] = "O campo {$label} é requerido";
+                        $errors[] = "Field {$fk} is required";
                     }
                 }
             } else {
-                // Verifica se o campo é do tipo esperado
                 if ($type === 'int' || $type === 'double') {
                     if ($type === 'int' && !is_numeric($value) && !$auto) {
-                        $errors[] = "O campo {$label} espera um número inteiro e {$vType} foi informado";
+                        $errors[] = "Field {$fk} expects an integer and {$vType} given";
                     }
 
                     if ($type === 'float' && !is_float($value)) {
-                        $errors[] = "O campo {$label} espera um número decimal e {$vType} foi informado";
+                        $errors[] = "Field {$fk} expects a flot and {$vType} given";
                     }
 
                     if (is_numeric($value)) {
-                        // Verifica o valor máximo do campo
                         if ($maxValue > 0 && $value > $maxValue) {
-                            $errors[] = "O valor máximo do campo {$label} é {$maxValue} mas {$value} foi informado";
+                            $errors[] = "Max value for {$fk} is {$maxValue} and {$value} given";
                         }
 
-                        // Verifica o tamanho mínimo do campo
-                        if ($minValue > 0 && $value > $minValue) {
-                            $errors[] = "O tamanho mínimo do campo {$label} é {$minValue} mas {$value} foi informado";
+                        if ($minValue > 0 && $value < $minValue) {
+                            $errors[] = "Min value for {$fk} is {$minValue} and {$value} given";
                         }
                     }
                 }
 
                 if ($type === 'date' && !Validator::date($value, $format)) {
                     if ($format === 'Y-m-d') {
-                        $errors[] = "Data inválida para o campo {$label}: $value";
+                        $errors[] = "Invalid date for field {$fk}: {$value}";
                     } else {
-                        $errors[] = "Data/hora inválida para o campo {$label}: $value";
+                        $errors[] = "Invalid datetime for field {$fk}: {$value}";
                     }
                 }
 
-                // Verifica o tamanho máximo do campo
                 if ($maxLength > 0 && $length > $maxLength) {
-                    $errors[] = "O tamanho máximo do campo {$label} é {$maxLength} mas {$length} foi informado";
+                    $errors[] = "Max length for {$fk} is {$minLength} and {$length} given";
                 }
 
-                // Verifica o tamanho mínimo do campo
                 if ($minLength > 0 && $length < $minLength) {
-                    $errors[] = "O tamanho mínimo do campo {$label} é {$minLength} mas {$length} foi informado";
+                    $errors[] = "Min length for {$fk} is {$minLength} and {$length} given";
                 }
             }
         }
 
         if (!empty($errors)) {
-            throw new InvalidModel('Model ' . get_class($this) . ' inválido: ' . implode(' | ', $errors), $errors);
+            throw new InvalidModelException('Invalid model ' . get_class($this) . ': ' . implode(' | ', $errors), $errors);
         }
+    }
+
+    private function parseField(string $fieldName)
+    {
+        if (!isset($this->fields[$fieldName])) {
+            return [];
+        }
+
+        $field = new \MonitoLib\Database\Model\Field();
+        $field->setId($fieldName)
+            ->setName($fieldName)
+        ;
+
+        foreach ($this->fields[$fieldName] as $property => $value) {
+            $set = 'set' . ucfirst($property);
+            $field->{$set}($value);
+        }
+
+        return $field;
     }
 }

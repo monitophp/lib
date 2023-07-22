@@ -1,209 +1,212 @@
 <?php
+/**
+ * Controller.
+ *
+ * @version 2.0.1
+ */
+
 namespace MonitoLib;
 
-use \MonitoLib\Exception\BadRequest;
-use \MonitoLib\Exception\NotFound;
-use \MonitoLib\Request;
-use \MonitoLib\Response;
+use MonitoLib\Exception\BadRequestException;
+use MonitoLib\Exception\NotFoundException;
 
 class Controller
 {
-    const VERSION = '2.0.0';
-    /**
-    * 2.0.0 - 2020-09-18
-    * new: overwrite for CRUD methods
-    * new: static Response/Request
-    *
-    * 1.0.0 - 2019-04-17
-    * first versioned
-    */
+    protected $notFound;
 
-	private $dao;
-	private $daoName;
-	private $dataset;
-	private $dto;
-	private $dtoName;
-	private $fields;
-	private $model;
-	private $modelName;
-	private $orderBy;
-	private $page;
-	private $perPage;
-	private $query;
+    private $dao;
+    private $daoName;
+    private $dataset;
+    private $dto;
+    private $dtoName;
+    private $fields;
+    private $model;
+    private $modelName;
+    private $orderBy;
+    private $page;
+    private $perPage;
+    private $query;
 
-	protected $notFound;
+    public function __construct()
+    {
+        $classParts = explode('\\', get_class($this));
+        $namespace = join('\\', array_slice($classParts, 0, -2)) . '\\';
+        $className = end($classParts);
+        $this->daoName = $namespace . 'Dao\\' . $className;
+        $this->dtoName = $namespace . 'Dto\\' . $className;
+        $this->modelName = $namespace . 'Model\\' . $className;
+    }
 
-	public function __construct()
-	{
-		$classParts      = explode('\\', get_class($this));
-		$namespace       = join('\\', array_slice($classParts, 0, -2)) . '\\';
-		$className       = end($classParts);
-		$this->daoName   = $namespace . 'Dao\\' . $className;
-		$this->dtoName   = $namespace . 'Dto\\' . $className;
-		$this->modelName = $namespace . 'Model\\' . $className;
-	}
+    public function __call($name, $arguments)
+    {
+        $method = '_' . $name;
 
-	public function __call($name, $arguments)
-	{
-		$method = '_' . $name;
+        if (!method_exists($this, $method)) {
+            throw new NotFoundException("Method doesn't exists: {$name}");
+        }
 
-		if (!method_exists($this, $method)) {
-	        throw new NotFound("Method $name doesn't exists");
-		}	
+        return $this->{$method}(...$arguments);
+    }
 
-		return $this->$method(...$arguments);
-	}
-	public function _create($mix = null)
-	{
-		if (is_null($mix)) {
-	    	$json[] = Request::getJson();
-		} else {
-			if (is_array($mix)) {
-				$json = $mix;
-			} else {
-				$json[] = $mix;
-			}
-		}
+    public function _create($mix = null)
+    {
+        if (is_null($mix)) {
+            $json[] = Request::getJson();
+        } else {
+            if (is_array($mix)) {
+                $json = $mix;
+            } else {
+                $json[] = $mix;
+            }
+        }
 
-		$dao = new $this->daoName;
+        $dao = new $this->daoName();
 
-		foreach ($json as $j) {
-		    $dto = $this->jsonToDto(new $this->dtoName, $j);
-		    $dao->insert($dto);
-		}
+        foreach ($json as $j) {
+            $dto = $this->jsonToDto(new $this->dtoName(), $j);
+            $dao->insert($dto);
+        }
 
-	    Response::setHttpResponseCode(201);
-	}
-	public function _delete(...$keys)
-	{
-		if (empty($keys)) {
-			throw new BadRequest('Não é possível deletar sem parâmetros!');
-		}
+        Response::setHttpResponseCode(201);
+    }
 
-	    $dao   = $this->getDao();
-		$model = $this->getModel();
+    public function _delete(...$keys)
+    {
+        if (empty($keys)) {
+            throw new BadRequestException('Invalid parameters');
+        }
 
-		if (!empty($keys)) {
-			$primaryKeys = $model->getPrimaryKeys();
+        $dao = $this->getDao();
+        $model = $this->getModel();
 
-			$i = 0;
+        if (!empty($keys)) {
+            $primaryKeys = $model->getPrimaryKeys();
 
-			foreach ($primaryKeys as $field) {
-				$dao->equal($field, $keys[$i], $dao::FIXED_QUERY);
-				$i++;
-			}
-		}
+            $i = 0;
 
-		$dao->delete();
+            foreach ($primaryKeys as $field) {
+                $dao->equal($field, $keys[$i], $dao::FIXED_QUERY);
+                ++$i;
+            }
+        }
 
-	    Response::setHttpResponseCode(204);
-	}
-	public function _get(...$keys)
-	{
-	    $dao   = $this->getDao();
-		$model = $this->getModel();
+        $dao->delete();
 
-		if (!empty($keys)) {
-			$primaryKeys = $model->getPrimaryKeys();
+        Response::setHttpResponseCode(204);
+    }
 
-			$i = 0;
+    public function _get(...$keys)
+    {
+        $dao = $this->getDao();
+        $model = $this->getModel();
 
-			foreach ($primaryKeys as $field) {
-				$dao->equal($field, $keys[$i], $dao::FIXED_QUERY);
-				$i++;
-			}
-		}
+        if (!empty($keys)) {
+            $primaryKeys = $model->getPrimaryKeys();
 
-		$dataset = $this->dataset ?? Request::asDataset();
-		$fields  = $this->fields ?? Request::getFields();
-		$orderBy = $this->orderBy ?? Request::getOrderBy();
-		$page    = $this->page ?? Request::getPage();
-		$perPage = $this->perPage ?? Request::getPerPage();
-		$query   = $this->query ?? Request::getQuery();
+            $i = 0;
 
-	    $dao->setFields($fields)
-	    	->setQuery($query);
+            foreach ($primaryKeys as $field) {
+                $dao->equal($field, $keys[$i], $dao::FIXED_QUERY);
+                ++$i;
+            }
+        }
 
-	    if (empty($keys)) {
-    	    $dao->setPerPage($perPage)
-    	        ->setPage($page)
-	        	->setOrderBy($orderBy);
+        $dataset = $this->dataset ?? Request::asDataset();
+        $fields = $this->fields ?? Request::getFields();
+        $orderBy = $this->orderBy ?? Request::getOrderBy();
+        $page = $this->page ?? Request::getPage();
+        $perPage = $this->perPage ?? Request::getPerPage();
+        $query = $this->query ?? Request::getQuery();
 
-    	    if ($dataset) {
-    	        return $dao->dataset();
-    	    } else {
-    	        return $dao->list();
-    	    }
-	    } else {
-    	    $dto = $dao->get();
+        $dao->setFields($fields)
+            ->setQuery($query)
+        ;
 
-    	    if (is_null($dto)) {
-    	        throw new NotFound($this->notFound ?? 'Registro não encontrado!');
-    	    }
+        if (empty($keys)) {
+            $dao->setPerPage($perPage)
+                ->setPage($page)
+                ->setOrderBy($orderBy)
+            ;
 
-    	    return $dto;
-    	}
-	}
-	public function _update(...$keys)
-	{
-		$json  = Request::getJson();
-		$dao   = $this->getDao();
-		$model = $this->getModel();
+            if ($dataset) {
+                return $dao->dataset();
+            }
 
-		if (!empty($keys)) {
-			$primaryKeys = $model->getPrimaryKeys();
+            return $dao->list();
+        }
+        $dto = $dao->get();
 
-			$i = 0;
+        if (is_null($dto)) {
+            throw new NotFoundException($this->notFound ?? 'Resource not found');
+        }
 
-			foreach ($primaryKeys as $field) {
-				$dao->equal($field, $keys[$i], $dao::FIXED_QUERY);
-				$i++;
-			}
-		}
+        return $dto;
+    }
 
-		$dto = $this->_get(...$keys);
+    public function _update(...$keys)
+    {
+        $json = Request::getJson();
+        $dao = $this->getDao();
+        $model = $this->getModel();
 
-	    if (is_null($dto)) {
-	        throw new NotFound($this->notFound ?? 'Registro não encontrado!');
-	    }
+        if (!empty($keys)) {
+            $primaryKeys = $model->getPrimaryKeys();
 
-		$dto = $this->jsonToDto($dto, $json);
-		$dao->update($dto);
+            $i = 0;
 
-	    Response::setHttpResponseCode(201);
-	}
-	public function getDao()
-	{
-		if (is_null($this->dao)) {
-			$this->dao = new $this->daoName;
-		}
+            foreach ($primaryKeys as $field) {
+                $dao->equal($field, $keys[$i], $dao::FIXED_QUERY);
+                ++$i;
+            }
+        }
 
-		return $this->dao;
-	}
-	public function getModel()
-	{
-		if (is_null($this->model)) {
-			$this->model = new $this->modelName;
-		}
+        $dto = $this->_get(...$keys);
 
-		return $this->model;
-	}
-	public function jsonToDto($dto, $json)
-	{
-		if (!is_null($json)) {
-			foreach ($json as $k => $v) {
-				$method = 'set' . \MonitoLib\Functions::toUpperCamelCase($k);
-				if (method_exists($dto, $method)) {
-					$dto->$method($v);
-				}
-			}
-		}
+        if (is_null($dto)) {
+            throw new NotFoundException($this->notFound ?? 'Resource not found');
+        }
 
-		return $dto;
-	}
-	public function toNull($value)
-	{
-		return $value === '' ? null : $value;
-	}
+        $dto = $this->jsonToDto($dto, $json);
+        $dao->update($dto);
 
+        Response::setHttpResponseCode(201);
+    }
+
+    public function getDao()
+    {
+        if (is_null($this->dao)) {
+            $this->dao = new $this->daoName();
+        }
+
+        return $this->dao;
+    }
+
+    public function getModel()
+    {
+        if (is_null($this->model)) {
+            $this->model = new $this->modelName();
+        }
+
+        return $this->model;
+    }
+
+    public function jsonToDto($dto, $json)
+    {
+        if (!is_null($json)) {
+            foreach ($json as $k => $v) {
+                $method = 'set' . to_upper_camel_case($k);
+
+                if (method_exists($dto, $method)) {
+                    $dto->{$method}($v);
+                }
+            }
+        }
+
+        return $dto;
+    }
+
+    public function toNull($value)
+    {
+        return $value === '' ? null : $value;
+    }
 }

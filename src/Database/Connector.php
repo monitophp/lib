@@ -1,118 +1,91 @@
 <?php
 /**
- * Database connector
- * @author Joelson B <joelsonb@msn.com>
- * @copyright Copyright &copy; 2013 - 2018
+ * Database\Connector.
  *
- * @package MonitoLib
+ * @version 3.0.0
  */
+
 namespace MonitoLib\Database;
 
-use \MonitoLib\App;
-use \MonitoLib\Exception\InternalError;
+use MonitoLib\Exception\InternalErrorException;
 
 class Connector
 {
-    const VERSION = '2.1.0';
-    /**
-    * 2.1.0 - 2021-03-16
-    * new: addParam
-	*
-    * 2.0.0 - 2020-09-18
-    * new: static properties and methods
-    * new: connection source, methods payload and return types
-    *
-    * 1.0.0 - 2019-04-17
-    * first versioned
-    */
-	private static $active = [];
-	private static $configured = [];
-	private static $default;
-	private static $instance;
-	private static $params = [];
+    private static $active = [];
+    private static $configured = [];
+    private static $instance;
+    private static $params = [];
 
-	public static function addParam(string $connectionName, string $param)
-	{
-		self::$params[$connectionName] = $param;
-	}
-	/**
-	 * getInstance
-	 *
-	 * @return returns instance of \jLib\Connector;
-	 */
-	public static function getInstance() : self
-	{
-		if (!isset(self::$instance)) {
-			self::$instance = new \MonitoLib\Database\Connector();
-		}
+    public static function addParam(string $connectionName, string $param)
+    {
+        self::$params[$connectionName] = $param;
+    }
 
-		return self::$instance;
-	}
-	public static function getConnection($connectionName = null)
-	{
-		$connectionName = $connectionName ?? self::$default;
+    public static function getInstance(): self
+    {
+        if (!isset(self::$instance)) {
+            self::$instance = new \MonitoLib\Database\Connector();
+        }
 
-		if (is_null($connectionName)) {
-			throw new InternalError('Não existe uma conexão padrão e nenhuma conexão foi informada');
-		}
+        return self::$instance;
+    }
 
-		$p = explode('.', $connectionName);
+    public static function getConnection($connectionName = null)
+    {
+        $name = strtoupper($connectionName ?? 'default');
+        $conn = $name === 'DEFAULT' ? '' : "{$name}_" . 'DB_';
+        $type = env("{$conn}TYPE");
+        $host = env("{$conn}HOST");
+        $user = env("{$conn}USER");
+        $database = env("{$conn}DATABASE");
+        $pass = env("{$conn}PASS");
+        $charset = env("{$conn}CHARSET");
 
-		$connection = $p[0] . (isset(self::$params[$connectionName]) ? ':' . self::$params[$connectionName] : '');
-		$enviroment = $p[1] ?? App::getEnv();
-		$name       = $connection . '.' . $enviroment;
+        $class = '\MonitoLib\Database\Connector\\' . $type;
 
-		// Retorna a conexão, se configurada
-		if (isset(self::$active[$name])) {
-			return self::$active[$name];
-		}
+        if (!class_exists($class)) {
+            throw new InternalErrorException("Invalid connection type: {$type}");
+        }
 
-		if (!isset(self::$configured[$connection])) {
-			throw new InternalError("A conexão $connection não existe");
-		}
+        if (is_null($charset)) {
+            $charsets = [
+                'Oracle' => 'AL32UTF8',
+                'MySQL' => 'UTF8',
+            ];
 
-		if (!isset(self::$configured[$connection][$enviroment])) {
-			throw new InternalError("O ambiente $enviroment não está configurado na conexão $connection");
-		}
+            $charset = $charsets[$type] ?? null;
+        }
 
-		$params = self::$configured[$connection][$enviroment];
-		$params['name'] = $connection;
-		$params['env']  = $enviroment;
+        if (is_null($type)) {
+            throw new InternalErrorException('Database connection not defined: ' . $name);
+        }
 
-		$dbms = self::$configured[$connection][$enviroment]['type'];
+        if (isset(self::$active[$name])) {
+            return self::$active[$name];
+        }
 
-		if ($dbms === 'Rest') {
-			return $params;
-		} else {
-			$class = '\MonitoLib\Database\Connector\\' . $dbms;
+        return self::$active[$name] = new $class([
+            'type' => $type,
+            'host' => $host,
+            'user' => $user,
+            'database' => $database,
+            'pass' => $pass,
+            'charset' => $charset,
+        ]);
+    }
 
-			if (!class_exists($class)) {
-				throw new InternalError("Tipo de conexão $dbms inválido");
-			}
+    public static function getConnectionsList(): array
+    {
+        return self::$configured;
+    }
 
-			return self::$active[$name] = new $class($params);
-		}
-	}
-	/**
-	 * getConnectionsList
-	 *
-	 * @return array Connections list
-	 */
-	public static function getConnectionsList() : array
-	{
-		return self::$configured;
-	}
-	/**
-	 * setConnectionName
-	 *
-	 * @param string $connectionName Connection name
-	 */
-	public static function setConnectionName(string $connectionName) : void
-	{
-		self::$default = $connectionName;
-	}
-	public static function setConnections(array $connections) : void
-	{
-		self::$configured = $connections;
-	}
+    public static function setConnectionName(string $connectionName): void
+    {
+        self::$default = $connectionName;
+    }
+
+    public static function setConnections(array $connections): void
+    {
+        self::$configured = $connections;
+    }
 }

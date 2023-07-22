@@ -5,3 +5,4 @@ log/
 storage/
 tmp/
 sqlnet.log
+.env

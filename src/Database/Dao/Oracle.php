@@ -1,83 +1,58 @@
 <?php
+/**
+ * Database\Dao\Oracle.
+ *
+ * @version 1.3.0
+ */
+
 namespace MonitoLib\Database\Dao;
 
-use \MonitoLib\Exception\BadRequest;
-use \MonitoLib\Exception\DatabaseError;
-use \MonitoLib\Functions;
+use MonitoLib\Exception\BadRequestException;
+use MonitoLib\Exception\DatabaseErrorException;
 
-class Oracle extends \MonitoLib\Database\Query\Sql // implements \MonitoLib\Database\Dao
+class Oracle extends \MonitoLib\Database\Query\Sql
 {
-    const VERSION = '1.2.1';
-    /**
-    * 1.2.1 - 2020-09-18
-    * new: minor changes
-    *
-    * 1.2.0 - 2020-05-19
-    * fix: minor fixes
-    *
-    * 1.1.1 - 2019-12-09
-    * fix: minor fixes
-    *
-    * 1.1.0 - 2019-10-29
-    * new: list() now paginates
-    * fix: minor fixes
-    *
-    * 1.0.3 - 2019-05-05
-    * fix: date format on update
-    *
-    * 1.0.2 - 2019-05-03
-    * fix: dataset for date fields
-    *
-    * 1.0.1 - 2019-05-02
-    * fix: checks returned value from get function
-    *
-    * 1.0.0 - 2019-04-17
-    * first versioned
-    */
     protected $dbms = 2;
-    private $executeMode;
     protected $lastId;
-    private $numRows = 0;
+    private $executeMode;
 
     public function __construct()
     {
         $this->executeMode = OCI_COMMIT_ON_SUCCESS;
         parent::__construct();
     }
+
     public function beginTransaction()
     {
         $this->executeMode = OCI_NO_AUTO_COMMIT;
     }
+
     public function commit()
     {
-        @oci_commit($this->getConnection());
+        @oci_commit($this->getConnection($this->connection));
         $this->executeMode = OCI_COMMIT_ON_SUCCESS;
     }
+
     public function count()
     {
         $sql = $this->renderCountSql();
         $stt = $this->parse($sql);
         $this->execute($stt);
         $res = oci_fetch_row($stt);
-
-        // Reset filter
         $this->reset();
 
         return $res[0];
     }
+
     public function dataset()
     {
-        $data   = [];
+        $data = [];
         $return = [];
 
         $perPage = $this->getPerPage();
         $sqlTotal = $this->renderCountSql(true);
         $sqlCount = $this->renderCountSql();
-        $sqlData  = $this->renderSelectSql();
-
-        // \MonitoLib\Dev::e("$sqlTotal\n");
-        // \MonitoLib\Dev::e("$sqlCount\n");
-        // \MonitoLib\Dev::ee("$sqlData\n");
+        $sqlData = $this->renderSelectSql();
 
         $stt = $this->parse($sqlTotal);
         $this->execute($stt);
@@ -94,109 +69,94 @@ class Oracle extends \MonitoLib\Database\Query\Sql // implements \MonitoLib\Data
             $return['count'] = +$count;
 
             if ($count > 0) {
-                $page    = $this->getPage();
-                $pages   = $perPage > 0 ? ceil($count / $perPage) : 1;
+                $page = $this->getPage();
+                $pages = $perPage > 0 ? ceil($count / $perPage) : 1;
 
                 if ($page > $pages) {
-                    throw new BadRequest("Número da página atual ($page) maior que o número de páginas ($pages)!");
+                    throw new BadRequestException("Current page ({$page}) is bigger than total pages ({$pages})");
                 }
 
-                if ($perPage > 0) {
-                    $startRow = (($page - 1) * $perPage) + 1;
-                    $endRow   = $perPage * $page;
-                    $sqlData  = "SELECT {$this->renderFieldsSql(false)} FROM (SELECT a.*, ROWNUM as rown_ FROM ($sqlData) a) WHERE rown_ BETWEEN $startRow AND $endRow";
-                }
-
-                // Reset $sql
                 $this->reset();
 
-                // \MonitoLib\Dev::vd($count);
-                // \MonitoLib\Dev::vd($perPage);
-                // \MonitoLib\Dev::vde($pages);
-
                 $data = $this->list($sqlData);
-                // $data = $this->setSql($sqlData)->list();
-                $return['data']  = $data;
-                $return['page']  = +$page;
+                $return['data'] = $data;
+                $return['page'] = +$page;
                 $return['pages'] = +$pages;
             }
         }
 
         return $return;
     }
+
     public function delete(...$params)
     {
         if ($this->model->getTableType() === 'view') {
-            throw new BadRequest('Não é possível deletar dados de uma view!');
+            throw new BadRequestException('Cannot delete from a view');
         }
 
-        if (empty($params)) {
-            // throw new BadRequest('Não foram informados parâmetros para deletar!');
-        } else {
-            $keys = $this->model->getPrimaryKeys();
+        $keys = $this->model->getPrimaryKeys();
 
-            if (count($params) !== count($keys)) {
-                throw new BadRequest('Invalid parameters number!');
-            }
+        if (count($params) !== count($keys)) {
+            throw new BadRequestException('Invalid parameters number');
+        }
 
-            foreach ($params as $p) {
-                foreach ($keys as $k) {
-                    $this->equal($k, $p);
-                }
+        foreach ($params as $p) {
+            foreach ($keys as $k) {
+                $this->equal($k, $p);
             }
         }
 
         $sql = $this->renderDeleteSql();
-
-        // \MonitoLib\Dev::ee($sql);
-
         $stt = $this->parse($sql);
         $this->execute($stt);
-
-        // Reset filter
         $this->reset();
-
-        // if (oci_num_rows($stt) === 0) {
-            // throw new BadRequest('Não foi possível deletar!');
-        // }
     }
+
     public function execute($stt)
     {
         $exe = @oci_execute($stt, $this->executeMode);
 
         if (!$exe) {
             $e = @oci_error($stt);
-            throw new DatabaseError('Ocorreu um erro no banco de dados', $e);
+
+            throw new DatabaseErrorException('Database error has occurred', $e);
         }
 
         return $stt;
     }
+
     public function fetchAll($stt)
     {
         oci_fetch_all($stt, $res, null, null, OCI_FETCHSTATEMENT_BY_ROW + OCI_ASSOC);
+
         return $res;
     }
+
     public function fetchArrayAssoc($stt)
     {
         return oci_fetch_array($stt, OCI_ASSOC | OCI_RETURN_NULLS);
     }
+
     public function fetchArrayNum($stt)
     {
         return oci_fetch_array($stt, OCI_NUM | OCI_RETURN_NULLS);
     }
+
     public function get($sql = null)
     {
         $res = $this->list($sql);
         $this->reset();
-        return isset($res[0]) ? $res[0] : null;
+
+        return $res[0] ?? null;
     }
+
     public function getById(...$params)
     {
         if (!empty($params)) {
             $keys = $this->model->getPrimaryKeys();
 
             if (count($params) !== count($keys)) {
-                throw new BadRequest('Invalid parameters number!');
+                throw new BadRequestException('Invalid parameters number');
             }
 
             if (count($params) > 1) {
@@ -212,24 +172,21 @@ class Oracle extends \MonitoLib\Database\Query\Sql // implements \MonitoLib\Data
             return $this->get();
         }
     }
+
     public function getLastId()
     {
         return $this->lastId;
     }
+
     public function insert($dto)
     {
         if (!$dto instanceof $this->dtoName) {
-            throw new BadRequest('O parâmetro passado não é uma instância de ' . $this->dtoName . '!');
+            throw new BadRequestException('Parameter is not an instance of ' . $this->dtoName);
         }
 
-        // Valida o objeto dto
         $this->model->validate($dto);
 
-        // Atualiza o objeto com os valores automáticos, caso não informados
         $dto = $this->setAutoValues($dto);
-
-        // Verifica se existe constraint de chave única
-        $this->checkUnique($this->model->getUniqueConstraints(), $dto);
 
         $fld = '';
         $val = '';
@@ -240,35 +197,32 @@ class Oracle extends \MonitoLib\Database\Query\Sql // implements \MonitoLib\Data
             switch ($f['type']) {
                 case 'date':
                     $format = $f['format'] === 'Y-m-d H:i:s' ? 'YYYY-MM-DD HH24:MI:SS' : 'YYYY-MM-DD';
-                    $val .= "TO_DATE(:{$f['name']}, '$format'),";
+                    $val .= "TO_DATE(:{$f['name']}, '{$format}'),";
                     break;
+
                 default:
                     $val .= ($f['transform'] ?? ':' . $f['name']) . ',';
-                    break;
             }
         }
 
         $fld = substr($fld, 0, -1);
         $val = substr($val, 0, -1);
 
-        $sql = 'INSERT INTO ' . $this->model->getTableName() . " ($fld) VALUES ($val)";
-
-        // \MonitoLib\Dev::pre($dto);
-        // \MonitoLib\Dev::e("$sql\n");
-
+        $sql = 'INSERT INTO ' . $this->model->getTableName() . " ({$fld}) VALUES ({$val})";
         $stt = $this->parse($sql);
 
         foreach ($this->model->getFieldsInsert() as $f) {
-            $var  = Functions::toLowerCamelCase($f['name']);
-            $get  = 'get' . ucfirst($var);
-            $$var = $dto->$get();
+            $var = to_lower_camel_case($f['name']);
+            $get = 'get' . ucfirst($var);
+            ${$var} = $dto->{$get}();
 
-            @oci_bind_by_name($stt, ':' . $f['name'], $$var);
+            @oci_bind_by_name($stt, ':' . $f['name'], ${$var});
         }
 
         $stt = $this->execute($stt);
     }
-    public function list(string $sql = null) : array
+
+    public function list(?string $sql = null): array
     {
         if (is_null($sql)) {
             $sql = $this->renderSelectSql();
@@ -288,18 +242,21 @@ class Oracle extends \MonitoLib\Database\Query\Sql // implements \MonitoLib\Data
 
         return $data;
     }
+
     public function nextValue($sequence)
     {
-        $sql = "SELECT $sequence.nextval FROM dual";
+        $sql = "SELECT {$sequence}.nextval FROM dual";
         $stt = $this->parse($sql);
         $this->execute($stt);
         $res = $this->fetchArrayNum($stt);
+
         return $res[0];
     }
+
     public function paramValue($tableName, $param, $nextValue = true)
     {
         $nvl = $nextValue ? 1 : 0;
-        $sql = "SELECT NVL($param, $nvl) FROM {$tableName} FOR UPDATE";
+        $sql = "SELECT NVL({$param}, {$nvl}) FROM {$tableName} FOR UPDATE";
         $stt = $this->parse($sql);
         $this->execute($stt);
         $res = $this->fetchArrayNum($stt);
@@ -308,32 +265,35 @@ class Oracle extends \MonitoLib\Database\Query\Sql // implements \MonitoLib\Data
         $newValue = $value;
 
         if (!$nextValue) {
-            $value++;
+            ++$value;
         }
 
-        $newValue++;
+        ++$newValue;
 
-        $sql = "UPDATE $tableName SET $param = $newValue";
+        $sql = "UPDATE {$tableName} SET {$param} = {$newValue}";
         $stt = $this->parse($sql);
         $this->execute($stt);
 
         return $value;
     }
+
     public function parse($sql)
     {
-        $stt = @oci_parse($this->getConnection(), $sql);
+        $stt = @oci_parse($this->getConnection($this->connection), $sql);
 
         if (!$stt) {
             $e = @oci_error($stt);
-            throw new DatabaseError('Ocorreu um erro no banco de dados', $e);
+
+            throw new DatabaseErrorException('Database error has occurred', $e);
         }
 
         return $stt;
     }
+
     public function procedure($name, ...$params)
     {
-        $params = array_map(function($item){
-            return is_null($item) ? 'NULL' : (is_numeric($item) ? $item : "'$item'");
+        $params = array_map(function ($item) {
+            return is_null($item) ? 'NULL' : (is_numeric($item) ? $item : "'{$item}'");
         }, $params);
 
         $prt = explode('.', $name);
@@ -341,10 +301,10 @@ class Oracle extends \MonitoLib\Database\Query\Sql // implements \MonitoLib\Data
         $prc = strtoupper($prt[1]) ?? null;
 
         $sql = 'SELECT argument_name, in_out FROM USER_ARGUMENTS '
-            . "WHERE object_name = UPPER('$prc') ";
+            . "WHERE object_name = UPPER('{$prc}') ";
 
         if (!is_null($pkg)) {
-            $sql .= "AND package_name = UPPER('$pkg') ";
+            $sql .= "AND package_name = UPPER('{$pkg}') ";
         }
 
         $sql .= 'ORDER BY sequence';
@@ -353,31 +313,32 @@ class Oracle extends \MonitoLib\Database\Query\Sql // implements \MonitoLib\Data
         $this->execute($stt);
         $res = $this->fetchAll($stt);
 
-        $arg   = [];
+        $arg = [];
 
         foreach ($res as $r) {
             $arg[] = $r['ARGUMENT_NAME'];
         }
 
         $prm = implode(',:', $arg);
-        $sql = "BEGIN $name(:$prm);END;";
+        $sql = "BEGIN {$name}(:{$prm});END;";
         $stt = $this->parse($sql);
 
         $index = 0;
-        $out   = [];
+        $out = [];
+
         foreach ($res as $r) {
             $a = $r['ARGUMENT_NAME'];
             $t = $r['IN_OUT'];
             $arg[] = $a;
 
-            if ($t === 'IN') {
+            if ('IN' === $t) {
                 $v = $params[$index];
                 @oci_bind_by_name($stt, ':' . $a, $params[$index]);
             } else {
                 $out[] = $a;
-                @oci_bind_by_name($stt, ':' . $a, $$a, 255);
+                @oci_bind_by_name($stt, ':' . $a, ${$a}, 255);
             }
-            $index++;
+            ++$index;
         }
 
         $this->execute($stt);
@@ -386,31 +347,28 @@ class Oracle extends \MonitoLib\Database\Query\Sql // implements \MonitoLib\Data
             $res = [];
 
             foreach ($out as $o) {
-                $res[$o] = $$o;
+                $res[$o] = ${$o};
             }
 
             return $res;
         }
     }
+
     public function rollback()
     {
-        @oci_rollback($this->getConnection());
+        @oci_rollback($this->getConnection($this->connection));
         $this->executeMode = OCI_COMMIT_ON_SUCCESS;
     }
+
     public function update($dto)
     {
         if (!$dto instanceof $this->dtoName) {
-            throw new BadRequest('O parâmetro passado não é uma instância de ' . $this->dtoName . '!');
+            throw new BadRequestException('Parameter is not an instance of ' . $this->dtoName);
         }
 
-        // Valida o objeto dto
         $this->model->validate($dto);
 
-        // Atualiza o objeto com os valores automáticos, caso não informados
         $dto = $this->setAutoValues($dto, true);
-
-        // Verifica se existe constraint de chave única
-        $this->checkUnique($this->model->getUniqueConstraints(), $dto);
 
         $key = '';
         $fld = '';
@@ -419,16 +377,16 @@ class Oracle extends \MonitoLib\Database\Query\Sql // implements \MonitoLib\Data
             $name = $f['name'];
 
             if ($f['primary']) {
-                $key .= "$name = :$name AND ";
+                $key .= "{$name} = :{$name} AND ";
             } else {
                 switch ($f['type']) {
                     case 'date':
-                        $format = $f['format'] === 'Y-m-d H:i:s' ? 'YYYY-MM-DD HH24:MI:SS' : 'YYYY-MM-DD';
-                        $fld .= "$name = TO_DATE(:{$f['name']}, '$format'),";
+                        $format = 'Y-m-d H:i:s' === $f['format'] ? 'YYYY-MM-DD HH24:MI:SS' : 'YYYY-MM-DD';
+                        $fld .= "{$name} = TO_DATE(:{$f['name']}, '{$format}'),";
                         break;
+
                     default:
-                        $fld .= "$name = " . ($f['transform'] ?? ":$name") . ',';
-                        break;
+                        $fld .= "{$name} = " . ($f['transform'] ?? ":{$name}") . ',';
                 }
             }
         }
@@ -436,21 +394,21 @@ class Oracle extends \MonitoLib\Database\Query\Sql // implements \MonitoLib\Data
         $key = substr($key, 0, -5);
         $fld = substr($fld, 0, -1);
 
-        $sql = 'UPDATE ' . $this->model->getTableName() . " SET $fld WHERE $key";
+        $sql = 'UPDATE ' . $this->model->getTableName() . " SET {$fld} WHERE {$key}";
         $stt = $this->parse($sql);
 
         foreach ($this->model->getFields() as $f) {
-            $var  = Functions::toLowerCamelCase($f['name']);
-            $get  = 'get' . ucfirst($var);
-            $$var = $dto->$get();
+            $var = to_lower_camel_case($f['name']);
+            $get = 'get' . ucfirst($var);
+            ${$var} = $dto->{$get}();
 
-            @oci_bind_by_name($stt, ':' . $f['name'], $$var);
+            @oci_bind_by_name($stt, ':' . $f['name'], ${$var});
         }
 
         $stt = $this->execute($stt);
 
         if (oci_num_rows($stt) === 0) {
-            throw new BadRequest('Não foi possível atualizar!');
+            throw new BadRequestException('Update failed');
         }
     }
 }

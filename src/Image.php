@@ -1,31 +1,17 @@
 <?php
+/**
+ * Image.
+ *
+ * @version 1.2.2
+ */
+
 namespace MonitoLib;
 
-use \MonitoLib\App;
-use \MonitoLib\Exception\BadRequest;
-use \MonitoLib\Exception\NotFound;
+use MonitoLib\Exception\BadRequestException;
+use MonitoLib\Exception\NotFoundException;
 
 class Image
 {
-    const VERSION = '1.2.1';
-    /**
-    * 1.2.1 - 2021-06-02
-    * fix: adjust if newer image size is the same as older
-    * fix: convertToJpeg() set correct mimetype
-    *
-    * 1.2.0 - 2021-05-17
-    * new: convertToJpeg()
-    *
-    * 1.1.0 - 2021-05-10
-    * new: getHeight(), getMimetype(), getSize(), getWidth
-    *
-    * 1.0.1 - 2021-05-04
-    * new: using only GD to optimize images
-    *
-    * 1.0.0 - 2020-09-28
-    * Initial release
-    */
-
     private $base64encode;
     private $height;
     private $image;
@@ -38,18 +24,18 @@ class Image
     public function __construct($file)
     {
         $this->parse($file);
-        $this->tmpFile = App::getTmpPath() . sha1(App::now() . rand(1, 999999));
-
+        $this->tmpFile = App::getTmpPath() . sha1(now() . rand(1, 999999));
     }
+
     public function __destruct()
     {
         if (file_exists($this->tmpFile)) {
             unlink($this->tmpFile);
         }
     }
-    public function adjust(int $width, int $height) : self
+
+    public function adjust(int $width, int $height): self
     {
-        // Verifica se o novo tamanho é maior que o da imagem atual
         if ($this->width < $width && $this->height < $height) {
             return $this;
         }
@@ -62,24 +48,20 @@ class Image
             $nh = $height;
         }
 
-        // Cria uma imagem em branco
         $di = imagecreatetruecolor($nw, $nh);
 
-        // Redimensiona a imagem
         if (imagecopyresampled($di, $this->image, 0, 0, 0, 0, $nw, $nh, $this->width, $this->height)) {
-            $this->image  = $di;
-            $this->width  = imagesx($this->image);
+            $this->image = $di;
+            $this->width = imagesx($this->image);
             $this->height = imagesy($this->image);
         }
 
-        // Ajusta a tela da imagem
         if ($this->width !== $this->height) {
             $nil = $this->width > $this->height ? $this->width : $this->height;
 
             $di = imagecreatetruecolor($nil, $nil);
             $bg = imagecolorallocate($di, 255, 255, 255);
             imagefill($di, 0, 0, $bg);
-
 
             if ($this->width > $this->height) {
                 $nx = 0;
@@ -91,23 +73,26 @@ class Image
 
             if (imagecopyresampled($di, $this->image, $nx, $ny, 0, 0, $this->width, $this->height, $this->width, $this->height)) {
                 $this->image = $di;
-                $this->width  = imagesx($this->image);
+                $this->width = imagesx($this->image);
                 $this->height = imagesy($this->image);
             }
         }
 
         $this->updateDimensions();
         $this->base64encode = null;
+
         return $this;
     }
-    public function autocrop(string $color = 'ffffff') : self
+
+    public function autocrop(): self
     {
-        // Croppa a imagem
-        $this->image  = imagecropauto($this->image, IMG_CROP_WHITE);
+        $this->image = imagecropauto($this->image, IMG_CROP_WHITE);
         $this->updateDimensions();
         $this->base64encode = null;
+
         return $this;
     }
+
     public function convertToJpeg()
     {
         $bg = imagecreatetruecolor($this->width, $this->height);
@@ -117,29 +102,8 @@ class Image
         $this->image = $bg;
         $this->mimetype = 'image/jpeg';
     }
-    private function create(string $file) : void
-    {
-        switch ($this->mimetype) {
-            case 'image/bmp':
-                $this->image = imagecreatefrombmp($file);
-                break;
-            case 'image/gif':
-                $this->image = imagecreatefromgif($file);
-                break;
-            case 'image/jpeg':
-                $this->image = imagecreatefromjpeg($file);
-                break;
-            case 'image/png':
-                $this->image = imagecreatefrompng($file);
-                break;
-            case 'image/webp':
-                $this->image = imagecreatefromwebp($file);
-                break;
-            default:
-                throw new BadRequest("Tipo de imagem inválido: {$this->mimetype}");
-        }
-    }
-    public function getBase64Encode() : string
+
+    public function getBase64Encode(): string
     {
         if (is_null($this->base64encode)) {
             $this->save($this->tmpFile);
@@ -149,27 +113,33 @@ class Image
 
         return $this->base64encode;
     }
-    public function getHeight() : int
+
+    public function getHeight(): int
     {
         return $this->height;
     }
-    public function getMimetype() : string
+
+    public function getMimetype(): string
     {
         return $this->mimetype;
     }
-    public function getQuality() : float
+
+    public function getQuality(): float
     {
         return $this->quality;
     }
-    public function getSize() : int
+
+    public function getSize(): int
     {
         return $this->size;
     }
-    public function getWidth() : int
+
+    public function getWidth(): int
     {
         return $this->width;
     }
-    public function optimize(float $quality, ?int $maxSize = 0) : self
+
+    public function optimize(float $quality, ?int $maxSize = 0): self
     {
         $this->quality = $quality;
 
@@ -183,44 +153,76 @@ class Image
 
                 $this->quality = $quality;
 
-                $quality -= 1;
+                --$quality;
             }
 
             $this->size = $size;
         }
 
         $this->base64encode = null;
+
         return $this;
     }
-    private function parse(string $file) : void
-    {
-        if (!file_exists($file)) {
-            throw new NotFound("O arquivo $file não foi encontrado");
-        }
 
-        // Identifica o tipo da imagem
-        $imi = getimagesize($file);
-        $this->width    = $imi[0];
-        $this->height   = $imi[1];
-        $this->mimetype = $imi['mime'];
-        $this->size     = filesize($file);
-
-        // Cria a image
-        $this->create($file);
-    }
     public function parseSize(string $file)
     {
         clearstatcache(true, $file);
+
         return filesize($file);
     }
-    public function save(string $file) : self
+
+    public function save(string $file): self
     {
         imagejpeg($this->image, $file, $this->quality);
+
         return $this;
     }
-    private function updateDimensions() : void
+
+    private function create(string $file): void
     {
-        $this->width  = imagesx($this->image);
+        switch ($this->mimetype) {
+            case 'image/bmp':
+                $this->image = imagecreatefrombmp($file);
+                break;
+
+            case 'image/gif':
+                $this->image = imagecreatefromgif($file);
+                break;
+
+            case 'image/jpeg':
+                $this->image = imagecreatefromjpeg($file);
+                break;
+
+            case 'image/png':
+                $this->image = imagecreatefrompng($file);
+                break;
+
+            case 'image/webp':
+                $this->image = imagecreatefromwebp($file);
+                break;
+
+            default:
+                throw new BadRequestException("Invalid image type: {$this->mimetype}");
+        }
+    }
+
+    private function parse(string $file): void
+    {
+        if (!file_exists($file)) {
+            throw new NotFoundException("File not found: {$file}");
+        }
+
+        $imi = getimagesize($file);
+        $this->width = $imi[0];
+        $this->height = $imi[1];
+        $this->mimetype = $imi['mime'];
+        $this->size = filesize($file);
+        $this->create($file);
+    }
+
+    private function updateDimensions(): void
+    {
+        $this->width = imagesx($this->image);
         $this->height = imagesy($this->image);
     }
 }
